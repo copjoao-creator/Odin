@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ODIN · Monitor do Instagram</title>
+  <title>ODIN · Monitor de redes sociais</title>
   <link rel="stylesheet" href="css/odin.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
       </svg>
       <div>
         <h1>ODIN</h1>
-        <span class="subtitle">Monitor de engajamento do Instagram</span>
+        <span class="subtitle">Monitor de engajamento · Instagram, TikTok e YouTube</span>
       </div>
     </div>
 
@@ -35,7 +35,9 @@
   <div id="banner" class="banner" hidden></div>
 
   <main>
-    <section id="kpis" class="kpis" aria-label="Indicadores da conta"></section>
+    <nav id="tabs" class="tabs" aria-label="Filtrar por rede social"></nav>
+
+    <section id="kpis" class="kpis" aria-label="Indicadores"></section>
 
     <div class="layout">
       <section class="panel">
@@ -46,7 +48,7 @@
               <option value="momentum">Em alta agora</option>
               <option value="recent">Mais recentes</option>
               <option value="engagement">Mais engajamento</option>
-              <option value="reach">Maior alcance</option>
+              <option value="views">Mais visualizações</option>
             </select>
           </label>
         </div>
@@ -77,50 +79,99 @@
     <form id="settingsForm" method="dialog">
       <h2>Configurações do ODIN</h2>
 
-      <fieldset>
-        <legend>Fonte de dados</legend>
-        <label class="radio"><input type="radio" name="mode" value="demo"> Modo demonstração (dados simulados)</label>
-        <label class="radio"><input type="radio" name="mode" value="real"> Minha conta do Instagram (Graph API oficial)</label>
-      </fieldset>
-
-      <fieldset id="realFields">
-        <legend>Conexão com o Instagram</legend>
-        <label>Tipo de login do app Meta
-          <select name="apiHost">
-            <option value="graph.instagram.com">Instagram API com login do Instagram (graph.instagram.com)</option>
-            <option value="graph.facebook.com">Instagram API com login do Facebook (graph.facebook.com)</option>
+      <!-- Instagram -->
+      <details class="net" open>
+        <summary><span class="pf pf-instagram">Instagram</span> <span class="net-state" data-for="instagram"></span></summary>
+        <label>Fonte de dados
+          <select name="instagram.source" class="source">
+            <option value="off">Desligado</option>
+            <option value="demo">Demonstração (dados simulados)</option>
+            <option value="real">Minha conta (Graph API oficial)</option>
           </select>
         </label>
-        <div class="row">
-          <label>Versão da API <input name="apiVersion" placeholder="v23.0"></label>
-          <label>ID da conta do Instagram <input name="accountId" placeholder="me"></label>
-        </div>
-        <label>Token de acesso
-          <input name="token" type="password" autocomplete="off" placeholder="Cole aqui o token de acesso">
+        <fieldset class="creds" data-for="instagram">
+          <label>Tipo de login do app Meta
+            <select name="instagram.apiHost">
+              <option value="graph.instagram.com">Instagram API com login do Instagram (graph.instagram.com)</option>
+              <option value="graph.facebook.com">Instagram API com login do Facebook (graph.facebook.com)</option>
+            </select>
+          </label>
+          <div class="row">
+            <label>Versão da API <input name="instagram.apiVersion" placeholder="v23.0"></label>
+            <label>ID da conta <input name="instagram.accountId" placeholder="me"></label>
+          </div>
+          <label>Token de acesso
+            <input name="instagram.token" type="password" autocomplete="off" placeholder="Cole aqui o token de acesso">
+          </label>
+          <p class="hint">Conta Profissional (Empresa ou Criador) obrigatória. No login do Facebook, informe o ID numérico da conta do Instagram. Passo a passo no README.md.</p>
+        </fieldset>
+      </details>
+
+      <!-- TikTok -->
+      <details class="net">
+        <summary><span class="pf pf-tiktok">TikTok</span> <span class="net-state" data-for="tiktok"></span></summary>
+        <label>Fonte de dados
+          <select name="tiktok.source" class="source">
+            <option value="off">Desligado</option>
+            <option value="demo">Demonstração (dados simulados)</option>
+            <option value="real">Minha conta (Display API oficial)</option>
+          </select>
         </label>
-        <p class="hint">O token fica salvo só neste navegador (localStorage) e é enviado apenas para a API da Meta. No login do Facebook, informe o ID numérico da conta profissional do Instagram. Consulte o README.md para obter o token.</p>
-      </fieldset>
+        <fieldset class="creds" data-for="tiktok">
+          <p class="hint warn">O TikTok exige o servidor local: rode <code>servidor.ps1</code> e abra <strong>http://localhost:8787</strong>.</p>
+          <div class="row">
+            <label>Client key <input name="tiktok.clientKey" autocomplete="off"></label>
+            <label>Client secret <input name="tiktok.clientSecret" type="password" autocomplete="off"></label>
+          </div>
+          <label>Redirect URI (igual à cadastrada no app)
+            <input name="tiktok.redirectUri" placeholder="https://…">
+          </label>
+          <div class="oauth">
+            <button type="button" id="btnTtAuthorize" class="btn btn-small">1. Autorizar no TikTok ↗</button>
+            <input id="ttCode" data-skip placeholder="2. Cole aqui o código ou a URL de retorno">
+            <button type="button" id="btnTtExchange" class="btn btn-small">3. Gerar tokens</button>
+          </div>
+          <p id="ttStatus" class="hint"></p>
+          <div class="row">
+            <label>Access token <input name="tiktok.accessToken" type="password" autocomplete="off"></label>
+            <label>Refresh token <input name="tiktok.refreshToken" type="password" autocomplete="off"></label>
+          </div>
+          <p class="hint">O access token vale 24 h. Com o refresh token, a client key e a client secret preenchidos, o ODIN renova o acesso sozinho.</p>
+        </fieldset>
+      </details>
+
+      <!-- YouTube -->
+      <details class="net">
+        <summary><span class="pf pf-youtube">YouTube</span> <span class="net-state" data-for="youtube"></span></summary>
+        <label>Fonte de dados
+          <select name="youtube.source" class="source">
+            <option value="off">Desligado</option>
+            <option value="demo">Demonstração (dados simulados)</option>
+            <option value="real">Meu canal (YouTube Data API v3)</option>
+          </select>
+        </label>
+        <fieldset class="creds" data-for="youtube">
+          <div class="row">
+            <label>Chave de API <input name="youtube.apiKey" type="password" autocomplete="off" placeholder="AIza…"></label>
+            <label>Canal (@handle ou ID UC…) <input name="youtube.channel" placeholder="@seucanal"></label>
+          </div>
+          <p class="hint">Crie a chave no Google Cloud Console e ative a “YouTube Data API v3”. Cada leitura gasta 3 unidades da cota diária gratuita de 10.000.</p>
+        </fieldset>
+      </details>
 
       <fieldset>
         <legend>Monitoramento</legend>
         <div class="row">
           <label>Intervalo (segundos) <input name="interval" type="number" min="60" step="30"></label>
-          <label>Publicações monitoradas <input name="postsToWatch" type="number" min="1" max="50"></label>
+          <label>Publicações por rede <input name="postsToWatch" type="number" min="1" max="50"></label>
         </div>
-        <p class="hint">A API tem limite de chamadas por hora. Com 12 publicações, um intervalo de 300 s (5 min) é seguro. No modo demonstração, a atualização acontece a cada 10 s.</p>
+        <p class="hint">Vale para as contas reais. Com 12 publicações, 300 s (5 min) respeita os limites das três APIs. No modo demonstração, a atualização ocorre a cada 10 s.</p>
       </fieldset>
 
       <fieldset>
         <legend>Gatilhos de notificação (aumento desde a última leitura)</legend>
-        <div class="grid3">
-          <label>Visualizações <input name="thr_views" type="number" min="1"></label>
-          <label>Alcance <input name="thr_reach" type="number" min="1"></label>
-          <label>Curtidas <input name="thr_likes" type="number" min="1"></label>
-          <label>Comentários <input name="thr_comments" type="number" min="1"></label>
-          <label>Compartilhamentos <input name="thr_shares" type="number" min="1"></label>
-          <label>Salvamentos <input name="thr_saved" type="number" min="1"></label>
-        </div>
-        <label>…ou crescimento percentual de (%) <input name="thr_pct" type="number" min="1"></label>
+        <div id="thrGrid" class="thr-grid"></div>
+        <label>…ou crescimento percentual de (%) <input name="thresholds.pct" type="number" min="1"></label>
       </fieldset>
 
       <fieldset>
@@ -144,7 +195,9 @@
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
   <script src="js/util.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/sources/instagram.js"></script>
+  <script src="js/sources/tiktok.js"></script>
+  <script src="js/sources/youtube.js"></script>
   <script src="js/demo.js"></script>
   <script src="js/monitor.js"></script>
   <script src="js/advisor.js"></script>

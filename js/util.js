@@ -21,14 +21,47 @@ Odin.SHORT = {
   saved: 'Salvos'
 };
 
+/** Redes monitoradas e as métricas que cada API oficial disponibiliza. */
+Odin.PLATFORMS = {
+  instagram: {
+    label: 'Instagram',
+    metrics: ['views', 'reach', 'likes', 'comments', 'shares', 'saved'],
+    audience: 'seguidores'
+  },
+  tiktok: {
+    label: 'TikTok',
+    metrics: ['views', 'likes', 'comments', 'shares'],
+    audience: 'seguidores'
+  },
+  youtube: {
+    label: 'YouTube',
+    metrics: ['views', 'likes', 'comments'],
+    audience: 'inscritos'
+  }
+};
+Odin.PLATFORM_KEYS = Object.keys(Odin.PLATFORMS);
+
 Odin.TYPE_LABELS = {
   REELS: 'Reels',
   CAROUSEL_ALBUM: 'Carrossel',
   IMAGE: 'Foto',
-  VIDEO: 'Vídeo'
+  VIDEO: 'Vídeo',
+  TIKTOK: 'Vídeo',
+  SHORT: 'Short',
+  LONG: 'Vídeo longo'
 };
 
-Odin.TYPE_ICONS = { REELS: '🎬', CAROUSEL_ALBUM: '🗂️', IMAGE: '🖼️', VIDEO: '📹' };
+Odin.TYPE_ICONS = { REELS: '🎬', CAROUSEL_ALBUM: '🗂️', IMAGE: '🖼️', VIDEO: '📹', TIKTOK: '🎵', SHORT: '⚡', LONG: '▶️' };
+
+/** Erro padronizado das fontes de dados. `auth` indica credencial inválida ou ausente. */
+Odin.SourceError = class extends Error {
+  constructor(message, code = 0, auth = false) {
+    super(message);
+    this.code = code;
+    this.auth = auth;
+  }
+};
+Odin.Sources = {};
 
 Odin.fmt = (n) => new Intl.NumberFormat('pt-BR', { notation: n >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(n || 0);
 Odin.pct = (n) => `${(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
@@ -67,6 +100,9 @@ Odin.store = {
   }
 };
 
+/** Selo com o nome da rede. */
+Odin.pfBadge = (pf) => `<span class="pf pf-${pf}">${Odin.PLATFORMS[pf]?.label || pf}</span>`;
+
 /** Gera um SVG de linha (sparkline) a partir de uma série de números. */
 Odin.sparkline = (values, { color = '#d9a94a', height = 34, fill = true } = {}) => {
   const w = 200, h = height;
@@ -90,9 +126,15 @@ Odin.sparkline = (values, { color = '#d9a94a', height = 34, fill = true } = {}) 
 /** Miniatura da publicação (imagem real ou placeholder colorido). */
 Odin.thumbHTML = (post) => {
   const icon = Odin.TYPE_ICONS[post.type] || '🖼️';
-  const hue = post.hue ?? (parseInt(String(post.id).slice(-4), 36) % 360);
+  const hue = post.hue ?? (parseInt(String(post.id).replace(/\W/g, '').slice(-4), 36) % 360);
   const ph = `<div class="ph" style="background:linear-gradient(135deg,hsl(${hue} 55% 30%),hsl(${(hue + 60) % 360} 55% 18%))">${icon}</div>`;
   if (!post.thumb) return ph;
   return `<img src="${Odin.esc(post.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"
     onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'${icon}'}))">`;
+};
+
+/** Converte duração ISO 8601 (PT1H2M3S) em segundos. */
+Odin.isoDuration = (s) => {
+  const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(s || '') || [];
+  return (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0);
 };

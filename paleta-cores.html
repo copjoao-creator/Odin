@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paleta de Cores e Fonte — Tênis de Mesa para Todos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --marinho: #172C46;
+        --campo: #172C46;
+        --celeste: #B4ECFC;
+        --laranja: #f45900;
+        --verde: #00592D;
+        --dourado: #DAA520;
+        --neve: #fffafa;
+        --ciano: #80FFFF;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: "Source Sans 3", sans-serif;
+        font-weight: 400;
+        letter-spacing: 0.05em;
+        background: var(--marinho);
+        color: var(--celeste);
+        padding: 32px 20px 60px;
+    }
+    header {
+        max-width: 1000px;
+        margin: 0 auto 32px;
+        border: 1px solid var(--ciano);
+        border-radius: 20px;
+        padding: 28px;
+    }
+    header h1 {
+        margin: 0 0 8px;
+        color: var(--neve);
+        font-size: 26px;
+        letter-spacing: -0.01em;
+    }
+    header p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    main {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+    }
+    .swatch {
+        border: 1px solid var(--ciano);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: border-color .15s, transform .15s;
+    }
+    .swatch:hover {
+        border-color: var(--laranja);
+        transform: translateY(-2px);
+    }
+    .swatch-preview {
+        height: 100px;
+        display: flex;
+        align-items: flex-end;
+        padding: 10px 14px;
+    }
+    .swatch-preview span {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(0,0,0,.35);
+    }
+    .swatch-body {
+        padding: 14px 16px 16px;
+    }
+    .swatch-name {
+        color: var(--neve);
+        font-weight: 700;
+        font-size: 15px;
+        margin: 0 0 4px;
+    }
+    .swatch-usage {
+        font-size: 12px;
+        color: var(--celeste);
+        opacity: .85;
+        margin: 0 0 12px;
+        line-height: 1.4;
+        min-height: 34px;
+    }
+    .code-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12.5px;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        padding: 6px 0;
+        border-top: 1px dashed rgba(128,255,255,.3);
+    }
+    .code-row:first-of-type { border-top: none; }
+    .code-label { color: var(--celeste); opacity: .7; }
+    .code-value {
+        color: var(--neve);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 6px;
+        transition: background .15s;
+    }
+    .code-value:hover { background: rgba(128,255,255,.12); }
+    .code-value.copied { color: var(--laranja); }
+    .tipografia {
+        max-width: 1000px;
+        margin: 32px auto 0;
+        border: 1px solid var(--ciano);
+        border-radius: 20px;
+        padding: 28px;
+    }
+    .tipografia h2 { margin: 0 0 6px; color: var(--neve); font-size: 20px; }
+    .tipografia > p { margin: 0 0 18px; font-size: 13px; line-height: 1.5; }
+    .fonte-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+    }
+    .fonte-card { border: 1px solid var(--ciano); border-radius: 16px; padding: 16px; }
+    .fonte-card .rotulo { font-size: 11px; text-transform: uppercase; opacity: .7; margin: 0 0 6px; }
+    .fonte-card .nome { color: var(--neve); font-size: 15px; margin: 0 0 10px; }
+    .amostra-titulo { color: var(--neve); font-size: 26px; margin: 0 0 8px; }
+    .amostra-texto { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
+    .amostra-alfabeto { font-size: 18px; line-height: 1.5; color: var(--neve); margin: 0; word-break: break-all; }
+    .fonte-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+    footer {
+        max-width: 1000px;
+        margin: 40px auto 0;
+        font-size: 12px;
+        text-align: center;
+        opacity: .7;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Paleta de Cores e Fonte do Site</h1>
+    <p>Cores e fonte usadas no tema escuro de "Tênis de Mesa para Todos" — clique em qualquer valor HEX ou RGB para copiar. Fundos e campos, texto, bordas e botões seguem sempre esta mesma paleta em todas as telas.</p>
+</header>
+
+<main id="swatchGrid"></main>
+
+<section class="tipografia">
+    <h2>Fonte do Site</h2>
+    <p>Fonte única usada em todas as telas, definida em tailwind.config (index.html) e carregada do Google Fonts.</p>
+    <div class="fonte-grid">
+        <div class="fonte-card">
+            <p class="rotulo">Família</p>
+            <p class="nome">Source Sans 3</p>
+            <p class="amostra-titulo">Tênis de Mesa para Todos</p>
+            <p class="amostra-texto">O tênis de mesa faz parte da minha trajetória há mais de 20 anos.</p>
+            <p class="amostra-alfabeto">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 áàâãéêíóôõúç</p>
+        </div>
+        <div class="fonte-card">
+            <p class="rotulo">Configuração</p>
+            <ul>
+                <li>Fonte: <strong style="color:var(--neve)">Source Sans 3</strong> (fallback: sans-serif)</li>
+                <li>Peso: <strong style="color:var(--neve)">400 (normal)</strong> em todo o site, sem negrito</li>
+                <li>Espaçamento entre letras: <strong style="color:var(--neve)">0,05em</strong></li>
+                <li>Ícones: <strong style="color:var(--neve)">Font Awesome 6.4.0</strong> (mantêm o próprio peso)</li>
+                <li>Origem: Google Fonts (<span class="code-value" data-copy="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap">copiar link</span>)</li>
+                <li>Tailwind: <span class="code-value" data-copy="fontFamily: { sans: ['&quot;Source Sans 3&quot;', 'sans-serif'] }">copiar fontFamily</span></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<footer>Gerado a partir das cores e da fonte definidas em tailwind.config (index.html) e em styles.css, e dos campos (inputs) do site.</footer>
+
+<script>
+const cores = [
+    { nome: "Marinho (Fundo)", hex: "#172C46", uso: "Fundo principal de todas as páginas e do cabeçalho/menu/rodapé.", textoClaro: true },
+    { nome: "Campo (Inputs)", hex: "#172C46", uso: "Fundo de todos os campos de formulário (texto, número, seleção).", textoClaro: true },
+    { nome: "Celeste (Texto)", hex: "#B4ECFC", uso: "Cor padrão do texto normal em todo o site.", textoClaro: false },
+    { nome: "Laranja Destaque", hex: "#f45900", uso: "Texto/ícones em destaque, links e estado ativo.", textoClaro: false },
+    { nome: "Verde Botão", hex: "#00592D", uso: "Fundo dos botões de ação (Salvar, Cadastrar, Restaurar etc.).", textoClaro: true },
+    { nome: "Dourado (CTA)", hex: "#DAA520", uso: "Botões de destaque principal (ex: \"Cadastre-se Grátis\").", textoClaro: false },
+    { nome: "Neve (Títulos)", hex: "#fffafa", uso: "Cor dos títulos e texto de maior destaque.", textoClaro: false },
+    { nome: "Borda Ciano", hex: "#80FFFF", uso: "Borda de todos os quadros, cartões e campos do site.", textoClaro: false },
+    { nome: "Botão Verificado", hex: "#33CCCC", uso: "Fundo do botão \"Meus Dados\" quando há alguém logado. Texto do botão em #f45900 (laranja).", textoClaro: false, textoCor: "#f45900" },
+];
+
+function hexParaRgb(hex) {
+    const v = hex.replace("#", "");
+    const r = parseInt(v.substring(0, 2), 16);
+    const g = parseInt(v.substring(2, 4), 16);
+    const b = parseInt(v.substring(4, 6), 16);
+    return { r, g, b };
+}
+
+function copiarTexto(el, texto) {
+    navigator.clipboard?.writeText(texto).catch(() => {});
+    const original = el.textContent;
+    el.textContent = "Copiado!";
+    el.classList.add("copied");
+    setTimeout(() => {
+        el.textContent = original;
+        el.classList.remove("copied");
+    }, 900);
+}
+
+const grid = document.getElementById("swatchGrid");
+grid.innerHTML = cores.map(c => {
+    const { r, g, b } = hexParaRgb(c.hex);
+    const rgbStr = `rgb(${r}, ${g}, ${b})`;
+    const corTexto = c.textoCor || (c.textoClaro ? "#fffafa" : "#172C46");
+    return `
+        <div class="swatch">
+            <div class="swatch-preview" style="background:${c.hex}">
+                <span style="color:${corTexto}">${c.hex}</span>
+            </div>
+            <div class="swatch-body">
+                <p class="swatch-name">${c.nome}</p>
+                <p class="swatch-usage">${c.uso}</p>
+                <div class="code-row">
+                    <span class="code-label">HEX</span>
+                    <span class="code-value" data-copy="${c.hex}">${c.hex}</span>
+                </div>
+                <div class="code-row">
+                    <span class="code-label">RGB</span>
+                    <span class="code-value" data-copy="${rgbStr}">${rgbStr}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}).join("");
+
+document.addEventListener("click", (ev) => {
+    const el = ev.target.closest(".code-value");
+    if (!el) return;
+    copiarTexto(el, el.dataset.copy);
+});
+</script>
+
+</body>
+</html>

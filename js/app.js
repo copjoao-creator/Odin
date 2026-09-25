@@ -462,6 +462,10 @@
       $('#ttStatus').textContent = 'Preencha a client key e a redirect URI antes de autorizar.';
       return;
     }
+    if (!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(p.redirectUri.trim())) {
+      $('#ttStatus').textContent = '❌ A redirect URI precisa ser um endereço completo em HTTPS, por exemplo https://copjoao-creator.github.io/Odin/ (igual ao cadastrado no app do TikTok).';
+      return;
+    }
     window.open(Odin.Sources.tiktok.authorizeUrl(p), '_blank', 'noopener');
     $('#ttStatus').textContent = 'Depois de autorizar, o TikTok abre a redirect URI com “?code=…” no endereço. Copie o endereço inteiro e cole no campo 2.';
   };

@@ -122,13 +122,32 @@ Odin.Sources.tiktok = (() => {
     };
   }
 
-  function authorizeUrl(p) {
+  /*
+   * PKCE (obrigatório em apps Desktop do TikTok): um "verificador" aleatório fica guardado
+   * no navegador e o TikTok recebe só o "desafio" (SHA-256 do verificador, em hexadecimal,
+   * como pede a documentação do TikTok para Desktop).
+   */
+  const PKCE_KEY = 'odin.tiktok.pkce';
+
+  async function createPkce() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    const bytes = crypto.getRandomValues(new Uint8Array(64));
+    const verifier = Array.from(bytes, (b) => chars[b % chars.length]).join('');
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    const challenge = Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, '0')).join('');
+    Odin.store.set(PKCE_KEY, verifier);
+    return challenge;
+  }
+
+  async function authorizeUrl(p) {
     const qs = new URLSearchParams({
       client_key: p.clientKey.trim(),
       scope: SCOPES,
       response_type: 'code',
       redirect_uri: p.redirectUri.trim(),
-      state: 'odin'
+      state: 'odin',
+      code_challenge: await createPkce(),
+      code_challenge_method: 'S256'
     });
     return `https://www.tiktok.com/v2/auth/authorize/?${qs}`;
   }
@@ -138,7 +157,12 @@ Odin.Sources.tiktok = (() => {
     const raw = input.trim();
     const code = raw.includes('code=') ? new URL(raw, location.href).searchParams.get('code') : decodeURIComponent(raw);
     if (!code) throw new Err('Cole o código (ou a URL de retorno) gerado pelo TikTok.');
-    return token(p, { grant_type: 'authorization_code', code, redirect_uri: p.redirectUri.trim() });
+    const params = { grant_type: 'authorization_code', code, redirect_uri: p.redirectUri.trim() };
+    const verifier = Odin.store.get(PKCE_KEY, null);
+    if (verifier) params.code_verifier = verifier;
+    const t = await token(p, params);
+    Odin.store.remove(PKCE_KEY); // cada verificador vale para um único login
+    return t;
   }
 
   return { fetchAll, authorizeUrl, exchangeCode };

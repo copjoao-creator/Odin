@@ -459,7 +459,7 @@
 
   let pendingTikTok = null; // tokens gerados no diálogo, aplicados ao salvar
 
-  $('#btnTtAuthorize').onclick = () => {
+  $('#btnTtAuthorize').onclick = async () => {
     const p = {
       clientKey: form.elements['tiktok.clientKey'].value.trim(),
       clientSecret: form.elements['tiktok.clientSecret'].value.trim(),
@@ -485,10 +485,10 @@
       }
       Object.assign(cfg.tiktok, p, { source: 'real' });
       saveConfig();
-      location.href = Odin.Sources.tiktok.authorizeUrl(p);
+      location.href = await Odin.Sources.tiktok.authorizeUrl(p);
       return;
     }
-    window.open(Odin.Sources.tiktok.authorizeUrl(p), '_blank', 'noopener');
+    window.open(await Odin.Sources.tiktok.authorizeUrl(p), '_blank', 'noopener');
     $('#ttStatus').textContent = 'Depois de autorizar, o TikTok abre a redirect URI com “?code=…” no endereço. Copie o endereço inteiro e cole no campo 2.';
   };
 

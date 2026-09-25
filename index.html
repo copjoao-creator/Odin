@@ -124,8 +124,9 @@
             <label>Client secret <input name="tiktok.clientSecret" type="password" autocomplete="off"></label>
           </div>
           <label>Redirect URI (igual à cadastrada no app)
-            <input name="tiktok.redirectUri" placeholder="https://…">
+            <input name="tiktok.redirectUri" placeholder="http://localhost:8787/">
           </label>
+          <p class="hint">Recomendado: use <code>http://localhost:8787/</code> e cadastre exatamente esse endereço no app do TikTok. Assim, depois de autorizar, o ODIN gera os tokens sozinho, sem precisar dos passos 2 e 3.</p>
           <div class="oauth">
             <button type="button" id="btnTtAuthorize" class="btn btn-small">1. Autorizar no TikTok ↗</button>
             <input id="ttCode" data-skip placeholder="2. Cole aqui o código ou a URL de retorno">

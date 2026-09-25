@@ -448,6 +448,9 @@
       else el.value = v ?? '';
     }
     $('#ttCode').value = '';
+    if (!cfg.tiktok.redirectUri && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      form.elements['tiktok.redirectUri'].value = `${location.origin}/`;
+    }
     $('#ttStatus').textContent = cfg.tiktok.expiresAt ? `Token atual expira em ${new Date(cfg.tiktok.expiresAt).toLocaleString('pt-BR')}.` : '';
     toggleCreds();
     if (focusPf) form.querySelectorAll('details.net').forEach((d) => { d.open = !!d.querySelector(`[data-for="${focusPf}"]`); });
@@ -457,18 +460,71 @@
   let pendingTikTok = null; // tokens gerados no diálogo, aplicados ao salvar
 
   $('#btnTtAuthorize').onclick = () => {
-    const p = { clientKey: form.elements['tiktok.clientKey'].value, redirectUri: form.elements['tiktok.redirectUri'].value };
-    if (!p.clientKey.trim() || !p.redirectUri.trim()) {
+    const p = {
+      clientKey: form.elements['tiktok.clientKey'].value.trim(),
+      clientSecret: form.elements['tiktok.clientSecret'].value.trim(),
+      redirectUri: form.elements['tiktok.redirectUri'].value.trim()
+    };
+    if (!p.clientKey || !p.redirectUri) {
       $('#ttStatus').textContent = 'Preencha a client key e a redirect URI antes de autorizar.';
       return;
     }
-    if (!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(p.redirectUri.trim())) {
-      $('#ttStatus').textContent = '❌ A redirect URI precisa ser um endereço completo em HTTPS, por exemplo https://copjoao-creator.github.io/Odin/ (igual ao cadastrado no app do TikTok).';
+    if (!/^(https:\/\/[^\s/]+\.[^\s/]+|http:\/\/(localhost|127\.0\.0\.1):\d+)/i.test(p.redirectUri)) {
+      $('#ttStatus').textContent = `❌ A redirect URI precisa ser um endereço completo, por exemplo ${location.origin}/ (igual ao cadastrado no app do TikTok).`;
+      return;
+    }
+
+    // Retorno para este próprio ODIN: guarda as credenciais e segue o login nesta aba;
+    // na volta, o ODIN troca o código pelos tokens sozinho.
+    let sameOrigin = false;
+    try { sameOrigin = new URL(p.redirectUri).origin === location.origin; } catch { /* URL inválida */ }
+    if (sameOrigin) {
+      if (!p.clientSecret) {
+        $('#ttStatus').textContent = 'Preencha também a client secret antes de autorizar.';
+        return;
+      }
+      Object.assign(cfg.tiktok, p, { source: 'real' });
+      saveConfig();
+      location.href = Odin.Sources.tiktok.authorizeUrl(p);
       return;
     }
     window.open(Odin.Sources.tiktok.authorizeUrl(p), '_blank', 'noopener');
     $('#ttStatus').textContent = 'Depois de autorizar, o TikTok abre a redirect URI com “?code=…” no endereço. Copie o endereço inteiro e cole no campo 2.';
   };
+
+  /** Volta do login do TikTok (…/?code=…&state=odin): gera os tokens automaticamente. */
+  async function handleTikTokReturn() {
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('state') !== 'odin' || !(qs.get('code') || qs.get('error'))) return;
+    history.replaceState(null, '', location.pathname); // tira o código da barra de endereço
+
+    if (qs.get('error')) {
+      notice(`❌ O TikTok não autorizou: ${qs.get('error_description') || qs.get('error')}`, false);
+      return;
+    }
+    const p = cfg.tiktok;
+    if (!p.clientKey || !p.clientSecret || !p.redirectUri) {
+      notice('❌ Credenciais do TikTok não encontradas neste navegador. Abra o ODIN em http://localhost:8787 e autorize por lá.', false);
+      return;
+    }
+    try {
+      const t = await Odin.Sources.tiktok.exchangeCode(p, `?code=${encodeURIComponent(qs.get('code'))}`);
+      Object.assign(cfg.tiktok, t, { source: 'real' });
+      saveConfig();
+      notice('✅ TikTok conectado! Os tokens foram gerados e salvos. O monitoramento já começou.', true);
+    } catch (e) {
+      notice(`❌ Não foi possível gerar os tokens do TikTok: ${e.message}`, false);
+    }
+  }
+
+  function notice(msg, ok) {
+    const el = document.createElement('div');
+    el.className = `toast${ok ? '' : ' spike'}`;
+    el.innerHTML = `<strong>${Odin.pfBadge('tiktok')} ${Odin.esc(msg)}</strong>`;
+    el.onclick = () => el.remove();
+    $('#toasts').appendChild(el);
+    setTimeout(() => el.remove(), 15000);
+  }
 
   $('#btnTtExchange').onclick = async () => {
     const p = {
@@ -583,5 +639,5 @@
   setInterval(() => { if (allPosts().length) { renderAlerts(); renderStatus(); } }, 60000);
 
   // ---------------- Início ----------------
-  restartAll();
+  handleTikTokReturn().finally(restartAll);
 })();

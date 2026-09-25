@@ -73,17 +73,18 @@ para `https://open.tiktokapis.com/...`. O servidor só atende no próprio comput
 repassa chamadas para o TikTok.
 
 1. Crie uma conta em https://developers.tiktok.com e, em **Manage apps**, crie um app.
-2. Adicione o produto **Login Kit** e informe uma **Redirect URI** em HTTPS que você
-   controle (por exemplo, a página do GitHub Pages deste repositório). O ODIN não precisa
-   que essa página faça nada: basta você conseguir copiar o endereço depois do login.
+2. Adicione o produto **Login Kit** e cadastre a **Redirect URI** `http://localhost:8787/`
+   (em apps do tipo Desktop, o TikTok só aceita endereços `localhost:porta`). Assim o login
+   volta direto para o ODIN, que gera os tokens sozinho.
 3. Adicione os escopos `user.info.basic`, `user.info.profile`, `user.info.stats` e `video.list`.
 4. Enquanto o app não for aprovado, use o modo **Sandbox** e adicione sua conta do TikTok
    como **usuário de teste** (*Sandbox › Target users*).
 5. No ODIN, em **Configurações › TikTok**, escolha *Minha conta* e preencha **Client key**,
    **Client secret** e **Redirect URI** (exatamente como no app).
-6. Clique em **1. Autorizar no TikTok**, faça login e autorize. O navegador vai abrir a
-   Redirect URI com `?code=...` no endereço.
-7. Copie o endereço inteiro, cole no campo **2** e clique em **3. Gerar tokens**. Depois, **Salvar**.
+6. Clique em **1. Autorizar no TikTok**, faça login e autorize. O TikTok volta para o ODIN,
+   que gera e salva os tokens automaticamente e já começa a monitorar.
+7. Se você usar uma Redirect URI em outro endereço (HTTPS), o navegador vai abri-la com
+   `?code=...`: copie o endereço inteiro, cole no campo **2** e clique em **3. Gerar tokens**.
 
 O access token vale 24 h e o refresh token, 1 ano. Com client key, client secret e refresh
 token preenchidos, o ODIN **renova o acesso sozinho**.

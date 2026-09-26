@@ -5,17 +5,18 @@
  * Documentação: https://developers.tiktok.com/doc/display-api-overview
  *
  * A API do TikTok não aceita chamadas diretas do navegador (CORS), por isso as
- * requisições passam pelo proxy do servidor local (servidor.ps1 → /api/tiktok/...).
+ * requisições passam por uma ponte (proxy) no servidor do ODIN (/api/tiktok/...):
+ * servidor.ps1 no computador ou api/tiktok.php na hospedagem com PHP.
  * O token de acesso vale 24 h; com o refresh token, o ODIN o renova sozinho.
  */
 Odin.Sources.tiktok = (() => {
-  const PROXY = '/api/tiktok';
+  const PROXY = 'api/tiktok'; // relativo: funciona na raiz do domínio ou numa subpasta
   const SCOPES = 'user.info.basic,user.info.profile,user.info.stats,video.list';
   const Err = Odin.SourceError;
 
   function requireServer() {
     if (location.protocol === 'file:') {
-      throw new Err('O TikTok precisa do servidor local: rode servidor.ps1 e abra http://localhost:8787.', 0, true);
+      throw new Err('O TikTok precisa de um servidor: abra o ODIN pelo site publicado ou rode servidor.ps1 e abra http://localhost:8787.', 0, true);
     }
   }
 
@@ -30,10 +31,11 @@ Odin.Sources.tiktok = (() => {
     try {
       res = await fetch(`${PROXY}${path}`, { method, headers, body });
     } catch {
-      throw new Err('Não foi possível falar com o servidor local do ODIN. Ele está rodando?');
+      throw new Err('Não foi possível falar com a ponte do TikTok no servidor do ODIN (servidor.ps1 ou api/tiktok.php).');
     }
     const data = await res.json().catch(() => ({}));
-    if (res.status === 502) throw new Err(`Servidor local não conseguiu acessar o TikTok: ${data.error?.message || ''}`);
+    if (data.error?.code === 'proxy_error') throw new Err(`O servidor do ODIN não conseguiu acessar o TikTok: ${data.error.message || res.status}`);
+    if (!res.ok && !data.error && !data.access_token) throw new Err(`A ponte do TikTok no servidor respondeu ${res.status}. Confira se a pasta api/ foi enviada.`);
     return { res, data };
   }
 
@@ -125,8 +127,10 @@ Odin.Sources.tiktok = (() => {
   /*
    * PKCE (obrigatório em apps Desktop do TikTok): um "verificador" aleatório fica guardado
    * no navegador e o TikTok recebe só o "desafio" (SHA-256 do verificador, em hexadecimal,
-   * como pede a documentação do TikTok para Desktop).
+   * como pede a documentação do TikTok para Desktop). Só se aplica ao retorno em
+   * localhost; no site publicado (app Web, https) o TikTok não usa PKCE.
    */
+  const isDesktopRedirect = (uri) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(uri.trim());
   const PKCE_KEY = 'odin.tiktok.pkce';
 
   async function createPkce() {
@@ -145,10 +149,14 @@ Odin.Sources.tiktok = (() => {
       scope: SCOPES,
       response_type: 'code',
       redirect_uri: p.redirectUri.trim(),
-      state: 'odin',
-      code_challenge: await createPkce(),
-      code_challenge_method: 'S256'
+      state: 'odin'
     });
+    if (isDesktopRedirect(p.redirectUri)) {
+      qs.set('code_challenge', await createPkce());
+      qs.set('code_challenge_method', 'S256');
+    } else {
+      Odin.store.remove(PKCE_KEY);
+    }
     return `https://www.tiktok.com/v2/auth/authorize/?${qs}`;
   }
 

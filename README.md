@@ -67,15 +67,21 @@ Graph API Explorer (permissões `instagram_basic`, `instagram_manage_insights`,
 
 ## TikTok (Display API)
 
-A API do TikTok **não aceita chamadas diretas do navegador**. Por isso o `servidor.ps1`
-faz a ponte: o ODIN chama `http://localhost:8787/api/tiktok/...` e o servidor repassa
-para `https://open.tiktokapis.com/...`. O servidor só atende no próprio computador e só
-repassa chamadas para o TikTok.
+A API do TikTok **não aceita chamadas diretas do navegador**. Por isso o ODIN chama
+`api/tiktok/...` no próprio servidor, que repassa para `https://open.tiktokapis.com/...`:
+
+- **No computador:** o `servidor.ps1` faz a ponte (só atende em `localhost`).
+- **Na hospedagem com PHP** (ex.: HostGator): a pasta `api/` (`tiktok.php` + `.htaccess`)
+  faz a ponte. Envie-a junto com os outros arquivos. Ela só repassa para o TikTok, só
+  para os endereços que o ODIN usa, e não guarda nenhum dado.
 
 1. Crie uma conta em https://developers.tiktok.com e, em **Manage apps**, crie um app.
-2. Adicione o produto **Login Kit** e cadastre a **Redirect URI** `http://localhost:8787/`
-   (em apps do tipo Desktop, o TikTok só aceita endereços `localhost:porta`). Assim o login
-   volta direto para o ODIN, que gera os tokens sozinho.
+2. Adicione o produto **Login Kit** e cadastre a **Redirect URI** com o endereço do ODIN:
+   - site publicado: plataforma **Web**, `https://www.odinfocus.com.br/`;
+   - computador: plataforma **Desktop**, `http://localhost:8787/` (apps Desktop só aceitam
+     `localhost:porta`).
+
+   Assim o login volta direto para o ODIN, que gera os tokens sozinho.
 3. Adicione os escopos `user.info.basic`, `user.info.profile`, `user.info.stats` e `video.list`.
 4. Enquanto o app não for aprovado, use o modo **Sandbox** e adicione sua conta do TikTok
    como **usuário de teste** (*Sandbox › Target users*).

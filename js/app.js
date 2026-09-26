@@ -448,7 +448,7 @@
       else el.value = v ?? '';
     }
     $('#ttCode').value = '';
-    if (!cfg.tiktok.redirectUri && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    if (!cfg.tiktok.redirectUri && /^https?:$/.test(location.protocol)) {
       form.elements['tiktok.redirectUri'].value = `${location.origin}/`;
     }
     $('#ttStatus').textContent = cfg.tiktok.expiresAt ? `Token atual expira em ${new Date(cfg.tiktok.expiresAt).toLocaleString('pt-BR')}.` : '';
@@ -504,7 +504,7 @@
     }
     const p = cfg.tiktok;
     if (!p.clientKey || !p.clientSecret || !p.redirectUri) {
-      notice('❌ Credenciais do TikTok não encontradas neste navegador. Abra o ODIN em http://localhost:8787 e autorize por lá.', false);
+      notice(`❌ Credenciais do TikTok não encontradas neste navegador. Preencha-as em Configurações › TikTok e autorize de novo por ${location.origin}.`, false);
       return;
     }
     try {
@@ -580,7 +580,7 @@
       return;
     }
     if (next.tiktok.source === 'real' && location.protocol === 'file:') {
-      alert('Para monitorar o TikTok, abra o ODIN pelo servidor local (servidor.ps1 → http://localhost:8787).');
+      alert('Para monitorar o TikTok, abra o ODIN pelo site publicado ou pelo servidor local (servidor.ps1 → http://localhost:8787).');
     }
 
     cfg = next;

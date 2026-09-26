@@ -118,15 +118,15 @@
           </select>
         </label>
         <fieldset class="creds" data-for="tiktok">
-          <p class="hint warn">O TikTok exige o servidor local: rode <code>servidor.ps1</code> e abra <strong>http://localhost:8787</strong>.</p>
+          <p class="hint warn">O TikTok precisa de um servidor: use o site publicado (com a pasta <code>api/</code>) ou rode <code>servidor.ps1</code> e abra <strong>http://localhost:8787</strong>.</p>
           <div class="row">
             <label>Client key <input name="tiktok.clientKey" autocomplete="off"></label>
             <label>Client secret <input name="tiktok.clientSecret" type="password" autocomplete="off"></label>
           </div>
           <label>Redirect URI (igual à cadastrada no app)
-            <input name="tiktok.redirectUri" placeholder="http://localhost:8787/">
+            <input name="tiktok.redirectUri" placeholder="https://www.odinfocus.com.br/">
           </label>
-          <p class="hint">Recomendado: use <code>http://localhost:8787/</code> e cadastre exatamente esse endereço no app do TikTok. Assim, depois de autorizar, o ODIN gera os tokens sozinho, sem precisar dos passos 2 e 3.</p>
+          <p class="hint">Use o endereço deste ODIN (<code>https://www.odinfocus.com.br/</code> no site, <code>http://localhost:8787/</code> no computador) e cadastre exatamente esse endereço no app do TikTok. Assim, depois de autorizar, o ODIN gera os tokens sozinho, sem precisar dos passos 2 e 3.</p>
           <div class="oauth">
             <button type="button" id="btnTtAuthorize" class="btn btn-small">1. Autorizar no TikTok ↗</button>
             <input id="ttCode" data-skip placeholder="2. Cole aqui o código ou a URL de retorno">

@@ -1,0 +1,4 @@
+# ODIN: /api/tiktok/... -> tiktok.php (ponte para a API do TikTok)
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteRule ^tiktok/ tiktok.php [L]

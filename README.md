@@ -1,5 +1,9 @@
 # ODIN · Monitor de engajamento em redes sociais
 
+> **Loja virtual e financeiro Odin Focus:** a pasta [`loja/`](loja/) traz a loja online (landing page),
+> o painel administrativo e o backend financeiro com MySQL e Mercado Pago (Pix, boleto, crédito e débito).
+> Passo a passo de instalação, em linguagem simples: [`loja/INSTALACAO.md`](loja/INSTALACAO.md).
+
 O ODIN acompanha suas publicações no **Instagram**, no **TikTok** e no **YouTube** em tempo
 quase real, avisa quando alguma ganha engajamento (visualizações, curtidas, comentários,
 compartilhamentos etc.) e sugere ações para aumentar o alcance em cada rede.
@@ -159,5 +163,6 @@ Clique em uma publicação para ver a evolução de cada métrica e as ações s
 ├── js/monitor.js           histórico, variações e alertas
 ├── js/advisor.js           motor de recomendações
 ├── js/app.js               telas, ciclos de monitoramento e notificações
-└── servidor.ps1            servidor local + ponte para a API do TikTok
+├── servidor.ps1            servidor local + ponte para a API do TikTok
+└── loja/                   loja virtual + backend financeiro (veja loja/INSTALACAO.md)
 ```

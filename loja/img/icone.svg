@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Odin Focus</title>
+  <rect width="64" height="64" rx="12" fill="#1B2D42"/>
+  <polygon points="32,8 53,20 53,44 32,56 11,44 11,20" fill="none" stroke="#F7F6F2" stroke-width="3"/>
+  <path d="M17 32 Q32 18 47 32 Q32 46 17 32 Z" fill="none" stroke="#F7F6F2" stroke-width="3"/>
+  <circle cx="32" cy="32" r="5.5" fill="#E5DECF"/>
+</svg>

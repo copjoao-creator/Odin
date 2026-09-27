@@ -1,0 +1,12 @@
+# Loja Odin Focus
+
+# Protege o arquivo com a senha do banco de dados e os arquivos de documentação/SQL.
+<FilesMatch "^(config\.php|config\.exemplo\.php|.*\.md|.*\.sql)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

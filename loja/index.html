@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Odin Focus · Loja oficial</title>
+  <meta name="description" content="Loja oficial Odin Focus: produtos e serviços selecionados com pagamento seguro por Pix, boleto e cartões via Mercado Pago.">
+  <meta name="theme-color" content="#1B2D42">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Odin Focus · Loja oficial">
+  <meta property="og:description" content="Produtos e serviços selecionados. Pix, boleto e cartões via Mercado Pago.">
+  <link rel="icon" href="img/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/loja.css">
+</head>
+<body>
+  <a class="pular" href="#produtos">Pular para os produtos</a>
+
+  <div class="faixa-topo">
+    <div class="container faixa-topo-in">
+      <p id="avisoTopo">Pagamento seguro via Mercado Pago · Pix, boleto e cartões</p>
+      <p class="faixa-extra" id="avisoFrete" hidden></p>
+    </div>
+  </div>
+
+  <header class="cabecalho">
+    <div class="container cabecalho-in">
+      <a href="./" class="logo" aria-label="Página inicial">
+        <span class="logo-marca" data-marca></span>
+        <span class="logo-texto"><strong id="logoNome">ODIN FOCUS</strong><small>Loja oficial</small></span>
+      </a>
+
+      <form class="busca" id="formBusca" role="search">
+        <input type="search" id="busca" placeholder="O que você procura hoje?" aria-label="Buscar produtos e serviços" autocomplete="off">
+        <button type="submit" aria-label="Buscar" data-icone="busca"></button>
+      </form>
+
+      <div class="cabecalho-acoes">
+        <a class="acao acao-atendimento" href="#contato">
+          <span data-icone="conversa"></span>
+          <span class="acao-texto"><small>Atendimento</small>Fale conosco</span>
+        </a>
+        <button type="button" class="acao acao-carrinho" id="btnCarrinho" aria-label="Abrir carrinho">
+          <span class="acao-icone"><span data-icone="carrinho"></span><span class="contador zerado" id="contador">0</span></span>
+          <span class="acao-texto"><small>Meu carrinho</small><strong id="totalTopo">R$ 0,00</strong></span>
+        </button>
+      </div>
+    </div>
+
+    <nav class="menu" aria-label="Categorias">
+      <div class="container menu-in" id="menu">
+        <a href="#inicio">Início</a>
+        <a href="#produtos" data-fixo="produtos">Produtos</a>
+        <a href="#servicos" data-fixo="servicos">Serviços</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#sobre">Sobre nós</a>
+        <a href="#contato">Contato</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="container hero-in">
+        <div class="hero-texto">
+          <p class="sobretitulo" id="heroSobretitulo">Odin Focus</p>
+          <h1 id="heroTitulo">Qualidade que você sente em cada detalhe</h1>
+          <p class="hero-sub" id="heroSubtitulo">Produtos e serviços selecionados, pagamento seguro pelo Mercado Pago e atendimento de verdade, do pedido à entrega.</p>
+          <div class="hero-acoes">
+            <a class="btn btn-creme" href="#produtos" id="heroBtnProdutos">Ver produtos</a>
+            <a class="btn btn-contorno" href="#servicos" id="heroBtnServicos">Conhecer serviços</a>
+          </div>
+        </div>
+        <div class="hero-arte" aria-hidden="true">
+          <span class="anel anel-1"></span><span class="anel anel-2"></span><span class="anel anel-3"></span>
+          <span class="hero-marca" data-marca></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="beneficios" aria-label="Vantagens">
+      <div class="container beneficios-in">
+        <div class="beneficio"><span data-icone="escudo"></span><p><strong>Compra segura</strong>Pagamento pelo Mercado Pago</p></div>
+        <div class="beneficio"><span data-icone="cartao"></span><p><strong id="benParcelas">Parcele em até 12x</strong>no cartão de crédito</p></div>
+        <div class="beneficio"><span data-icone="pix"></span><p><strong>Pix e boleto</strong>Confirmação do Pix na hora</p></div>
+        <div class="beneficio"><span data-icone="caminhao"></span><p><strong id="benFrete">Envio para todo o Brasil</strong><span id="benFreteSub">Acompanhe pelo e-mail</span></p></div>
+      </div>
+    </section>
+
+    <section class="secao" id="categorias" hidden>
+      <div class="container">
+        <div class="secao-cabeca">
+          <h2>Compre por categoria</h2>
+        </div>
+        <div class="categorias" id="gradeCategorias"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="produtos">
+      <div class="container">
+        <div class="secao-cabeca">
+          <div>
+            <h2 id="tituloProdutos">Produtos</h2>
+            <p class="secao-sub" id="subProdutos">Seleção completa da loja</p>
+          </div>
+          <label class="ordem">Ordenar
+            <select id="ordem">
+              <option value="padrao">Destaques</option>
+              <option value="menor">Menor preço</option>
+              <option value="maior">Maior preço</option>
+              <option value="nome">Nome (A-Z)</option>
+            </select>
+          </label>
+        </div>
+        <div class="chips" id="chips" role="toolbar" aria-label="Filtrar por categoria"></div>
+        <div class="grade" id="gradeProdutos" aria-live="polite">
+          <div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao secao-bege" id="servicos">
+      <div class="container">
+        <div class="secao-cabeca">
+          <div>
+            <h2>Serviços</h2>
+            <p class="secao-sub">Atendimento especializado, avulso ou por assinatura</p>
+          </div>
+        </div>
+        <div class="grade-servicos" id="gradeServicos"></div>
+      </div>
+    </section>
+
+    <section class="secao" id="como-funciona">
+      <div class="container">
+        <div class="secao-cabeca secao-cabeca-centro">
+          <h2>Como funciona</h2>
+          <p class="secao-sub">Do carrinho à confirmação em poucos minutos</p>
+        </div>
+        <ol class="passos">
+          <li><span class="passo-num">1</span><h3>Escolha</h3><p>Adicione produtos e serviços ao carrinho. O frete aparece antes de você finalizar.</p></li>
+          <li><span class="passo-num">2</span><h3>Informe seus dados</h3><p>Nome, CPF e endereço. O CEP preenche o endereço sozinho.</p></li>
+          <li><span class="passo-num">3</span><h3>Pague como preferir</h3><p>Pix, boleto, cartão de crédito ou débito, tudo pelo ambiente seguro do Mercado Pago.</p></li>
+          <li><span class="passo-num">4</span><h3>Pronto</h3><p>A confirmação chega por e-mail. Assinaturas renovam com aviso antes de cada vencimento.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="secao secao-azul" id="sobre">
+      <div class="container sobre-in">
+        <div>
+          <p class="sobretitulo">Sobre nós</p>
+          <h2 id="sobreTitulo">Odin Focus</h2>
+        </div>
+        <p class="sobre-texto" id="sobreTexto"></p>
+      </div>
+    </section>
+
+    <section class="secao" id="contato">
+      <div class="container">
+        <div class="secao-cabeca secao-cabeca-centro">
+          <h2>Fale conosco</h2>
+          <p class="secao-sub">Tire dúvidas sobre produtos, serviços, pagamentos e entregas</p>
+        </div>
+        <div class="contatos" id="contatos"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container rodape-in">
+      <div class="rodape-marca">
+        <a href="./" class="logo logo-claro"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="rodapeNome">ODIN FOCUS</strong><small>Loja oficial</small></span></a>
+        <p id="rodapeSobre"></p>
+      </div>
+      <div>
+        <h3>Institucional</h3>
+        <ul>
+          <li><a href="#sobre">Sobre nós</a></li>
+          <li><a href="#como-funciona">Como funciona</a></li>
+          <li><a href="#produtos">Produtos</a></li>
+          <li><a href="#servicos">Serviços</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Atendimento</h3>
+        <ul id="rodapeContatos"><li><a href="#contato">Fale conosco</a></li></ul>
+      </div>
+      <div>
+        <h3>Formas de pagamento</h3>
+        <ul class="selos">
+          <li><span data-icone="pix"></span>Pix</li>
+          <li><span data-icone="boleto"></span>Boleto</li>
+          <li><span data-icone="cartao"></span>Crédito</li>
+          <li><span data-icone="cartao"></span>Débito</li>
+        </ul>
+        <p class="rodape-seguro"><span data-icone="escudo"></span>Pagamentos processados pelo Mercado Pago</p>
+      </div>
+    </div>
+    <div class="rodape-base">
+      <div class="container"><p>© <span id="ano"></span> <span id="rodapeCopy">Odin Focus</span>. Todos os direitos reservados.</p></div>
+    </div>
+  </footer>
+
+  <a class="zap-flutuante" id="zapFlutuante" target="_blank" rel="noopener" aria-label="Atendimento pelo WhatsApp" hidden><span data-icone="conversa"></span></a>
+
+  <!-- Carrinho -->
+  <div class="gaveta-fundo" id="gavetaFundo" hidden></div>
+  <aside class="gaveta" id="gaveta" aria-label="Carrinho de compras" aria-hidden="true" tabindex="-1">
+    <div class="gaveta-topo">
+      <h2>Seu carrinho</h2>
+      <button type="button" class="btn-icone" id="btnFecharCarrinho" aria-label="Fechar carrinho" data-icone="fechar"></button>
+    </div>
+    <div class="gaveta-itens" id="carrinhoItens"></div>
+    <div class="gaveta-rodape" id="carrinhoRodape"></div>
+  </aside>
+
+  <!-- Detalhe do item -->
+  <dialog class="dlg dlg-item" id="dlgItem" aria-label="Detalhes"></dialog>
+
+  <!-- Checkout -->
+  <dialog class="dlg dlg-checkout" id="dlgCheckout" aria-label="Finalizar compra">
+    <div class="checkout-topo">
+      <ol class="etapas" id="etapas">
+        <li class="ativa">Seus dados</li>
+        <li>Pagamento</li>
+        <li>Confirmação</li>
+      </ol>
+      <button type="button" class="btn-icone" id="btnFecharCheckout" aria-label="Fechar" data-icone="fechar"></button>
+    </div>
+    <div class="checkout-corpo">
+      <div class="checkout-principal">
+        <form id="formCliente" class="form-cliente" novalidate>
+          <h3>Seus dados</h3>
+          <div class="campos">
+            <label class="c-12">Nome completo <input name="nome" autocomplete="name" required maxlength="150"></label>
+            <label class="c-6">CPF <input name="cpf" inputmode="numeric" autocomplete="off" required placeholder="000.000.000-00"></label>
+            <label class="c-6">Celular (WhatsApp) <input name="celular" inputmode="tel" autocomplete="tel-national" required placeholder="(00) 00000-0000"></label>
+            <label class="c-12">E-mail <input name="email" type="email" autocomplete="email" required maxlength="190"></label>
+          </div>
+          <h3 id="tituloEndereco">Endereço de entrega</h3>
+          <div class="campos">
+            <label class="c-4">CEP <input name="cep" inputmode="numeric" autocomplete="postal-code" required placeholder="00000-000"></label>
+            <p class="c-8 dica-cep" id="dicaCep">Digite o CEP para preencher o endereço.</p>
+            <label class="c-8">Rua <input name="rua" autocomplete="address-line1" required maxlength="150"></label>
+            <label class="c-4">Número <input name="numero" required maxlength="20"></label>
+            <label class="c-6">Complemento <input name="complemento" autocomplete="address-line2" maxlength="80" placeholder="Opcional"></label>
+            <label class="c-6">Bairro <input name="bairro" required maxlength="100"></label>
+            <label class="c-8">Cidade <input name="cidade" autocomplete="address-level2" required maxlength="100"></label>
+            <label class="c-4">Estado <select name="estado" required><option value="">UF</option></select></label>
+          </div>
+          <p class="form-erro" id="erroCliente" role="alert" hidden></p>
+          <button type="submit" class="btn btn-largo" id="btnContinuar">Continuar para o pagamento</button>
+          <p class="nota">Seus dados são usados apenas para processar o pedido e emitir o pagamento.</p>
+        </form>
+        <div id="etapaPagamento" class="etapa-pagamento" hidden></div>
+      </div>
+      <aside class="resumo" id="resumo"></aside>
+    </div>
+  </dialog>
+
+  <script src="js/comum.js"></script>
+  <script src="js/pagamento.js"></script>
+  <script src="js/vitrine.js"></script>
+</body>
+</html>

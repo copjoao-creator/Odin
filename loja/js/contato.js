@@ -27,10 +27,22 @@
   function renderCanais(l) {
     const canais = Loja.contatos(l);
     if (!canais.length) return;
+    // Com o formulário ativo, o card E-mail leva ao formulário desta página em vez de abrir o mailto:.
+    const porFormulario = (c) => c.icone === 'email' && l.emailjs;
     $('#listaCanais').innerHTML = canais.map((c) => `
-      <a class="canal" href="${esc(c.url)}" target="_blank" rel="noopener">
+      <a class="canal" ${porFormulario(c) ? 'href="#fContato" data-ir-form' : `href="${esc(c.url)}" target="_blank" rel="noopener"`}>
         ${Loja.icone(c.icone, 'ico')}<span><strong>${esc(c.titulo)}</strong>${esc(c.texto)}</span>
       </a>`).join('');
+    const irForm = $('[data-ir-form]');
+    if (irForm) {
+      irForm.addEventListener('click', (e) => {
+        e.preventDefault();
+        const f = $('#fContato');
+        if (!f) return;
+        f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        f.elements.nome.focus({ preventScroll: true });
+      });
+    }
     $('#canais').hidden = false;
   }
 

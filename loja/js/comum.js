@@ -113,6 +113,23 @@ Loja.copiar = async (texto) => {
   }
 };
 
+/** Canais de atendimento cadastrados no painel (WhatsApp, e-mail, Instagram). */
+Loja.contatos = (l) => {
+  const lista = [];
+  if (l.whatsapp) lista.push({ icone: 'conversa', titulo: 'WhatsApp', texto: Loja.formatar.celular(l.whatsapp.replace(/^55/, '')), url: `https://wa.me/${l.whatsapp}` });
+  if (l.email) lista.push({ icone: 'email', titulo: 'E-mail', texto: l.email, url: `mailto:${l.email}` });
+  if (l.instagram) {
+    const user = l.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
+    lista.push({ icone: 'camera', titulo: 'Instagram', texto: `@${user}`, url: `https://instagram.com/${user}` });
+  }
+  return lista;
+};
+
+/** Itens do rodapé "Atendimento": a página Fale conosco e os canais cadastrados. */
+Loja.rodapeContatos = (l) => ['<li><a href="contato.html">Fale conosco</a></li>']
+  .concat(Loja.contatos(l).map((c) => `<li><a href="${Loja.esc(c.url)}" target="_blank" rel="noopener">${Loja.esc(c.titulo)}: ${Loja.esc(c.texto)}</a></li>`))
+  .join('');
+
 /** Ícones em linha (traço herda a cor do texto). */
 const ICONES = {
   carrinho: '<path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',

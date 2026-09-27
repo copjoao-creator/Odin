@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fale conosco · Odin Focus</title>
+  <meta name="description" content="Fale com a Odin Focus: dúvidas sobre produtos, serviços, pagamentos e entregas.">
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="img/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/loja.css">
+</head>
+<body class="pagina-contato">
+  <header class="cabecalho">
+    <div class="container cabecalho-in cabecalho-simples">
+      <a href="./" class="logo" aria-label="Voltar à loja">
+        <span class="logo-marca" data-marca></span>
+        <span class="logo-texto"><strong id="logoNome">ODIN FOCUS</strong><small>Atendimento</small></span>
+      </a>
+      <a class="link" href="./">← Voltar à loja</a>
+    </div>
+  </header>
+
+  <main class="container contato-pagina">
+    <div class="secao-cabeca secao-cabeca-centro">
+      <h1>Fale conosco</h1>
+      <p class="secao-sub">Tire dúvidas sobre produtos, serviços, pagamentos e entregas</p>
+    </div>
+
+    <section class="pagar-caixa contato-caixa">
+      <div class="checkout-principal">
+        <div id="alvoForm"><p class="carregando">Carregando…</p></div>
+      </div>
+      <aside class="resumo" id="canais" hidden>
+        <h3>Outros canais</h3>
+        <div class="canais" id="listaCanais"></div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="rodape rodape-simples">
+    <div class="rodape-base">
+      <div class="container"><p>© <span id="ano"></span> <span id="rodapeCopy">Odin Focus</span>. Todos os direitos reservados.</p></div>
+    </div>
+  </footer>
+
+  <script src="js/comum.js"></script>
+  <script src="js/contato.js"></script>
+</body>
+</html>

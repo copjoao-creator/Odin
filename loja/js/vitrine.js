@@ -90,24 +90,8 @@
       $('#avisoFrete').hidden = false;
     }
 
-    // Contatos
-    const contatos = [];
-    if (l.whatsapp) contatos.push({ icone: 'conversa', titulo: 'WhatsApp', texto: Loja.formatar.celular(l.whatsapp.replace(/^55/, '')), url: `https://wa.me/${l.whatsapp}` });
-    if (l.email) contatos.push({ icone: 'email', titulo: 'E-mail', texto: l.email, url: `mailto:${l.email}` });
-    if (l.instagram) {
-      const user = l.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
-      contatos.push({ icone: 'camera', titulo: 'Instagram', texto: `@${user}`, url: `https://instagram.com/${user}` });
-    }
-    if (contatos.length) {
-      $('#contatos').innerHTML = contatos.map((c) => `
-        <a class="contato" href="${esc(c.url)}" target="_blank" rel="noopener">
-          ${Loja.icone(c.icone, 'ico ico-contato')}<strong>${esc(c.titulo)}</strong><span>${esc(c.texto)}</span>
-        </a>`).join('');
-      $('#rodapeContatos').innerHTML = contatos.map((c) => `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.titulo)}: ${esc(c.texto)}</a></li>`).join('');
-    } else {
-      $('#contato').hidden = true;
-      $$('a[href="#contato"]').forEach((a) => { a.hidden = true; });
-    }
+    // Contatos (a página Fale conosco fica em contato.html)
+    $('#rodapeContatos').innerHTML = Loja.rodapeContatos(l);
     if (l.whatsapp) {
       const z = $('#zapFlutuante');
       z.href = `https://wa.me/${l.whatsapp}?text=${encodeURIComponent(`Olá! Vim pela loja ${l.nome}.`)}`;

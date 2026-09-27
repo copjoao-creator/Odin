@@ -15,6 +15,12 @@ return function (Roteador $r) {
       'email' => $c['loja_email'],
       'whatsapp' => $c['loja_whatsapp'],
       'instagram' => $c['loja_instagram'],
+      // Formulário de contato (contato.html). No EmailJS essas três chaves são públicas por natureza.
+      'emailjs' => ($c['emailjs_public_key'] !== '' && $c['emailjs_service_id'] !== '' && $c['emailjs_template_id'] !== '') ? [
+        'public_key' => $c['emailjs_public_key'],
+        'service_id' => $c['emailjs_service_id'],
+        'template_id' => $c['emailjs_template_id'],
+      ] : null,
       'frete_valor' => (float)$c['frete_valor'],
       'frete_gratis_acima' => (float)$c['frete_gratis_acima'],
       'max_parcelas' => (int)$c['max_parcelas'],

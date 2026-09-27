@@ -1085,6 +1085,21 @@
         </section>
 
         <section class="bloco">
+          <h2>Formulário de contato (EmailJS)</h2>
+          <p class="bloco-sub">As mensagens da página <strong>Fale conosco</strong> chegam no seu e-mail pelo EmailJS. Sem as três chaves, a página mostra só WhatsApp, e-mail e Instagram.</p>
+          <ol class="passo-a-passo">
+            <li>Em <a href="https://dashboard.emailjs.com/admin" target="_blank" rel="noopener">EmailJS › Email Services</a>, copie o <strong>Service ID</strong>.</li>
+            <li>Em <strong>Email Templates</strong>, crie um modelo usando as variáveis <code>{{nome}}</code>, <code>{{email}}</code>, <code>{{telefone}}</code>, <code>{{assunto}}</code>, <code>{{mensagem}}</code> e <code>{{loja}}</code>. Em <strong>Reply To</strong>, coloque <code>{{email}}</code>. Copie o <strong>Template ID</strong>.</li>
+            <li>Em <strong>Account › General</strong>, copie a <strong>Public Key</strong>.</li>
+          </ol>
+          <div class="campos">
+            ${campo('emailjs_service_id', 'Service ID', 'autocomplete="off" placeholder="service_..."', 'c-4')}
+            ${campo('emailjs_template_id', 'Template ID', 'autocomplete="off" placeholder="template_..."', 'c-4')}
+            ${campo('emailjs_public_key', 'Public Key', 'autocomplete="off"', 'c-4')}
+          </div>
+        </section>
+
+        <section class="bloco">
           <h2>Módulos</h2>
           <p class="bloco-sub">Cada módulo funciona sozinho. Desligado, some da loja, mas os dados e as vendas antigas continuam aqui.</p>
           <div class="campos">

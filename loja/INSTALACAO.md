@@ -132,6 +132,37 @@ Para que cheguem sem cair no spam:
 
 ---
 
+## Passo 8. Página Fale conosco (EmailJS)
+
+Os links **Contato** e **Fale conosco** abrem a página `contato.html`, com um formulário
+(nome, e-mail, telefone, assunto e mensagem) e os outros canais (WhatsApp, e-mail e Instagram).
+As mensagens chegam no seu e-mail pelo **EmailJS** (https://www.emailjs.com).
+
+1. **Email Services:** copie o **Service ID** do serviço que você criou (ex.: `service_abc123`).
+2. **Email Templates › Create New Template:**
+   - **Subject:** `[{{loja}}] {{assunto}} - {{nome}}`
+   - **Content:**
+     ```
+     Nome: {{nome}}
+     E-mail: {{email}}
+     Telefone: {{telefone}}
+     Assunto: {{assunto}}
+
+     {{mensagem}}
+     ```
+   - **To Email:** o e-mail que vai receber as mensagens. **Reply To:** `{{email}}`
+     (assim, ao clicar em *Responder*, a resposta vai direto para o cliente).
+   - Salve e copie o **Template ID** (ex.: `template_xyz789`).
+3. **Account › General:** copie a **Public Key**.
+4. **Account › Security:** em *Allowed origins*, coloque `https://www.odinfocus.com.br`
+   para que só o seu site consiga usar a sua conta do EmailJS.
+5. No painel da loja, em **Configurações › Formulário de contato (EmailJS)**, cole as três chaves e salve.
+
+Sem as três chaves, a página mostra só os outros canais. O plano gratuito do EmailJS
+envia até 200 mensagens por mês.
+
+---
+
 ## Como usar o painel
 
 Endereço: **`https://www.odinfocus.com.br/loja/admin/`**

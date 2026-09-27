@@ -66,6 +66,12 @@ return function (Roteador $r) {
       if (!preg_match('/^[A-Za-z0-9_\-]{8,300}$/', $s)) throw new ErroApi('Chave do Mercado Pago inválida: copie e cole sem espaços.', 422, ['campo' => $k]);
       $v[$k] = $s;
     }
+    foreach (['emailjs_public_key' => 'Public Key', 'emailjs_service_id' => 'Service ID', 'emailjs_template_id' => 'Template ID'] as $k => $rotulo) {
+      if (!array_key_exists($k, $d)) continue;
+      $s = trim((string)$d[$k]);
+      if ($s !== '' && !preg_match('/^[A-Za-z0-9_\-]{3,100}$/', $s)) throw new ErroApi("EmailJS: $rotulo inválido. Copie e cole sem espaços.", 422, ['campo' => $k]);
+      $v[$k] = $s;
+    }
     foreach (Modulos::instalados() as $m) {
       $k = 'modulo_' . $m->tipo();
       if (array_key_exists($k, $d)) $v[$k] = Validacao::booleano($d[$k]) ? '1' : '0';

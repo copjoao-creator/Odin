@@ -112,6 +112,7 @@
         // Mesmos dados com os nomes do modelo padrão "Contact Us" do EmailJS.
         name: dados.nome,
         title: dados.assunto,
+        subject: `[${dados.loja}] ${dados.assunto} - ${dados.nome}`,
         message: `${dados.mensagem}\n\nTelefone: ${dados.telefone}\nE-mail: ${dados.email}`,
         phone: dados.telefone,
         reply_to: dados.email,

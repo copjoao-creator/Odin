@@ -19,14 +19,16 @@ Pagamentos aceitos, todos pelo **Mercado Pago**: **Pix**, **boleto**, **cartão 
 ## Passo 1. Criar o banco de dados MySQL (5 minutos)
 
 1. Entre no **cPanel** da HostGator (Portal do Cliente › seu plano › botão **cPanel**).
-2. Na busca do cPanel, digite **MySQL** e abra **Assistente de Banco de Dados MySQL**
-   (em inglês: *MySQL Database Wizard*).
-3. **Etapa 1 – Criar banco de dados:** digite `loja` e clique em **Próxima etapa**.
+2. No quadro **Bancos de dados**, clique em **Database Wizard**
+   (em algumas versões aparece como *Assistente de Banco de Dados MySQL*). Não use o PHPMyAdmin.
+3. **Etapa 1 – Create A Database:** no campo **New Database**, digite `loja` e clique em **Next Step**.
    O cPanel coloca um prefixo na frente, por exemplo `odinfo12_loja`. **Anote o nome completo.**
-4. **Etapa 2 – Criar usuário:** digite `lojaadm` e clique em **Gerador de senha**.
-   Marque *“Copiei esta senha em um local seguro”* e clique em **Usar senha** e depois **Criar usuário**.
+4. **Etapa 2 – Create Database Users:** em **Username**, digite `lojaadm` e clique em **Password Generator**.
+   Copie a senha, marque *“I have copied this password in a safe place”*, clique em **Use Password**
+   e depois em **Create User**.
    **Anote o nome completo do usuário** (ex.: `odinfo12_lojaadm`) **e a senha.**
-5. **Etapa 3 – Adicionar usuário ao banco:** marque **TODOS OS PRIVILÉGIOS** e clique em **Próxima etapa**.
+5. **Etapa 3 – Add User to the Database:** marque **ALL PRIVILEGES** e clique em **Next Step**.
+6. **Etapa 4:** aparece a mensagem de conclusão.
 
 Pronto. Você **não precisa** abrir o phpMyAdmin nem criar tabelas: o instalador faz isso sozinho.
 

@@ -92,7 +92,7 @@
     alvo.innerHTML = `
       ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
       <div class="pg-total"><span>Assinatura · pedido #${pedido.id}</span><strong>${Loja.brl(a.valor)}/${Loja.esc(periodo)}</strong></div>
-      <p class="pg-assinatura">${Loja.icone('relogio')} Cobrança automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}. Para cancelar, é só falar com a loja.</p>
+      <p class="pg-assinatura">${Loja.icone('relogio')} Cobrança automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}${a.data_final ? `, até <strong>${Loja.data(a.data_final)}</strong>, quando a assinatura termina sozinha` : ''}. Para cancelar antes, é só falar com a loja.</p>
       <div id="${id}" class="pg-brick"><p class="carregando">Carregando o formulário do cartão…</p></div>
       <p class="pg-seguro">${Loja.icone('escudo')} Assinatura processada pelo Mercado Pago. A loja não tem acesso aos dados do seu cartão.</p>`;
     try {
@@ -106,7 +106,8 @@
     controle = await mp.bricks().create('cardPayment', id, {
       initialization: {
         amount: a.valor,
-        payer: { email: c.email, identification: { type: 'CPF', number: c.cpf } }
+        // Dados protegidos (pedido feito pelo CPF): o formulário pede e-mail e CPF a quem paga.
+        ...(c.protegido ? {} : { payer: { email: c.email, identification: { type: 'CPF', number: c.cpf } } })
       },
       customization: {
         visual: { style: ESTILO_BRICK },
@@ -184,7 +185,8 @@
     controle = await mp.bricks().create('payment', id, {
       initialization: {
         amount: pedido.total,
-        payer: {
+        // Dados protegidos (pedido feito pelo CPF): nada é pré-preenchido; o formulário pede o que precisar.
+        ...(c.protegido ? {} : { payer: {
           firstName: primeiro,
           lastName: resto.join(' ') || primeiro,
           email: c.email,
@@ -193,7 +195,7 @@
             zipCode: c.cep, federalUnit: c.estado, city: c.cidade, neighborhood: c.bairro,
             streetName: c.rua, streetNumber: c.numero, complement: c.complemento || ''
           }
-        }
+        } })
       },
       customization: {
         visual: { style: ESTILO_BRICK },

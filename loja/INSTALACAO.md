@@ -121,6 +121,11 @@ Para ligar:
 3. Na aplicação de serviços › **Webhooks**, cole a URL mostrada nessa seção (termina em `&app=servicos`),
    marque **Pagamentos** e **Planos e assinaturas**, salve e cole a **assinatura secreta** no painel.
 
+**Data final:** em **Assinaturas › Data final** você define, muda ou tira a data em que cada assinatura
+termina (também dá para informar ao criar um *Novo link de pagamento*). Nesse dia a rotina diária marca a
+assinatura como **Encerrada** e, no cartão, cancela no Mercado Pago; cobranças que cairiam nessa data ou
+depois não acontecem. Para terminar hoje, use **Cancelar**.
+
 Sem essa seção preenchida, os serviços usam a aplicação da loja (as assinaturas também).
 Assinaturas criadas antes desta mudança continuam no modelo antigo: link de pagamento por e-mail
 antes de cada vencimento. Para cancelar uma assinatura no cartão, use **Assinaturas › Cancelar** no painel:
@@ -287,6 +292,9 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
   `&app=servicos` recebe `subscription_preapproval` e `subscription_authorized_payment`, e o módulo de serviços
   decide se a cobrança é do pedido de origem ou de um pedido de renovação.
 - Mudanças no banco de lojas já instaladas ficam em `api/nucleo/Migracoes.php` e rodam sozinhas na primeira chamada à API.
+- Checkout pelo CPF (`clientes/identificar`): quem já tem cadastro vê só um resumo mascarado e o pedido usa os
+  dados do banco (`pedidos.dados_protegidos`), sem devolvê-los ao navegador. Consultas limitadas a 10 por IP a cada
+  15 minutos (tabela `login_tentativas`, chave `cpf:IP`).
 - Senhas com `password_hash`, sessão com cookie `HttpOnly`/`SameSite=Strict`, token CSRF no painel e limite de
   tentativas de login por IP. Fotos são validadas e regravadas (PNG/JPG) antes de salvar.
 

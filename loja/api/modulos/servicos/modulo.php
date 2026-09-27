@@ -42,6 +42,7 @@ return new class implements ModuloCatalogo {
     $r->admin('GET', 'assinaturas', fn() => $this->assinaturas());
     $r->admin('POST', 'assinaturas/renovacoes', fn() => ['mensagens' => $this->tarefasDiarias()]);
     $r->admin('POST', 'assinaturas/{id}/cancelar', fn($id) => $this->cancelarAssinatura((int)$id));
+    $r->admin('PUT', 'assinaturas/{id}/data-final', fn($id) => $this->alterarDataFinal((int)$id));
     $r->admin('POST', 'assinaturas/{id}/cobrar', fn($id) => $this->cobrarAgora((int)$id));
   }
 
@@ -218,15 +219,16 @@ return new class implements ModuloCatalogo {
       Banco::executar(
         "UPDATE assinaturas SET proxima_cobranca = DATE_ADD(proxima_cobranca, INTERVAL ? MONTH),
            status = IF(proxima_cobranca < CURDATE(), 'atrasada', 'ativa'), pedido_renovacao = NULL
-         WHERE id = ? AND status <> 'cancelada'",
+         WHERE id = ? AND status NOT IN ('cancelada', 'encerrada')",
         [$meses, $item['referencia']]
       );
       return;
     }
     Banco::executar(
-      'INSERT INTO assinaturas (cliente_cpf, codigo_servico, descricao, renovacao, valor, inicio, proxima_cobranca, pedido_origem, mp_assinatura)
-       VALUES (?, ?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), ?, ?)',
-      [$pedido['cliente_cpf'], $item['codigo'], $item['descricao'], $item['renovacao'], $item['preco_unitario'], $meses, $pedido['id'], $pedido['mp_assinatura'] ?? null]
+      'INSERT INTO assinaturas (cliente_cpf, codigo_servico, descricao, renovacao, valor, inicio, proxima_cobranca, data_final, pedido_origem, mp_assinatura)
+       VALUES (?, ?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), ?, ?, ?)',
+      [$pedido['cliente_cpf'], $item['codigo'], $item['descricao'], $item['renovacao'], $item['preco_unitario'], $meses,
+        $pedido['assinatura_data_final'] ?? null, $pedido['id'], $pedido['mp_assinatura'] ?? null]
     );
     Banco::executar('UPDATE pedido_itens SET referencia = ? WHERE id = ?', [Banco::ultimoId(), $item['id']]);
   }
@@ -239,7 +241,7 @@ return new class implements ModuloCatalogo {
     if ($pedido['origem'] === 'renovacao') {
       Banco::executar(
         "UPDATE assinaturas SET proxima_cobranca = DATE_SUB(proxima_cobranca, INTERVAL ? MONTH),
-           status = IF(status = 'cancelada', 'cancelada', IF(proxima_cobranca < CURDATE(), 'atrasada', 'ativa'))
+           status = IF(status IN ('cancelada', 'encerrada'), status, IF(proxima_cobranca < CURDATE(), 'atrasada', 'ativa'))
          WHERE id = ?",
         [$meses, $ref]
       );
@@ -310,6 +312,8 @@ return new class implements ModuloCatalogo {
       'back_url' => $url !== '' ? $url : 'https://www.mercadopago.com.br',
       'status' => 'authorized',
     ];
+    // Data final definida no painel: o Mercado Pago para de cobrar sozinho nessa data.
+    if (!empty($p['assinatura_data_final'])) $corpo['auto_recurring']['end_date'] = MercadoPago::fimDoDia($p['assinatura_data_final']);
     try {
       $mp = MercadoPago::criarAssinatura($corpo);
     } catch (ErroApi $e) {
@@ -352,9 +356,15 @@ return new class implements ModuloCatalogo {
       return;
     }
     $pre = MercadoPago::consultarAssinatura($id);
-    if (($pre['status'] ?? '') === 'cancelled') {
-      $n = Banco::executar("UPDATE assinaturas SET status = 'cancelada', cancelada_em = NOW() WHERE mp_assinatura = ? AND status <> 'cancelada'", [$id]);
-      if ($n) error_log("Assinatura {$id} cancelada no Mercado Pago.");
+    if (in_array($pre['status'] ?? '', ['cancelled', 'finished'], true)) {
+      // Terminou na data final (ou depois dela) = encerrada; antes disso = cancelada.
+      $n = Banco::executar(
+        "UPDATE assinaturas SET status = IF(data_final IS NOT NULL AND data_final <= CURDATE() + INTERVAL 1 DAY, 'encerrada', 'cancelada'),
+           cancelada_em = NOW()
+         WHERE mp_assinatura = ? AND status NOT IN ('cancelada', 'encerrada')",
+        [$id]
+      );
+      if ($n) error_log("Assinatura {$id} terminou no Mercado Pago ({$pre['status']}).");
     }
   }
 
@@ -431,11 +441,11 @@ return new class implements ModuloCatalogo {
             JOIN clientes c ON c.cpf = a.cliente_cpf
             LEFT JOIN pedidos p ON p.id = a.pedido_renovacao';
     $params = [];
-    if (in_array($status, ['ativa', 'atrasada', 'cancelada'], true)) {
+    if (in_array($status, ['ativa', 'atrasada', 'cancelada', 'encerrada'], true)) {
       $sql .= ' WHERE a.status = ?';
       $params[] = $status;
     }
-    $lista = Banco::todos($sql . ' ORDER BY FIELD(a.status, \'atrasada\', \'ativa\', \'cancelada\'), a.proxima_cobranca LIMIT 1000', $params);
+    $lista = Banco::todos($sql . ' ORDER BY FIELD(a.status, \'atrasada\', \'ativa\', \'encerrada\', \'cancelada\'), a.proxima_cobranca LIMIT 1000', $params);
     return ['assinaturas' => array_map(fn($a) => [
       'id' => (int)$a['id'],
       'cliente_cpf' => $a['cliente_cpf'],
@@ -453,6 +463,7 @@ return new class implements ModuloCatalogo {
       'pedido_renovacao' => $a['pedido_renovacao'] ? (int)$a['pedido_renovacao'] : null,
       'renovacao_status' => $a['renovacao_status'],
       'cartao_automatico' => !empty($a['mp_assinatura']),
+      'data_final' => $a['data_final'],
     ], $lista)];
   }
 
@@ -460,25 +471,60 @@ return new class implements ModuloCatalogo {
   {
     $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
     if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
-    // No cartão: cancela primeiro no Mercado Pago. Se falhar, nada muda aqui, para o cliente não
-    // continuar sendo cobrado com a assinatura marcada como cancelada.
-    if ($a['mp_assinatura'] && $a['status'] !== 'cancelada') MercadoPago::cancelarAssinatura($a['mp_assinatura']);
-    Banco::executar("UPDATE assinaturas SET status = 'cancelada', cancelada_em = NOW() WHERE id = ?", [$id]);
+    $this->finalizar($a, 'cancelada', 'assinatura cancelada');
+    return ['ok' => true];
+  }
+
+  /**
+   * Termina a assinatura: "cancelada" (pelo painel) ou "encerrada" (chegou a data final).
+   * No cartão, cancela primeiro no Mercado Pago. Se falhar, nada muda aqui, para o cliente não
+   * continuar sendo cobrado com a assinatura marcada como terminada.
+   */
+  private function finalizar(array $a, string $status, string $motivo): void
+  {
+    if (in_array($a['status'], ['cancelada', 'encerrada'], true)) return;
+    if ($a['mp_assinatura']) MercadoPago::cancelarAssinatura($a['mp_assinatura']);
+    Banco::executar('UPDATE assinaturas SET status = ?, cancelada_em = NOW() WHERE id = ?', [$status, $a['id']]);
     if ($a['pedido_renovacao']) {
       try {
-        Pedidos::cancelar((int)$a['pedido_renovacao'], 'assinatura cancelada');
+        Pedidos::cancelar((int)$a['pedido_renovacao'], $motivo);
       } catch (ErroApi $e) {
         // Renovação já paga ou cancelada: nada a fazer.
       }
     }
-    return ['ok' => true];
+  }
+
+  /**
+   * Define, muda ou tira (vazio) a data final. Nessa data a assinatura é encerrada pela rotina diária;
+   * no cartão, a data também é enviada ao Mercado Pago para ele parar de cobrar.
+   */
+  private function alterarDataFinal(int $id): array
+  {
+    $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
+    if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
+    if (in_array($a['status'], ['cancelada', 'encerrada'], true)) throw new ErroApi('Esta assinatura já terminou.', 422);
+    $data = Pedidos::validarDataFinal(Http::entrada()['data_final'] ?? null);
+    Banco::executar('UPDATE assinaturas SET data_final = ? WHERE id = ?', [$data, $id]);
+
+    $aviso = null;
+    if ($a['mp_assinatura']) {
+      try {
+        MercadoPago::alterarAssinatura($a['mp_assinatura'], ['auto_recurring' => ['end_date' => $data ? MercadoPago::fimDoDia($data) : null]]);
+      } catch (Throwable $e) {
+        error_log("Não foi possível alterar a data final da assinatura {$a['mp_assinatura']} no Mercado Pago: " . $e->getMessage());
+        $aviso = $data
+          ? 'Data salva. O Mercado Pago não aceitou a alteração agora, mas a loja encerra a assinatura nessa data mesmo assim.'
+          : 'Data removida aqui, mas o Mercado Pago não aceitou a alteração: ele pode parar de cobrar na data final antiga.';
+      }
+    }
+    return ['ok' => true, 'aviso' => $aviso];
   }
 
   private function cobrarAgora(int $id): array
   {
     $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
     if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
-    if ($a['status'] === 'cancelada') throw new ErroApi('Assinatura cancelada.', 422);
+    if (in_array($a['status'], ['cancelada', 'encerrada'], true)) throw new ErroApi('Esta assinatura já terminou.', 422);
     if ($a['mp_assinatura']) throw new ErroApi('Esta assinatura é cobrada automaticamente no cartão pelo Mercado Pago.', 422);
     if ($a['pedido_renovacao']) {
       $p = Pedidos::carregar((int)$a['pedido_renovacao']);
@@ -516,7 +562,7 @@ return new class implements ModuloCatalogo {
         if ($aberto && in_array($aberto['status'], ['aguardando_pagamento', 'em_analise'], true)) return $aberto;
       }
       // Assinatura no cartão cancelada ainda recebe a cobrança que o Mercado Pago já tinha feito.
-      if ($a['status'] === 'cancelada' && !$automatica) return null;
+      if (in_array($a['status'], ['cancelada', 'encerrada'], true) && !$automatica) return null;
       $cliente = Clientes::buscar($a['cliente_cpf']);
       $s = Banco::um('SELECT preco_venda, preco_custo FROM servicos WHERE codigo_servico = ?', [$a['codigo_servico']]);
       $preco = $automatica ? $a['valor'] : ($s['preco_venda'] ?? $a['valor']);
@@ -540,17 +586,28 @@ return new class implements ModuloCatalogo {
   public function tarefasDiarias(): array
   {
     $log = [];
+    // Data final chegou: encerra (no cartão, cancela também no Mercado Pago).
+    foreach (Banco::todos("SELECT * FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND data_final IS NOT NULL AND data_final <= CURDATE()") as $a) {
+      try {
+        $this->finalizar($a, 'encerrada', 'assinatura encerrada na data final');
+        $log[] = "Assinatura #{$a['id']}: encerrada na data final (" . date('d/m/Y', strtotime($a['data_final'])) . ').';
+      } catch (Throwable $e) {
+        $log[] = "Assinatura #{$a['id']}: não foi possível encerrar agora ({$e->getMessage()}). Tenta de novo amanhã.";
+      }
+    }
+    // Cobrança marcada para a data final ou depois dela não acontece: não conta como atraso nem gera renovação.
+    $antesDoFim = '(data_final IS NULL OR proxima_cobranca < data_final)';
     // No cartão, o Mercado Pago cobra no dia dele e tenta de novo se falhar: só marca atraso após 3 dias.
     $n = Banco::executar(
       "UPDATE assinaturas SET status = 'atrasada'
-       WHERE status = 'ativa' AND proxima_cobranca < IF(mp_assinatura IS NULL, CURDATE(), DATE_SUB(CURDATE(), INTERVAL 3 DAY))"
+       WHERE status = 'ativa' AND {$antesDoFim} AND proxima_cobranca < IF(mp_assinatura IS NULL, CURDATE(), DATE_SUB(CURDATE(), INTERVAL 3 DAY))"
     );
     if ($n) $log[] = "{$n} assinatura(s) com pagamento atrasado.";
     $dias = max(0, (int)Config::get('dias_antecedencia_renovacao'));
     // Links de renovação só para as assinaturas antigas; as do cartão são cobradas pelo Mercado Pago.
     $vencendo = Banco::todos(
       "SELECT id FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND pedido_renovacao IS NULL AND mp_assinatura IS NULL
-         AND proxima_cobranca <= DATE_ADD(CURDATE(), INTERVAL {$dias} DAY)"
+         AND {$antesDoFim} AND proxima_cobranca <= DATE_ADD(CURDATE(), INTERVAL {$dias} DAY)"
     );
     // Assinaturas no cartão vencidas: confere no Mercado Pago se alguma cobrança chegou sem aviso.
     $cartao = Banco::todos(
@@ -589,6 +646,7 @@ return new class implements ModuloCatalogo {
       ], Banco::todos(
         "SELECT a.*, c.nome FROM assinaturas a JOIN clientes c ON c.cpf = a.cliente_cpf
          WHERE a.status IN ('ativa', 'atrasada') AND a.proxima_cobranca <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+           AND (a.data_final IS NULL OR a.proxima_cobranca < a.data_final)
          ORDER BY a.proxima_cobranca LIMIT 20"
       )),
     ];

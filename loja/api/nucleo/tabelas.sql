@@ -67,6 +67,8 @@ CREATE TABLE IF NOT EXISTS pedidos (
   estado CHAR(2) NOT NULL,
   forma_pagamento ENUM('pix','boleto','credito','debito','outro') NULL,
   mp_assinatura VARCHAR(40) NULL,
+  assinatura_data_final DATE NULL,
+  dados_protegidos TINYINT(1) NOT NULL DEFAULT 0,
   efeitos_aplicados TINYINT(1) NOT NULL DEFAULT 0,
   pago_em DATETIME NULL,
   cancelado_em DATETIME NULL,

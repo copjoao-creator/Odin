@@ -6,7 +6,7 @@
  */
 final class Migracoes
 {
-  private const VERSAO = 2;
+  private const VERSAO = 4;
 
   public static function aplicar(): void
   {
@@ -19,6 +19,21 @@ final class Migracoes
       self::coluna('assinaturas', 'mp_assinatura', 'VARCHAR(40) NULL AFTER pedido_renovacao');
       if (!self::indice('assinaturas', 'ix_assinaturas_mp')) Banco::executar('ALTER TABLE assinaturas ADD KEY ix_assinaturas_mp (mp_assinatura)');
     }
+
+    // v3: data final das assinaturas (definida no painel) e a situação "encerrada".
+    self::coluna('pedidos', 'assinatura_data_final', 'DATE NULL AFTER mp_assinatura');
+    if (self::tabela('assinaturas')) {
+      self::coluna('assinaturas', 'data_final', 'DATE NULL AFTER proxima_cobranca');
+      $tipo = (string)Banco::valor(
+        "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'assinaturas' AND COLUMN_NAME = 'status'"
+      );
+      if (strpos($tipo, 'encerrada') === false) {
+        Banco::executar("ALTER TABLE assinaturas MODIFY COLUMN status ENUM('ativa','atrasada','cancelada','encerrada') NOT NULL DEFAULT 'ativa'");
+      }
+    }
+
+    // v4: pedido feito "com os dados do cadastro" (pelo CPF) mostra os dados do cliente mascarados.
+    self::coluna('pedidos', 'dados_protegidos', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER assinatura_data_final');
 
     Config::salvar(['versao_banco' => (string)self::VERSAO]);
   }

@@ -14,7 +14,7 @@
     approved: 'Aprovado', pending: 'Pendente', in_process: 'Em análise', authorized: 'Autorizado',
     rejected: 'Recusado', cancelled: 'Cancelado', refunded: 'Estornado', charged_back: 'Contestado'
   };
-  const STATUS_ASSINATURA = { ativa: 'Ativa', atrasada: 'Atrasada', cancelada: 'Cancelada' };
+  const STATUS_ASSINATURA = { ativa: 'Ativa', atrasada: 'Atrasada', encerrada: 'Encerrada', cancelada: 'Cancelada' };
   const METODOS = { pix: 'Pix', boleto: 'Boleto', credito: 'Crédito', debito: 'Débito', outro: 'Outro' };
   const ORIGENS = { loja: 'Loja', admin: 'Painel', renovacao: 'Renovação' };
   const RENOVACOES = { unica: 'Pagamento único', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
@@ -576,7 +576,7 @@
       ]);
       catalogo = [
         ...p.produtos.filter((i) => i.ativo).map((i) => ({ tipo: 'produto', codigo: i.codigo_produto, titulo: i.titulo, preco: i.preco_venda, extra: `estoque ${i.estoque}` })),
-        ...s.servicos.filter((i) => i.ativo).map((i) => ({ tipo: 'servico', codigo: i.codigo_servico, titulo: i.titulo, preco: i.preco_venda, extra: i.renovacao_texto }))
+        ...s.servicos.filter((i) => i.ativo).map((i) => ({ tipo: 'servico', codigo: i.codigo_servico, titulo: i.titulo, preco: i.preco_venda, extra: i.renovacao_texto, recorrente: i.recorrente }))
       ];
     } catch (e) {
       return falha(e);
@@ -599,6 +599,10 @@
           <button type="button" class="btn btn-pequeno btn-linha" id="btnAddItem">Adicionar</button>
         </div>
         <div class="itens-pedido" id="itensNovo" style="margin-top:12px"></div>
+        <div class="campos" id="campoFim" hidden style="margin-top:12px">
+          <label class="c-6">Data final da assinatura (opcional) <input type="date" id="dataFinal" min="${amanha()}"></label>
+          <p class="c-12 fraco">A assinatura é encerrada nesse dia. Em branco, ela continua até ser cancelada.</p>
+        </div>
       </div>
       <div class="campos"><label class="c-12 marcar"><input type="checkbox" id="enviarEmail" checked> Enviar o link de pagamento por e-mail ao cliente</label></div>`,
     '<button type="button" class="btn btn-pequeno btn-linha" data-fechar>Cancelar</button><button type="button" class="btn btn-pequeno" id="btnCriarPedido">Gerar link de pagamento</button>');
@@ -609,6 +613,7 @@
         <div class="linha"><span>${esc(i.titulo)}</span><span class="num">${i.quantidade} × ${brl(i.preco)}</span><button type="button" class="link" data-rem="${n}">Remover</button></div>`).join('')
         + (itens.length ? `<p class="num" style="text-align:right"><strong>Total dos itens: ${brl(total)}</strong> <span class="fraco">(o frete é somado se houver produtos)</span></p>` : '');
       $$('[data-rem]', dlg).forEach((b) => b.addEventListener('click', () => { itens.splice(Number(b.dataset.rem), 1); desenharItens(); }));
+      $('#campoFim').hidden = !itens.some((i) => i.recorrente);
     };
     let t;
     $('#buscaCliente').addEventListener('input', (e) => {
@@ -646,7 +651,12 @@
       try {
         const r = await api('pedidos/manual', {
           metodo: 'POST',
-          dados: { cpf: cliente.cpf, itens: itens.map((i) => ({ tipo: i.tipo, codigo: i.codigo, quantidade: i.quantidade })), enviar_email: $('#enviarEmail').checked }
+          dados: {
+            cpf: cliente.cpf,
+            itens: itens.map((i) => ({ tipo: i.tipo, codigo: i.codigo, quantidade: i.quantidade })),
+            enviar_email: $('#enviarEmail').checked,
+            data_final: itens.some((i) => i.recorrente) ? $('#dataFinal').value : ''
+          }
         });
         if ($('#enviarEmail').checked && !r.email_enviado) Loja.aviso('O e-mail não pôde ser enviado. Copie o link e envie pelo WhatsApp.', 'erro');
         await abrirPedido(r.pedido.id);
@@ -978,25 +988,31 @@
     const filtro = A.filtroAssinaturas || '';
     el.innerHTML = `
       <div class="bloco filtros">
-        <label>Situação <select id="fStatus"><option value="">Todas</option><option value="ativa">Ativas</option><option value="atrasada">Atrasadas</option><option value="cancelada">Canceladas</option></select></label>
+        <label>Situação <select id="fStatus"><option value="">Todas</option><option value="ativa">Ativas</option><option value="atrasada">Atrasadas</option><option value="encerrada">Encerradas</option><option value="cancelada">Canceladas</option></select></label>
         <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Mercado Pago cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
       </div>
       <div class="tabela-caixa" id="lista"><p class="carregando">Carregando…</p></div>`;
     $('#fStatus').value = filtro;
     $('#fStatus').addEventListener('change', (e) => { A.filtroAssinaturas = e.target.value; ir(); });
     const r = await api(`assinaturas&status=${filtro}`);
-    $('#lista').innerHTML = tabela(['Cliente', 'Serviço', 'Período', '#Valor', 'Próxima cobrança', 'Situação', 'Cobrança em aberto', ''], r.assinaturas.map((a) => `
+    const terminou = (a) => a.status === 'cancelada' || a.status === 'encerrada';
+    // Sem próxima cobrança quando ela cairia na data final ou depois (a assinatura acaba antes).
+    const semProxima = (a) => a.data_final && a.proxima_cobranca >= a.data_final;
+    $('#lista').innerHTML = tabela(['Cliente', 'Serviço', 'Período', '#Valor', 'Próxima cobrança', 'Termina em', 'Situação', 'Cobrança em aberto', ''], r.assinaturas.map((a) => `
       <tr>
         <td>${esc(a.cliente_nome)}<br><span class="fraco">${esc(a.cliente_email)}</span></td>
         <td>${esc(a.descricao)}<br><span class="fraco">desde ${Loja.data(a.inicio)} · pedido <a href="#" data-pedido="${a.pedido_origem}">#${a.pedido_origem}</a></span></td>
         <td>${esc(a.renovacao_texto)}<br><span class="fraco">${a.cartao_automatico ? 'Cartão automático' : 'Link por e-mail'}</span></td>
         <td class="num">${brl(a.valor)}</td>
-        <td>${Loja.data(a.proxima_cobranca)}</td>
+        <td>${terminou(a) || semProxima(a) ? '<span class="fraco">—</span>' : Loja.data(a.proxima_cobranca)}</td>
+        <td>${a.data_final ? Loja.data(a.data_final) : '<span class="fraco">Sem data</span>'}</td>
         <td>${selo(a.status, STATUS_ASSINATURA[a.status])}</td>
         <td>${a.pedido_renovacao ? `<a href="#" data-pedido="${a.pedido_renovacao}">#${a.pedido_renovacao}</a> ${a.renovacao_status ? selo(a.renovacao_status, STATUS_PEDIDO[a.renovacao_status]) : ''}` : '<span class="fraco">—</span>'}</td>
-        <td>${a.status !== 'cancelada' ? `${a.cartao_automatico ? '' : `<button type="button" class="link" data-cobrar="${a.id}">${a.pedido_renovacao ? 'Reenviar cobrança' : 'Cobrar agora'}</button><br>`}<button type="button" class="link" data-cancelar="${a.id}">Cancelar</button>` : ''}</td>
+        <td>${terminou(a) ? '' : `${a.cartao_automatico ? '' : `<button type="button" class="link" data-cobrar="${a.id}">${a.pedido_renovacao ? 'Reenviar cobrança' : 'Cobrar agora'}</button><br>`}<button type="button" class="link" data-fim="${a.id}">Data final</button><br><button type="button" class="link" data-cancelar="${a.id}">Cancelar</button>`}</td>
       </tr>`), 'Nenhuma assinatura. Elas surgem quando um serviço recorrente é pago.');
     $('#lista').addEventListener('click', async (e) => {
+      const fim = e.target.closest('[data-fim]');
+      if (fim) return editarDataFinal(r.assinaturas.find((a) => a.id === Number(fim.dataset.fim)));
       const ped = e.target.closest('[data-pedido]');
       if (ped) {
         e.preventDefault();
@@ -1023,6 +1039,33 @@
         } catch (err) {
           falha(err);
         }
+      }
+    });
+  }
+
+  /** Amanhã (data mínima para a data final de uma assinatura), no formato AAAA-MM-DD. */
+  function amanha() { const d = new Date(); d.setDate(d.getDate() + 1); return iso(d); }
+
+  /** Define, muda ou tira a data final de uma assinatura. */
+  function editarDataFinal(a) {
+    dialogo('Data final da assinatura', `
+      <p>${esc(a.cliente_nome)} · ${esc(a.descricao)} (${esc(a.renovacao_texto.toLowerCase())})</p>
+      <form id="fFim" class="campos" novalidate style="margin-top:14px">
+        <label class="c-6">Termina em <input type="date" name="data_final" min="${amanha()}" value="${esc(a.data_final || '')}"></label>
+        <p class="c-12 fraco">Nesse dia a assinatura é <strong>encerrada</strong>${a.cartao_automatico ? ' e o Mercado Pago para de cobrar no cartão' : ''}. Cobranças que cairiam nessa data ou depois não acontecem. Deixe em branco para não ter data final. Para terminar hoje, use <strong>Cancelar</strong>.</p>
+      </form>`,
+    '<button type="button" class="btn btn-pequeno btn-linha" data-fechar>Voltar</button><button type="button" class="btn btn-pequeno" id="btnSalvarFim">Salvar</button>');
+    $('#btnSalvarFim').addEventListener('click', async (e) => {
+      const f = $('#fFim');
+      e.target.disabled = true;
+      try {
+        const x = await api(`assinaturas/${a.id}/data-final`, { metodo: 'PUT', dados: { data_final: f.elements.data_final.value } });
+        dlg.close();
+        Loja.aviso(x.aviso || (f.elements.data_final.value ? 'Data final salva.' : 'Data final removida.'), x.aviso ? 'erro' : 'ok');
+        recarregarTela();
+      } catch (err) {
+        erroDeForm(f, err);
+        e.target.disabled = false;
       }
     });
   }

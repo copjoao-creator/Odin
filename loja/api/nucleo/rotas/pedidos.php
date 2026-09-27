@@ -117,7 +117,14 @@ return function (Roteador $r) {
     $d = Http::entrada();
     $c = Clientes::buscar(Validacao::cpf($d['cpf'] ?? ''));
     if (!$c) throw new ErroApi('Cliente não encontrado. Cadastre o cliente primeiro.', 404, ['campo' => 'cpf']);
-    $p = Pedidos::criar($c, Pedidos::itensDoCarrinho($d['itens'] ?? []), 'admin');
+    $itens = Pedidos::itensDoCarrinho($d['itens'] ?? []);
+    // Assinatura: data final opcional (encerra sozinha nessa data).
+    $dataFinal = Pedidos::validarDataFinal($d['data_final'] ?? null);
+    $p = Pedidos::criar($c, $itens, 'admin');
+    if ($dataFinal && Pedidos::itemAssinatura($p)) {
+      Banco::executar('UPDATE pedidos SET assinatura_data_final = ? WHERE id = ?', [$dataFinal, $p['id']]);
+      $p = Pedidos::carregar((int)$p['id']);
+    }
     $enviado = Validacao::booleano($d['enviar_email'] ?? false) ? Pedidos::enviarLink($p) : false;
     return ['pedido' => $completo($p), 'email_enviado' => $enviado];
   });

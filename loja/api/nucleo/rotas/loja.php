@@ -30,11 +30,34 @@ return function (Roteador $r) {
     ]];
   });
 
-  // Checkout: cadastra/atualiza o cliente e cria o pedido com preços e estoque do banco.
+  // Checkout, 1º passo: o cliente digita o CPF. Se já tiver cadastro, devolve só um resumo mascarado.
+  $r->publica('POST', 'clientes/identificar', function () {
+    $cpf = Validacao::cpf(Http::entrada()['cpf'] ?? '');
+    Clientes::limitarConsultas();
+    $c = Clientes::buscar($cpf);
+    return ['cadastrado' => (bool)$c, 'resumo' => $c ? Clientes::resumoMascarado($c) : null];
+  });
+
+  // Checkout: cria o pedido com preços e estoque do banco.
+  // - Cliente novo ou "atualizar meus dados": valida o formulário e cadastra/atualiza o cliente.
+  // - "Continuar com estes dados" (usar_cadastro): usa o cadastro do CPF sem alterar nada, e o
+  //   pedido mostra os dados do cliente mascarados (quem digitou o CPF pode não ser o dono dele).
   $r->publica('POST', 'pedidos', function () {
     $d = Http::entrada();
-    $cliente = Clientes::validar(is_array($d['cliente'] ?? null) ? $d['cliente'] : []);
     $itens = Pedidos::itensDoCarrinho($d['itens'] ?? []);
+    if (Validacao::booleano($d['usar_cadastro'] ?? false)) {
+      $cpf = Validacao::cpf($d['cliente']['cpf'] ?? '');
+      Clientes::limitarConsultas();
+      $cliente = Clientes::buscar($cpf);
+      if (!$cliente) throw new ErroApi('Não encontramos cadastro com este CPF. Preencha seus dados.', 404, ['campo' => 'cpf']);
+      $p = Banco::transacao(function () use ($cliente, $itens) {
+        $p = Pedidos::criar($cliente, $itens, 'loja');
+        Banco::executar('UPDATE pedidos SET dados_protegidos = 1 WHERE id = ?', [$p['id']]);
+        return Pedidos::carregar((int)$p['id']);
+      });
+      return ['pedido' => Pedidos::publico($p)];
+    }
+    $cliente = Clientes::validar(is_array($d['cliente'] ?? null) ? $d['cliente'] : []);
     $p = Banco::transacao(function () use ($cliente, $itens) {
       Clientes::salvarDoCheckout($cliente);
       return Pedidos::criar($cliente, $itens, 'loja');

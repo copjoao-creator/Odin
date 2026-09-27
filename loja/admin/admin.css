@@ -112,7 +112,7 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .st-pago, .st-approved, .st-ativa, .st-ligado { color: #2E6B4F; background: #E6F1EA; }
 .st-aguardando_pagamento, .st-pending, .st-atrasada { color: #8A5A10; background: #FBF1DE; }
 .st-em_analise, .st-in_process, .st-authorized { color: #1F4E79; background: #E4EDF6; }
-.st-cancelado, .st-cancelled, .st-cancelada, .st-desligado, .st-inativo { color: #5E5A53; background: #EEEBE4; }
+.st-cancelado, .st-cancelled, .st-cancelada, .st-encerrada, .st-desligado, .st-inativo { color: #5E5A53; background: #EEEBE4; }
 .st-estornado, .st-refunded, .st-charged_back, .st-rejected { color: #A33A3A; background: #F7E6E6; }
 .neg { color: var(--erro); font-weight: 700; }
 .baixo { color: #8A5A10; font-weight: 700; }

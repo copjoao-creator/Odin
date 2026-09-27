@@ -38,7 +38,9 @@ Loja.esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<
 const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 Loja.brl = (n) => fmtBRL.format(Number(n) || 0);
 
-Loja.data = (s) => (s ? new Date(String(s).replace(' ', 'T')).toLocaleDateString('pt-BR') : '—');
+// Data sem horário ("2027-03-31") é lida como meia-noite local; sem isso o navegador usa UTC e,
+// no Brasil, mostraria o dia anterior.
+Loja.data = (s) => (s ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(s)) ? `${s}T00:00:00` : String(s).replace(' ', 'T')).toLocaleDateString('pt-BR') : '—');
 Loja.dataHora = (s) => (s ? new Date(String(s).replace(' ', 'T')).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 Loja.digitos = (s) => String(s ?? '').replace(/\D+/g, '');

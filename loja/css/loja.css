@@ -349,6 +349,11 @@ p { margin: 0; }
 .resumo { background: var(--creme); padding: 26px 24px; border-left: 1px solid var(--linha); }
 .resumo h3, .form-cliente h3 { font-size: .85rem; letter-spacing: 2px; text-transform: uppercase; color: var(--azul); margin-bottom: 14px; }
 .form-cliente h3 + .campos { margin-bottom: 24px; }
+/* Checkout pelo CPF: resumo mascarado do cadastro encontrado */
+.cadastro-achado { background: var(--creme); border-left: 4px solid var(--ok); padding: 14px 16px; margin: -8px 0 20px; font-size: .92rem; line-height: 1.6; }
+.cadastro-achado .cadastro-titulo { display: flex; align-items: center; gap: 8px; color: var(--ok); font-weight: 600; margin-bottom: 6px; }
+.cadastro-achado .cadastro-titulo .ico { width: 18px; height: 18px; }
+.cadastro-achado .link { margin-top: 8px; }
 .resumo-itens { list-style: none; margin: 0 0 16px; padding: 0 0 12px; border-bottom: 1px solid var(--linha); display: grid; gap: 10px; font-size: .88rem; }
 .resumo-itens li, .pg-itens li { display: flex; justify-content: space-between; gap: 12px; }
 .resumo-itens li span:last-child, .pg-itens li span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }

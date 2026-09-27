@@ -222,10 +222,15 @@
         <form id="formCliente" class="form-cliente" novalidate>
           <h3>Seus dados</h3>
           <div class="campos">
-            <label class="c-12">Nome completo <input name="nome" autocomplete="name" required maxlength="150"></label>
             <label class="c-6">CPF <input name="cpf" inputmode="numeric" autocomplete="off" required placeholder="000.000.000-00"></label>
+            <p class="c-6 dica-cep" id="dicaCpf">Comece pelo CPF. Se você já comprou aqui, usamos o seu cadastro.</p>
+          </div>
+          <div class="cadastro-achado" id="cadastroAchado" hidden></div>
+          <div id="camposCliente" hidden>
+          <div class="campos">
+            <label class="c-12">Nome completo <input name="nome" autocomplete="name" required maxlength="150"></label>
             <label class="c-6">Celular (WhatsApp) <input name="celular" inputmode="tel" autocomplete="tel-national" required placeholder="(00) 00000-0000"></label>
-            <label class="c-12">E-mail <input name="email" type="email" autocomplete="email" required maxlength="190"></label>
+            <label class="c-6">E-mail <input name="email" type="email" autocomplete="email" required maxlength="190"></label>
           </div>
           <h3 id="tituloEndereco">Endereço de entrega</h3>
           <div class="campos">
@@ -237,6 +242,7 @@
             <label class="c-6">Bairro <input name="bairro" required maxlength="100"></label>
             <label class="c-8">Cidade <input name="cidade" autocomplete="address-level2" required maxlength="100"></label>
             <label class="c-4">Estado <select name="estado" required><option value="">UF</option></select></label>
+          </div>
           </div>
           <p class="form-erro" id="erroCliente" role="alert" hidden></p>
           <button type="submit" class="btn btn-largo" id="btnContinuar">Continuar para o pagamento</button>

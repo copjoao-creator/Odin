@@ -148,6 +148,18 @@ final class MercadoPago
     return self::requisicao('PUT', '/preapproval/' . rawurlencode($id), ['status' => 'cancelled'], [], 'servicos');
   }
 
+  /** Altera a assinatura no Mercado Pago (usado para a data final). */
+  public static function alterarAssinatura(string $id, array $corpo): array
+  {
+    return self::requisicao('PUT', '/preapproval/' . rawurlencode($id), $corpo, [], 'servicos');
+  }
+
+  /** Data final no formato do Mercado Pago (fim do dia, horário de Brasília). */
+  public static function fimDoDia(string $data): string
+  {
+    return $data . 'T23:59:59.000-03:00';
+  }
+
   /** Uma cobrança (fatura) da assinatura. Quando processada, traz o pagamento em ['payment']['id']. */
   public static function consultarFatura(string $id): array
   {

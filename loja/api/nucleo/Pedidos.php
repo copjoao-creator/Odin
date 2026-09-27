@@ -88,6 +88,18 @@ final class Pedidos
     return null;
   }
 
+  /**
+   * Data final (opcional) de uma assinatura: vazia = sem fim; senão, uma data depois de hoje.
+   * Devolve null (sem data) ou a data em Y-m-d.
+   */
+  public static function validarDataFinal($v, string $campo = 'data_final'): ?string
+  {
+    if ($v === null || trim((string)$v) === '') return null;
+    $data = Validacao::data($v, $campo, 'Data final da assinatura');
+    if ($data <= date('Y-m-d')) throw new ErroApi('A data final da assinatura precisa ser depois de hoje.', 422, ['campo' => $campo]);
+    return $data;
+  }
+
   /** Grava o pedido com o endereço do cliente copiado e devolve o pedido completo. */
   public static function criar(array $cliente, array $itens, string $origem): array
   {
@@ -169,7 +181,7 @@ final class Pedidos
         'preco_unitario' => (float)$i['preco_unitario'],
         'renovacao' => $i['renovacao'],
       ], $p['itens']),
-      'cliente' => [
+      'cliente' => !empty($p['dados_protegidos']) ? Clientes::mascarado($c ?? [], $p['cliente_cpf']) : [
         'nome' => $c['nome'] ?? '',
         'email' => $c['email'] ?? '',
         'cpf' => $p['cliente_cpf'],
@@ -192,6 +204,7 @@ final class Pedidos
         'renovacao' => $a['renovacao'],
         'valor' => (float)$a['preco_unitario'],
         'criada' => !empty($p['mp_assinatura']),
+        'data_final' => $p['assinatura_data_final'] ?? null,
       ] : null,
     ];
   }

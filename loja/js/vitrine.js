@@ -92,8 +92,9 @@
 
     // Contatos (a página Fale conosco fica em contato.html)
     $('#rodapeContatos').innerHTML = Loja.rodapeContatos(l);
-    if (!estado.produtos.length && l.modulos.produto === false) esconder('produtos');
-    if (!estado.servicos.length) esconder('servicos');
+    // Produtos e Serviços aparecem sempre (vazios, mostram "em breve"); só somem com o módulo desligado no painel.
+    if (l.modulos.produto === false) esconder('produtos');
+    if (l.modulos.servico === false) esconder('servicos');
   }
 
   function esconder(secao) {
@@ -212,9 +213,8 @@
 
   function renderServicos() {
     const itens = ordenar(filtrar(estado.servicos));
-    if (!estado.servicos.length) return;
     if (!itens.length) {
-      $('#gradeServicos').innerHTML = '<p class="vazio">Nenhum serviço encontrado para essa busca.</p>';
+      $('#gradeServicos').innerHTML = `<p class="vazio">${estado.servicos.length ? 'Nenhum serviço encontrado para essa busca.' : 'Novos serviços em breve.'}</p>`;
       return;
     }
     $('#gradeServicos').innerHTML = itens.map((s) => {
@@ -470,6 +470,69 @@
   Loja.mascarar(form.elements.celular, 'celular');
   Loja.mascarar(form.elements.cep, 'cep');
 
+  // ---------------- CPF primeiro: cliente com cadastro não digita tudo de novo ----------------
+  // cadastro: 'buscando' | 'encontrado' (usa os dados do cadastro) | 'novo' (formulário) | null (sem CPF ainda)
+  let cadastro = null;
+  let cpfConsultado = '';
+  const btnContinuar = $('#btnContinuar');
+
+  function modoCliente(modo, resumo) {
+    cadastro = modo;
+    const achado = $('#cadastroAchado');
+    achado.hidden = modo !== 'encontrado';
+    $('#camposCliente').hidden = modo !== 'novo';
+    btnContinuar.textContent = modo === 'encontrado' ? 'Continuar com estes dados' : 'Continuar para o pagamento';
+    if (modo === 'encontrado') {
+      achado.innerHTML = `
+        <p class="cadastro-titulo">${Loja.icone('check')} Encontramos seu cadastro</p>
+        <p><strong>${esc(resumo.nome)}</strong><br>${esc(resumo.email)} · ${esc(resumo.celular)}<br>${esc(resumo.endereco)}</p>
+        <button type="button" class="link" id="btnAtualizarDados">Atualizar meus dados</button>`;
+      $('#btnAtualizarDados').addEventListener('click', () => {
+        modoCliente('novo');
+        $('#dicaCpf').textContent = 'Preencha seus dados atualizados. Use o mesmo e-mail do cadastro.';
+        form.elements.nome.focus();
+      });
+    }
+  }
+
+  async function identificarCpf() {
+    const cpf = Loja.digitos(form.elements.cpf.value);
+    const dica = $('#dicaCpf');
+    if (cpf.length !== 11) {
+      if (cadastro) modoCliente(null);
+      cpfConsultado = '';
+      dica.textContent = 'Comece pelo CPF. Se você já comprou aqui, usamos o seu cadastro.';
+      return;
+    }
+    if (cpf === cpfConsultado) return;
+    if (!Loja.cpfValido(cpf)) {
+      modoCliente(null);
+      dica.textContent = 'CPF inválido. Confira os números.';
+      return;
+    }
+    cpfConsultado = cpf;
+    cadastro = 'buscando';
+    dica.textContent = 'Procurando seu cadastro…';
+    try {
+      const r = await Loja.api('clientes/identificar', { metodo: 'POST', dados: { cpf } });
+      if (Loja.digitos(form.elements.cpf.value) !== cpf) return; // o CPF mudou enquanto consultava
+      if (r.cadastrado) {
+        modoCliente('encontrado', r.resumo);
+        dica.textContent = 'Confira se são os seus dados.';
+        btnContinuar.focus();
+      } else {
+        modoCliente('novo');
+        dica.textContent = 'Primeira compra? Preencha seus dados.';
+        form.elements.nome.focus();
+      }
+    } catch (err) {
+      // Sem resposta (ou limite de consultas): segue pelo formulário normal.
+      modoCliente('novo');
+      dica.textContent = err.status === 429 ? err.message : 'Preencha seus dados.';
+    }
+  }
+  form.elements.cpf.addEventListener('input', identificarCpf);
+
   form.elements.cep.addEventListener('input', async () => {
     const cep = Loja.digitos(form.elements.cep.value);
     if (cep.length !== 8) return;
@@ -538,7 +601,7 @@
     etapa(1);
     form.hidden = false;
     alvoPagamento.hidden = true;
-    form.elements.nome.focus();
+    (cadastro === 'novo' ? form.elements.nome : form.elements.cpf).focus();
   }
 
   function mostrarPagamento() {
@@ -606,22 +669,33 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const dados = Object.fromEntries(new FormData(form));
-    const problema = validarLocal(dados);
-    if (problema) return erroNoCampo(...problema);
+    if (!Loja.cpfValido(dados.cpf)) return erroNoCampo('Informe um CPF válido.', 'cpf');
+    if (cadastro === null || cadastro === 'buscando') return identificarCpf();
+    const usarCadastro = cadastro === 'encontrado';
+    if (!usarCadastro) {
+      const problema = validarLocal(dados);
+      if (problema) return erroNoCampo(...problema);
+    }
     $('#erroCliente').hidden = true;
-    const btn = $('#btnContinuar');
+    const btn = btnContinuar;
+    const texto = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Criando seu pedido…';
     try {
-      const r = await Loja.api('pedidos', { metodo: 'POST', dados: { cliente: dados, itens: estado.carrinho } });
+      const corpo = usarCadastro
+        ? { cliente: { cpf: dados.cpf }, usar_cadastro: true, itens: estado.carrinho }
+        : { cliente: dados, itens: estado.carrinho };
+      const r = await Loja.api('pedidos', { metodo: 'POST', dados: corpo });
       estado.pedido = r.pedido;
       estado.carrinhoDoPedido = JSON.stringify(estado.carrinho);
       mostrarPagamento();
     } catch (err) {
+      // CPF do cadastro sumiu (ou erro no cadastro): volta para o formulário completo.
+      if (usarCadastro && err.status === 404) modoCliente('novo');
       erroNoCampo(err.message, err.campo);
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Continuar para o pagamento';
+      btn.textContent = texto;
     }
   });
 

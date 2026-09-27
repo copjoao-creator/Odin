@@ -92,11 +92,6 @@
 
     // Contatos (a página Fale conosco fica em contato.html)
     $('#rodapeContatos').innerHTML = Loja.rodapeContatos(l);
-    if (l.whatsapp) {
-      const z = $('#zapFlutuante');
-      z.href = `https://wa.me/${l.whatsapp}?text=${encodeURIComponent(`Olá! Vim pela loja ${l.nome}.`)}`;
-      z.hidden = false;
-    }
     if (!estado.produtos.length && l.modulos.produto === false) esconder('produtos');
     if (!estado.servicos.length) esconder('servicos');
   }

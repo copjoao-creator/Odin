@@ -125,9 +125,21 @@ Loja.contatos = (l) => {
   return lista;
 };
 
-/** Itens do rodapé "Atendimento": a página Fale conosco e os canais cadastrados. */
+/**
+ * Endereço da página Fale conosco, com assunto e número do pedido já preenchidos se informados.
+ * Todos os links de contato da loja passam por aqui.
+ */
+Loja.linkContato = ({ assunto, pedido } = {}) => {
+  const q = new URLSearchParams();
+  if (assunto) q.set('assunto', assunto);
+  if (pedido) q.set('pedido', pedido);
+  const qs = q.toString();
+  return `contato.html${qs ? `?${qs}` : ''}`;
+};
+
+/** Itens do rodapé "Atendimento": todos levam à página Fale conosco. */
 Loja.rodapeContatos = (l) => ['<li><a href="contato.html">Fale conosco</a></li>']
-  .concat(Loja.contatos(l).map((c) => `<li><a href="${Loja.esc(c.url)}" target="_blank" rel="noopener">${Loja.esc(c.titulo)}: ${Loja.esc(c.texto)}</a></li>`))
+  .concat(Loja.contatos(l).map((c) => `<li><a href="contato.html">${Loja.esc(c.titulo)}: ${Loja.esc(c.texto)}</a></li>`))
   .join('');
 
 /** Ícones em linha (traço herda a cor do texto). */

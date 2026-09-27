@@ -51,8 +51,12 @@
       </form>`;
     const f = $('#fContato');
     Loja.mascarar(f.elements.telefone, 'celular');
-    const assunto = new URLSearchParams(location.search).get('assunto');
+    // Links de contato da loja podem trazer o assunto e o número do pedido (Loja.linkContato).
+    const q = new URLSearchParams(location.search);
+    const assunto = q.get('assunto');
     if (assunto && ASSUNTOS.includes(assunto)) f.elements.assunto.value = assunto;
+    const pedido = Loja.digitos(q.get('pedido'));
+    if (pedido) f.elements.mensagem.value = `Pedido #${pedido}: `;
     f.addEventListener('submit', (e) => { e.preventDefault(); enviar(f, l); });
   }
 
@@ -83,13 +87,23 @@
     botao.textContent = 'Enviando…';
     try {
       await carregarSdk();
-      await window.emailjs.send(l.emailjs.service_id, l.emailjs.template_id, {
+      const dados = {
         nome: f.elements.nome.value.trim(),
         email: f.elements.email.value.trim(),
         telefone: f.elements.telefone.value.trim() || 'não informado',
         assunto: f.elements.assunto.value,
         mensagem: f.elements.mensagem.value.trim(),
         loja: l.nome
+      };
+      await window.emailjs.send(l.emailjs.service_id, l.emailjs.template_id, {
+        ...dados,
+        // Mesmos dados com os nomes do modelo padrão "Contact Us" do EmailJS.
+        name: dados.nome,
+        title: dados.assunto,
+        message: `${dados.mensagem}\n\nTelefone: ${dados.telefone}\nE-mail: ${dados.email}`,
+        phone: dados.telefone,
+        reply_to: dados.email,
+        time: new Date().toLocaleString('pt-BR')
       }, { publicKey: l.emailjs.public_key });
       concluido(l);
     } catch (e) {

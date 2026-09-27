@@ -29,6 +29,8 @@ final class Email
   {
     $loja = htmlspecialchars(Config::get('loja_nome'));
     $titulo = htmlspecialchars($titulo);
+    $url = Http::urlLoja();
+    $contato = $url === '' ? '' : ' Dúvidas? <a href="' . htmlspecialchars($url . 'contato.html') . '" style="color:#1B2D42">Fale conosco</a>.';
     return <<<HTML
 <!DOCTYPE html><html lang="pt-BR"><body style="margin:0;background:#F7F6F2;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333333">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
@@ -38,7 +40,7 @@ final class Email
 <h1 style="margin:0 0 16px;font-size:20px;font-weight:400;color:#1B2D42">{$titulo}</h1>
 {$corpo}
 </td></tr>
-<tr><td style="background:#E5DECF;padding:14px 28px;font-size:12px;color:#555">Este é um e-mail automático de {$loja}.</td></tr>
+<tr><td style="background:#E5DECF;padding:14px 28px;font-size:12px;color:#555">Este é um e-mail automático de {$loja}.{$contato}</td></tr>
 </table></td></tr></table></body></html>
 HTML;
   }

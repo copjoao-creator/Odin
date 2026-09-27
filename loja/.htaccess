@@ -1,5 +1,8 @@
 # Loja Odin Focus
 
+# Esconde pastas do git (.git) caso sejam enviadas por engano para a hospedagem.
+RedirectMatch 404 /\.git
+
 # Protege o arquivo com a senha do banco de dados e os arquivos de documentação/SQL.
 <FilesMatch "^(config\.php|config\.exemplo\.php|.*\.md|.*\.sql)$">
   <IfModule mod_authz_core.c>

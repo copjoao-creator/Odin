@@ -59,9 +59,9 @@
   async function formulario(alvo, ctx, alerta = '') {
     const { loja, pedido } = ctx;
     if (!loja.pagamentos_ativos || !loja.mp_public_key) {
-      const zap = loja.whatsapp ? `<a class="btn" target="_blank" rel="noopener" href="https://wa.me/${Loja.esc(loja.whatsapp)}?text=${encodeURIComponent(`Olá! Quero pagar o pedido #${pedido.id}.`)}">Falar no WhatsApp</a>` : '';
       alvo.innerHTML = `<div class="pg-resultado">${Loja.icone('alerta', 'ico ico-grande')}<h3>Pagamento online em configuração</h3>
-        <p>Seu pedido <strong>#${pedido.id}</strong> foi registrado. Fale com a loja para concluir o pagamento.</p>${zap}</div>`;
+        <p>Seu pedido <strong>#${pedido.id}</strong> foi registrado. Fale com a loja para concluir o pagamento.</p>
+        <a class="btn" href="${Loja.esc(Loja.linkContato({ assunto: 'Meu pedido ou pagamento', pedido: pedido.id }))}">Fale conosco</a></div>`;
       return;
     }
     const id = `brick-${Math.random().toString(36).slice(2)}`;
@@ -152,6 +152,7 @@
         <p>Pedido <strong>#${pedido.id}</strong> confirmado. Enviamos os detalhes para <strong>${Loja.esc(pedido.cliente.email)}</strong>.</p>
         ${itensHtml(pedido)}
         ${voltarHtml(ctx)}
+        ${ajudaHtml(pedido)}
       </div>`;
     ligarVoltar(alvo, ctx);
   }
@@ -165,6 +166,7 @@
         <p>${Loja.esc(pedido.pagamento ? pedido.pagamento.mensagem : 'Estamos confirmando o pagamento.')}</p>
         <p class="muted">Pedido #${pedido.id}. Você receberá a confirmação em <strong>${Loja.esc(pedido.cliente.email)}</strong>.</p>
         ${voltarHtml(ctx)}
+        ${ajudaHtml(pedido)}
       </div>`;
     ligarVoltar(alvo, ctx);
     acompanhar(alvo, ctx, 20000);
@@ -177,6 +179,7 @@
         <h3>Pedido ${ctx.pedido.status === 'estornado' ? 'estornado' : 'cancelado'}</h3>
         <p>Este pedido não pode mais ser pago. Se ainda quiser os itens, faça um novo pedido na loja.</p>
         ${voltarHtml(ctx)}
+        ${ajudaHtml(ctx.pedido)}
       </div>`;
     ligarVoltar(alvo, ctx);
   }
@@ -244,6 +247,8 @@
   }
 
   const voltarHtml = (ctx) => (ctx.voltar ? `<button type="button" class="btn" data-voltar>${Loja.esc(ctx.voltar.texto)}</button>` : '');
+  /** Link "Precisa de ajuda?" para a página Fale conosco, já com o número do pedido. */
+  const ajudaHtml = (pedido) => `<p class="nota">Precisa de ajuda? <a href="${Loja.esc(Loja.linkContato({ assunto: 'Meu pedido ou pagamento', pedido: pedido.id }))}">Fale conosco</a></p>`;
   const ligarVoltar = (alvo, ctx) => {
     const b = alvo.querySelector('[data-voltar]');
     if (b) b.addEventListener('click', ctx.voltar.acao);

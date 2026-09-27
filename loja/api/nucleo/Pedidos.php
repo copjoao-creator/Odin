@@ -100,6 +100,19 @@ final class Pedidos
     return $data;
   }
 
+  /**
+   * Renovação de assinatura no cartão: quem cobra é o Mercado Pago, automaticamente. Esse pedido
+   * não recebe link de pagamento nem pode ser pago pelo link (o cliente pagaria duas vezes).
+   */
+  public static function cobrancaAutomatica(array $p): bool
+  {
+    if (($p['origem'] ?? '') !== 'renovacao') return false;
+    foreach ($p['itens'] ?? [] as $i) {
+      if ($i['tipo'] === 'servico' && $i['referencia'] && Banco::valor('SELECT mp_assinatura FROM assinaturas WHERE id = ?', [$i['referencia']])) return true;
+    }
+    return false;
+  }
+
   /** Grava o pedido com o endereço do cliente copiado e devolve o pedido completo. */
   public static function criar(array $cliente, array $itens, string $origem): array
   {
@@ -199,6 +212,7 @@ final class Pedidos
       // Chave pública da aplicação do Mercado Pago que cobra este pedido (loja ou serviços).
       'mp_public_key' => MercadoPago::credenciais(self::app($p))['public_key'],
       'pagamentos_ativos' => MercadoPago::configurado(self::app($p)),
+      'cobranca_automatica' => self::cobrancaAutomatica($p),
       // Serviço recorrente: pago só no cartão de crédito, com cobrança automática a cada período.
       'assinatura' => ($a = self::itemAssinatura($p)) ? [
         'renovacao' => $a['renovacao'],

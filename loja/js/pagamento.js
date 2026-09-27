@@ -52,6 +52,8 @@
     if (pedido.status === 'pago') return telaAprovado(alvo, ctx);
     if (pedido.status === 'em_analise') return telaAnalise(alvo, ctx);
     if (pedido.status === 'cancelado' || pedido.status === 'estornado') return telaCancelado(alvo, ctx);
+    // Renovação de assinatura no cartão: o Mercado Pago debita sozinho; não há o que pagar aqui.
+    if (pedido.cobranca_automatica) return telaCobrancaAutomatica(alvo, ctx);
     // Serviço recorrente: só cartão de crédito, com cobrança automática a cada período.
     if (pedido.assinatura) return pedido.assinatura.criada ? telaAssinaturaCriada(alvo, ctx) : formularioAssinatura(alvo, ctx);
     if (pg && pg.status === 'pending' && (pg.pix_copia_cola || pg.link_pagamento)) return telaPendente(alvo, ctx);
@@ -132,6 +134,20 @@
     // Avisa a vitrine que o pedido seguiu (esvazia o carrinho), mesmo antes da primeira cobrança.
     if (ctx.aoMudar) ctx.aoMudar(r.pedido, { status: 'pending' });
     setTimeout(() => montar(alvo, { ...ctx, pedido: r.pedido }), 0);
+  }
+
+  function telaCobrancaAutomatica(alvo, ctx) {
+    const { pedido } = ctx;
+    alvo.innerHTML = `
+      <div class="pg-resultado">
+        ${Loja.icone('cartao', 'ico ico-grande')}
+        <h3>Cobrança automática no cartão</h3>
+        <p>A renovação da sua assinatura (pedido <strong>#${pedido.id}</strong>) é debitada automaticamente no cartão cadastrado. Não é preciso pagar por aqui.</p>
+        <p class="muted">Se o cartão recusar, o Mercado Pago tenta de novo nos próximos dias. Para trocar o cartão, fale com a loja.</p>
+        ${voltarHtml(ctx)}
+        ${ajudaHtml(pedido)}
+      </div>`;
+    ligarVoltar(alvo, ctx);
   }
 
   /** Assinatura criada: espera a primeira cobrança no cartão (normalmente alguns minutos). */

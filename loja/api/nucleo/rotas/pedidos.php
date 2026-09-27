@@ -10,6 +10,7 @@ return function (Roteador $r) {
       'status' => $p['status'],
       'status_texto' => Pedidos::STATUS[$p['status']],
       'origem' => $p['origem'],
+      'cobranca_automatica' => Pedidos::cobrancaAutomatica($p),
       'criado_em' => $p['criado_em'],
       'pago_em' => $p['pago_em'],
       'cancelado_em' => $p['cancelado_em'],
@@ -138,6 +139,7 @@ return function (Roteador $r) {
     $p = Pedidos::carregar((int)$id);
     if (!$p) throw new ErroApi('Pedido não encontrado.', 404);
     if (!in_array($p['status'], ['aguardando_pagamento'], true)) throw new ErroApi('Este pedido não está aguardando pagamento.', 422);
+    if (Pedidos::cobrancaAutomatica($p)) throw new ErroApi('Esta renovação é debitada automaticamente no cartão pelo Mercado Pago. Não envie link: o cliente pagaria duas vezes.', 422);
     if (!Pedidos::enviarLink($p)) throw new ErroApi('Não foi possível enviar o e-mail. Copie o link e envie pelo WhatsApp.', 502);
     return ['ok' => true];
   });

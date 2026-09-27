@@ -11,6 +11,7 @@ return function (Roteador $r) {
     if (in_array($p['status'], ['cancelado', 'estornado'], true)) throw new ErroApi('Este pedido foi cancelado. Faça um novo pedido na loja.', 409);
     $app = Pedidos::app($p);
     if (!MercadoPago::configurado($app)) throw new ErroApi('Pagamentos indisponíveis no momento. Fale com a loja.', 503);
+    if (Pedidos::cobrancaAutomatica($p)) throw new ErroApi('Esta renovação é debitada automaticamente no seu cartão. Não é preciso pagar por aqui.', 422);
     if (Pedidos::itemAssinatura($p)) throw new ErroApi('Assinaturas são pagas com cartão de crédito, com cobrança automática. Recarregue a página.', 422);
 
     $f = is_array($d['dados'] ?? null) ? $d['dados'] : [];

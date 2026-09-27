@@ -459,7 +459,12 @@
         <div><dt>${p.precisa_entrega ? 'Entrega' : 'Endereço'}</dt><dd>${esc(`${e.rua}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ''}`)}<br>${esc(`${e.bairro} · ${e.cidade}/${e.estado} · ${Loja.formatar.cep(e.cep)}`)}</dd></div>
       </dl>
 
-      ${aberto ? `
+      ${aberto && p.cobranca_automatica ? `
+      <div class="secao-dlg">
+        <h3>Cobrança automática</h3>
+        <p class="fraco">Renovação de assinatura no cartão: o Mercado Pago debita sozinho e tenta de novo se o cartão recusar. Não envie link de pagamento, para o cliente não pagar duas vezes.</p>
+      </div>` : ''}
+      ${aberto && !p.cobranca_automatica ? `
       <div class="secao-dlg">
         <h3>Link de pagamento</h3>
         <div class="caixa-link">

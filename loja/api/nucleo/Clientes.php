@@ -108,13 +108,16 @@ final class Clientes
     ];
   }
 
-  /** Mesmos campos do cliente em Pedidos::publico, mas mascarados (cidade e estado ficam visíveis). */
+  /**
+   * Mesmos campos do cliente em Pedidos::publico, mas mascarados (cidade e estado ficam visíveis).
+   * O CPF vai completo: quem fez o pedido acabou de digitá-lo, e ele preenche o formulário do cartão.
+   */
   public static function mascarado(array $c, string $cpf): array
   {
     return [
       'nome' => self::nomeMascarado($c['nome'] ?? ''),
       'email' => self::emailMascarado($c['email'] ?? ''),
-      'cpf' => '***.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-**',
+      'cpf' => $cpf,
       'celular' => self::celularMascarado($c['celular'] ?? ''),
       'cep' => substr((string)($c['cep'] ?? ''), 0, 2) . '***-***',
       'rua' => self::ruaMascarada($c['rua'] ?? ''),

@@ -433,6 +433,23 @@ final class Pedidos
     return Email::enviar($c['email'], $titulo ?: "Pedido #{$p['id']}: pagamento pendente", $html);
   }
 
+  /** E-mail com o boleto gerado (link, linha digitável e vencimento) para o e-mail do cadastro. */
+  public static function enviarBoleto(array $p, array $pg): bool
+  {
+    $c = Clientes::buscar($p['cliente_cpf']);
+    if (!$c || empty($pg['link_pagamento'])) return false;
+    $nome = htmlspecialchars(Clientes::nomes($c['nome'])[0]);
+    $vence = $pg['expira_em'] ? ' Vencimento: <strong>' . date('d/m/Y', strtotime($pg['expira_em'])) . '</strong>.' : '';
+    $linha = $pg['codigo_barras']
+      ? '<p style="margin:16px 0 4px;font-size:13px;color:#555">Linha digitável:</p><p style="font-family:Consolas,monospace;font-size:14px;word-break:break-all;background:#F7F6F2;padding:10px">'
+        . htmlspecialchars($pg['codigo_barras']) . '</p>'
+      : '';
+    $html = "<p>Olá, {$nome}!</p><p>O boleto do seu pedido <strong>#{$p['id']}</strong> no valor de <strong>" . self::brl((float)$pg['valor']) . "</strong> foi gerado.{$vence}</p>"
+      . '<p>Pague no app do seu banco, internet banking ou lotérica. A confirmação leva até 3 dias úteis.</p>'
+      . Email::botao('Abrir boleto', $pg['link_pagamento']) . $linha . self::tabelaItensHtml($p);
+    return Email::enviar($c['email'], "Pedido #{$p['id']}: seu boleto", $html);
+  }
+
   private static function avisarPagamentoAprovado(int $id): void
   {
     try {

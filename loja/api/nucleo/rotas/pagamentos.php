@@ -90,6 +90,8 @@ return function (Roteador $r) {
         }
       }
     }
+    // Boleto gerado: envia também para o e-mail do cadastro do cliente.
+    if ($pg['metodo'] === 'boleto' && $pg['status'] === 'pending') Pedidos::enviarBoleto($p, $pg);
     return ['pedido' => Pedidos::publico(Pedidos::carregar((int)$p['id'])), 'pagamento' => Pedidos::resumoPagamento($pg)];
   });
 

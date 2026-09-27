@@ -106,8 +106,8 @@
     controle = await mp.bricks().create('cardPayment', id, {
       initialization: {
         amount: a.valor,
-        // Dados protegidos (pedido feito pelo CPF): o formulário pede e-mail e CPF a quem paga.
-        ...(c.protegido ? {} : { payer: { email: c.email, identification: { type: 'CPF', number: c.cpf } } })
+        // Dados protegidos (pedido feito pelo CPF): só o CPF, que o próprio cliente digitou.
+        payer: c.protegido ? { identification: { type: 'CPF', number: c.cpf } } : { email: c.email, identification: { type: 'CPF', number: c.cpf } }
       },
       customization: {
         visual: { style: ESTILO_BRICK },
@@ -164,15 +164,49 @@
     Loja.aviso(`O Mercado Pago não aceitou os dados${detalhe ? `: ${detalhe}` : '.'} Confira os dados e tente de novo.`, 'erro');
   }
 
+  /**
+   * Pedido feito com os dados do cadastro (dados protegidos): Pix e boleto são gerados direto pelo
+   * servidor com o cadastro do cliente, sem pedir nada; o boleto também vai para o e-mail do cadastro.
+   * Só o cartão usa o formulário do Mercado Pago (com o CPF já preenchido).
+   */
+  function escolhaCadastro(alvo, ctx, alerta = '') {
+    const { pedido } = ctx;
+    const c = pedido.cliente;
+    alvo.innerHTML = `
+      ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
+      <div class="pg-total"><span>Total do pedido #${pedido.id}</span><strong>${Loja.brl(pedido.total)}</strong></div>
+      <p class="pg-assinatura">${Loja.icone('check')} Usaremos os dados do seu cadastro (${Loja.esc(c.nome)}, ${Loja.esc(c.cidade)}/${Loja.esc(c.estado)}).</p>
+      <div class="pg-opcoes">
+        <button type="button" class="pg-opcao" data-metodo="pix">${Loja.icone('pix')}<span><strong>Pix</strong>Aprovação na hora</span></button>
+        <button type="button" class="pg-opcao" data-metodo="bolbradesco">${Loja.icone('boleto')}<span><strong>Boleto</strong>Enviado também para ${Loja.esc(c.email)}</span></button>
+        <button type="button" class="pg-opcao" data-metodo="cartao">${Loja.icone('cartao')}<span><strong>Cartão</strong>Crédito ou débito</span></button>
+      </div>
+      <p class="pg-seguro">${Loja.icone('escudo')} Pagamento processado pelo Mercado Pago. A loja não tem acesso aos dados do seu cartão.</p>`;
+    alvo.querySelectorAll('[data-metodo]').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.metodo === 'cartao') return formulario(alvo, { ...ctx, soCartao: true });
+      alvo.querySelectorAll('[data-metodo]').forEach((x) => { x.disabled = true; });
+      b.querySelector('strong').textContent = b.dataset.metodo === 'pix' ? 'Gerando o Pix…' : 'Gerando o boleto…';
+      try {
+        await enviar(alvo, ctx, { payment_method_id: b.dataset.metodo });
+      } catch {
+        escolhaCadastro(alvo, ctx); // o aviso de erro já apareceu
+      }
+    }));
+  }
+
   async function formulario(alvo, ctx, alerta = '') {
     const { loja, pedido } = ctx;
     if (!pagamentosAtivos(ctx)) return telaSemPagamento(alvo, pedido);
+    if (pedido.cliente.protegido && !ctx.soCartao) return escolhaCadastro(alvo, ctx, alerta);
     const id = `brick-${Math.random().toString(36).slice(2)}`;
     alvo.innerHTML = `
       ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
       <div class="pg-total"><span>Total do pedido #${pedido.id}</span><strong>${Loja.brl(pedido.total)}</strong></div>
       <div id="${id}" class="pg-brick"><p class="carregando">Carregando formas de pagamento…</p></div>
+      ${ctx.soCartao ? '<button type="button" class="link" data-outras>Pagar com Pix ou boleto</button>' : ''}
       <p class="pg-seguro">${Loja.icone('escudo')} Pagamento processado pelo Mercado Pago. A loja não tem acesso aos dados do seu cartão.</p>`;
+    const outras = alvo.querySelector('[data-outras]');
+    if (outras) outras.addEventListener('click', async () => { await desmontar(); escolhaCadastro(alvo, { ...ctx, soCartao: false }); });
     try {
       await carregarSdk();
     } catch (e) {
@@ -185,8 +219,8 @@
     controle = await mp.bricks().create('payment', id, {
       initialization: {
         amount: pedido.total,
-        // Dados protegidos (pedido feito pelo CPF): nada é pré-preenchido; o formulário pede o que precisar.
-        ...(c.protegido ? {} : { payer: {
+        // Dados protegidos (pedido feito pelo CPF): só o CPF, que o próprio cliente digitou; o resto vem do cadastro no servidor.
+        ...(c.protegido ? { payer: { identification: { type: 'CPF', number: c.cpf } } } : { payer: {
           firstName: primeiro,
           lastName: resto.join(' ') || primeiro,
           email: c.email,
@@ -199,13 +233,9 @@
       },
       customization: {
         visual: { style: ESTILO_BRICK },
-        paymentMethods: {
-          bankTransfer: 'all',
-          creditCard: 'all',
-          debitCard: 'all',
-          ticket: 'all',
-          maxInstallments: loja.max_parcelas || 12
-        }
+        paymentMethods: ctx.soCartao
+          ? { creditCard: 'all', debitCard: 'all', maxInstallments: loja.max_parcelas || 12 }
+          : { bankTransfer: 'all', creditCard: 'all', debitCard: 'all', ticket: 'all', maxInstallments: loja.max_parcelas || 12 }
       },
       callbacks: {
         onReady: () => {},
@@ -299,7 +329,7 @@
         <div class="pg-resultado">
           ${Loja.icone('boleto', 'ico ico-grande')}
           <h3>Boleto gerado</h3>
-          <p>Pague até o vencimento no app do banco, internet banking ou lotérica. A confirmação leva até 3 dias úteis e chega por e-mail.</p>
+          <p>Pague até o vencimento no app do banco, internet banking ou lotérica. Também enviamos o boleto para <strong>${Loja.esc(ctx.pedido.cliente.email)}</strong>. A confirmação leva até 3 dias úteis.</p>
           <div class="pg-valor">${Loja.brl(pg.valor)}</div>
           ${pg.link_pagamento ? `<a class="btn" href="${Loja.esc(pg.link_pagamento)}" target="_blank" rel="noopener">Abrir boleto</a>` : ''}
           ${pg.codigo_barras ? `<label class="pg-copia">Linha digitável<textarea readonly rows="2">${Loja.esc(pg.codigo_barras)}</textarea></label>

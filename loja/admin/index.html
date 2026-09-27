@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Painel · Odin Focus</title>
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="../img/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="painel">
+  <!-- Login -->
+  <main class="login" id="telaLogin" hidden>
+    <form class="login-caixa" id="formLogin">
+      <span class="login-marca" data-marca></span>
+      <h1>Painel da loja</h1>
+      <p class="muted">Entre com o e-mail e a senha criados na instalação.</p>
+      <div class="campos">
+        <label class="c-12">E-mail <input name="email" type="email" autocomplete="username" required></label>
+        <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+      </div>
+      <p class="form-erro" id="erroLogin" hidden></p>
+      <button class="btn btn-largo" type="submit">Entrar</button>
+      <a class="link link-centro" href="../">Ir para a loja</a>
+    </form>
+  </main>
+
+  <!-- Aplicação -->
+  <div class="app" id="app" hidden>
+    <aside class="lateral" id="lateral">
+      <a class="logo logo-claro" href="#painel"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="nomeLoja">ODIN FOCUS</strong><small>Painel</small></span></a>
+      <nav class="nav" id="nav" aria-label="Seções do painel">
+        <a href="#painel" data-tela="painel"><span data-icone="estrela"></span>Painel financeiro</a>
+        <a href="#pedidos" data-tela="pedidos"><span data-icone="pacote"></span>Pedidos</a>
+        <a href="#clientes" data-tela="clientes"><span data-icone="conversa"></span>Clientes</a>
+        <a href="#produtos" data-tela="produtos" data-modulo="produto"><span data-icone="carrinho"></span>Produtos</a>
+        <a href="#servicos" data-tela="servicos" data-modulo="servico"><span data-icone="cartao"></span>Serviços</a>
+        <a href="#assinaturas" data-tela="assinaturas" data-modulo="servico"><span data-icone="relogio"></span>Assinaturas</a>
+        <a href="#configuracoes" data-tela="configuracoes"><span data-icone="escudo"></span>Configurações</a>
+      </nav>
+      <div class="lateral-rodape">
+        <p id="nomeAdmin"></p>
+        <a href="../" target="_blank" rel="noopener">Ver a loja ↗</a>
+        <button type="button" class="link" id="btnSair">Sair</button>
+      </div>
+    </aside>
+
+    <div class="principal">
+      <header class="topo-painel">
+        <button type="button" class="btn-icone so-celular" id="btnMenu" aria-label="Abrir menu" data-icone="menu"></button>
+        <h1 id="tituloTela">Painel</h1>
+        <div class="topo-painel-acoes" id="acoesTela"></div>
+      </header>
+      <div class="conteudo" id="conteudo"></div>
+    </div>
+  </div>
+
+  <dialog class="dlg dlg-painel" id="dlg"></dialog>
+
+  <script src="../js/comum.js" data-api="../api/"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

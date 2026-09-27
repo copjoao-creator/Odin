@@ -1,0 +1,6 @@
+# Loja: credenciais do banco e fotos enviadas pelo painel ficam só no servidor.
+loja/config.php
+loja/uploads/produtos/*
+loja/uploads/servicos/*
+!loja/uploads/produtos/.gitkeep
+!loja/uploads/servicos/.gitkeep

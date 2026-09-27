@@ -25,3 +25,4 @@ require __DIR__ . '/Modulos.php';
 require __DIR__ . '/Clientes.php';
 require __DIR__ . '/Pedidos.php';
 require __DIR__ . '/Tarefas.php';
+require __DIR__ . '/Migracoes.php';

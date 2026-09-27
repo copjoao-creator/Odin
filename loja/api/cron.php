@@ -13,6 +13,7 @@ if (PHP_SAPI !== 'cli') {
 require __DIR__ . '/nucleo/bootstrap.php';
 
 try {
+  Migracoes::aplicar();
   foreach (Tarefas::executar() as $linha) echo date('d/m/Y H:i') . ' ' . $linha . PHP_EOL;
 } catch (Throwable $e) {
   fwrite(STDERR, 'Falha na rotina diária: ' . $e->getMessage() . PHP_EOL);

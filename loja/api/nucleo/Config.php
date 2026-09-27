@@ -29,12 +29,16 @@ final class Config
     'mp_public_key' => '',
     'mp_access_token' => '',
     'mp_webhook_secret' => '',
+    // Aplicação do Mercado Pago só para serviços (pedidos de serviços e assinaturas no cartão).
+    'mp_serv_public_key' => '',
+    'mp_serv_access_token' => '',
+    'mp_serv_webhook_secret' => '',
     'modulo_produto' => '1',
     'modulo_servico' => '1',
   ];
 
   /** Chaves secretas: nunca voltam inteiras para o navegador. */
-  public const SECRETAS = ['mp_access_token', 'mp_webhook_secret'];
+  public const SECRETAS = ['mp_access_token', 'mp_webhook_secret', 'mp_serv_access_token', 'mp_serv_webhook_secret'];
 
   private static ?array $arquivo = null;
   private static ?array $valores = null;

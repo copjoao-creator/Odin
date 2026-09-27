@@ -46,6 +46,7 @@ return function (Roteador $r) {
   $r->publica('GET', 'pedidos/{id}/publico', function ($id) {
     $p = Pedidos::peloToken($id, $_GET['t'] ?? '');
     // Consulta o Mercado Pago de novo se o cliente está esperando (Pix/cartão em análise), no máximo a cada 15 s.
+    // Assinatura no cartão ainda sem cobrança registrada também é consultada (a primeira cobrança chega depois).
     if (!empty($_GET['atualizar']) && in_array($p['status'], ['aguardando_pagamento', 'em_analise'], true) && $p['pagamentos']) {
       $ultimo = $p['pagamentos'][count($p['pagamentos']) - 1];
       $quando = strtotime($ultimo['atualizado_em'] ?? $ultimo['criado_em']);
@@ -58,6 +59,9 @@ return function (Roteador $r) {
         }
         $p = Pedidos::carregar((int)$p['id']);
       }
+    } elseif (!empty($_GET['atualizar']) && $p['status'] === 'aguardando_pagamento' && !empty($p['mp_assinatura'])) {
+      Pedidos::atualizarPagamentosPendentes($p); // erros ficam no error_log; a página tenta de novo
+      $p = Pedidos::carregar((int)$p['id']);
     }
     return ['pedido' => Pedidos::publico($p)];
   });

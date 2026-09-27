@@ -276,7 +276,7 @@
       ${mods.servico && mods.servico.renovacoes_proximas.length ? `
         <section class="bloco">
           <h2>Renovações nos próximos 30 dias</h2>
-          <p class="bloco-sub">O link de pagamento é enviado por e-mail antes do vencimento.</p>
+          <p class="bloco-sub">Assinaturas no cartão são cobradas sozinhas pelo Mercado Pago; nas antigas, o link de pagamento é enviado por e-mail antes do vencimento.</p>
           <div class="tabela-caixa">${tabela(['Cliente', 'Serviço', '#Valor', 'Vencimento', 'Situação'], mods.servico.renovacoes_proximas.map((a) => `
             <tr><td>${esc(a.cliente)}</td><td>${esc(a.descricao)}</td><td class="num">${brl(a.valor)}</td><td>${Loja.data(a.proxima_cobranca)}</td><td>${selo(a.status, STATUS_ASSINATURA[a.status])}</td></tr>`))}</div>
         </section>` : ''}`;
@@ -979,7 +979,7 @@
     el.innerHTML = `
       <div class="bloco filtros">
         <label>Situação <select id="fStatus"><option value="">Todas</option><option value="ativa">Ativas</option><option value="atrasada">Atrasadas</option><option value="cancelada">Canceladas</option></select></label>
-        <p class="fraco" style="flex:1 1 300px">Antes de cada vencimento, o sistema cria um pedido de renovação e envia ao cliente, por e-mail, o link para pagar com Pix, boleto ou cartão.</p>
+        <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Mercado Pago cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
       </div>
       <div class="tabela-caixa" id="lista"><p class="carregando">Carregando…</p></div>`;
     $('#fStatus').value = filtro;
@@ -989,12 +989,12 @@
       <tr>
         <td>${esc(a.cliente_nome)}<br><span class="fraco">${esc(a.cliente_email)}</span></td>
         <td>${esc(a.descricao)}<br><span class="fraco">desde ${Loja.data(a.inicio)} · pedido <a href="#" data-pedido="${a.pedido_origem}">#${a.pedido_origem}</a></span></td>
-        <td>${esc(a.renovacao_texto)}</td>
+        <td>${esc(a.renovacao_texto)}<br><span class="fraco">${a.cartao_automatico ? 'Cartão automático' : 'Link por e-mail'}</span></td>
         <td class="num">${brl(a.valor)}</td>
         <td>${Loja.data(a.proxima_cobranca)}</td>
         <td>${selo(a.status, STATUS_ASSINATURA[a.status])}</td>
         <td>${a.pedido_renovacao ? `<a href="#" data-pedido="${a.pedido_renovacao}">#${a.pedido_renovacao}</a> ${a.renovacao_status ? selo(a.renovacao_status, STATUS_PEDIDO[a.renovacao_status]) : ''}` : '<span class="fraco">—</span>'}</td>
-        <td>${a.status !== 'cancelada' ? `<button type="button" class="link" data-cobrar="${a.id}">${a.pedido_renovacao ? 'Reenviar cobrança' : 'Cobrar agora'}</button><br><button type="button" class="link" data-cancelar="${a.id}">Cancelar</button>` : ''}</td>
+        <td>${a.status !== 'cancelada' ? `${a.cartao_automatico ? '' : `<button type="button" class="link" data-cobrar="${a.id}">${a.pedido_renovacao ? 'Reenviar cobrança' : 'Cobrar agora'}</button><br>`}<button type="button" class="link" data-cancelar="${a.id}">Cancelar</button>` : ''}</td>
       </tr>`), 'Nenhuma assinatura. Elas surgem quando um serviço recorrente é pago.');
     $('#lista').addEventListener('click', async (e) => {
       const ped = e.target.closest('[data-pedido]');
@@ -1015,7 +1015,7 @@
       }
       const cancelar = e.target.closest('[data-cancelar]');
       if (cancelar) {
-        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças.')) return;
+        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças (no cartão automático, a assinatura também é cancelada no Mercado Pago).')) return;
         try {
           await api(`assinaturas/${cancelar.dataset.cancelar}/cancelar`, { metodo: 'POST' });
           Loja.aviso('Assinatura cancelada.', 'ok');
@@ -1081,6 +1081,21 @@
             <label class="c-12">Public Key <input name="mp_public_key" autocomplete="off" value="${esc(c.mp_public_key)}" placeholder="APP_USR-..."></label>
             ${secreto('mp_access_token', 'Access Token')}
             ${secreto('mp_webhook_secret', 'Assinatura secreta do webhook')}
+          </div>
+        </section>
+
+        <section class="bloco">
+          <h2>Mercado Pago · Serviços</h2>
+          <p class="bloco-sub">Aplicação separada (na mesma conta do Mercado Pago) para os pedidos de serviços e as <strong>assinaturas cobradas automaticamente no cartão de crédito</strong>. Sem ela, os serviços usam a aplicação acima.</p>
+          <ol class="passo-a-passo">
+            <li>Na aplicação de serviços, em <strong>Credenciais de produção</strong>, copie a <strong>Public Key</strong> e o <strong>Access Token</strong> e cole abaixo.</li>
+            <li>Em <strong>Webhooks</strong>, cole o endereço abaixo e marque os eventos <strong>Pagamentos</strong> e <strong>Planos e assinaturas</strong> (assinaturas e pagamentos recorrentes). Salve e copie a <strong>assinatura secreta</strong>.</li>
+          </ol>
+          <div class="copiavel" style="margin:14px 0"><code id="urlWebhookServ">${esc(r.webhook_url_servicos)}</code><button type="button" class="btn btn-pequeno btn-linha" data-copiar="#urlWebhookServ">Copiar</button></div>
+          <div class="campos">
+            <label class="c-12">Public Key <input name="mp_serv_public_key" autocomplete="off" value="${esc(c.mp_serv_public_key)}" placeholder="APP_USR-..."></label>
+            ${secreto('mp_serv_access_token', 'Access Token')}
+            ${secreto('mp_serv_webhook_secret', 'Assinatura secreta do webhook')}
           </div>
         </section>
 

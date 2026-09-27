@@ -173,7 +173,11 @@ Loja.icone = (nome, classe = 'ico') =>
 Loja.marca = (classe = 'marca') =>
   `<svg class="${classe}" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,3 58,18 58,46 32,61 6,46 6,18" fill="none" stroke="currentColor" stroke-width="3"/><path d="M13 32 Q32 14 51 32 Q32 50 13 32 Z" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="32" cy="32" r="7" fill="currentColor"/></svg>`;
 
-/** Avisos rápidos no canto da tela. */
+/**
+ * Avisos rápidos no canto da tela. Com uma janela (dialog) aberta, como o checkout, o aviso vai
+ * para dentro dela: o que fica fora de um dialog modal aparece atrás dele e o cliente não vê.
+ * Avisos de erro ficam mais tempo na tela.
+ */
 Loja.aviso = (texto, tipo = 'info') => {
   let caixa = document.getElementById('avisos');
   if (!caixa) {
@@ -181,12 +185,15 @@ Loja.aviso = (texto, tipo = 'info') => {
     caixa.id = 'avisos';
     caixa.className = 'avisos';
     caixa.setAttribute('aria-live', 'polite');
-    document.body.appendChild(caixa);
   }
+  const janela = [...document.querySelectorAll('dialog[open]')].pop();
+  const destino = janela || document.body;
+  if (caixa.parentNode !== destino) destino.appendChild(caixa);
   const el = document.createElement('div');
   el.className = `aviso aviso-${tipo}`;
   el.textContent = texto;
   caixa.appendChild(el);
-  setTimeout(() => el.classList.add('saindo'), 3800);
-  setTimeout(() => el.remove(), 4300);
+  const tempo = tipo === 'erro' ? 9000 : 3800;
+  setTimeout(() => el.classList.add('saindo'), tempo);
+  setTimeout(() => el.remove(), tempo + 500);
 };

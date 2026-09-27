@@ -29,9 +29,35 @@ final class MercadoPago
     'cc_rejected_other_reason' => 'O banco emissor recusou o pagamento. Use outro cartão ou outra forma de pagamento.',
   ];
 
-  public static function configurado(): bool
+  /**
+   * A loja usa duas aplicações do Mercado Pago (da mesma conta):
+   * - "loja": produtos (e serviços, se a de serviços não estiver configurada);
+   * - "servicos": pedidos de serviços, inclusive as assinaturas cobradas no cartão.
+   */
+  public const APPS = ['loja', 'servicos'];
+
+  /** Aplicação que responde por um pedido. Sem credenciais de serviços, tudo usa a da loja. */
+  public static function appEfetiva(string $app): string
   {
-    return Config::get('mp_access_token') !== '' && Config::get('mp_public_key') !== '';
+    if ($app === 'servicos' && Config::get('mp_serv_access_token') !== '' && Config::get('mp_serv_public_key') !== '') return 'servicos';
+    return 'loja';
+  }
+
+  /** @return array{public_key: string, access_token: string, webhook_secret: string} */
+  public static function credenciais(string $app = 'loja'): array
+  {
+    $p = self::appEfetiva($app) === 'servicos' ? 'mp_serv_' : 'mp_';
+    return [
+      'public_key' => Config::get($p . 'public_key'),
+      'access_token' => Config::get($p . 'access_token'),
+      'webhook_secret' => Config::get($p . 'webhook_secret'),
+    ];
+  }
+
+  public static function configurado(string $app = 'loja'): bool
+  {
+    $c = self::credenciais($app);
+    return $c['access_token'] !== '' && $c['public_key'] !== '';
   }
 
   /** Endereço da API. O config.php pode trocar (usado apenas em testes). */
@@ -41,9 +67,9 @@ final class MercadoPago
   }
 
   /** @param array|stdClass|null $corpo */
-  public static function requisicao(string $metodo, string $caminho, $corpo = null, array $cabecalhos = []): array
+  public static function requisicao(string $metodo, string $caminho, $corpo = null, array $cabecalhos = [], string $app = 'loja'): array
   {
-    $token = Config::get('mp_access_token');
+    $token = self::credenciais($app)['access_token'];
     if ($token === '') throw new ErroApi('O Mercado Pago ainda não foi configurado no painel.', 503);
 
     $ch = curl_init(self::base() . $caminho);
@@ -70,33 +96,69 @@ final class MercadoPago
     if ($status >= 400) {
       $detalhe = $dados['cause'][0]['description'] ?? $dados['message'] ?? ('HTTP ' . $status);
       error_log("Mercado Pago {$metodo} {$caminho} -> {$status}: " . substr((string)$resposta, 0, 500));
+      if ($status === 401 && stripos((string)$detalhe, 'live credentials') !== false) {
+        throw new ErroApi('Pagamentos indisponíveis: as credenciais de produção do Mercado Pago ainda não foram ativadas. A loja precisa ativá-las no Mercado Pago Developers.', 502);
+      }
       if ($status === 401) throw new ErroApi('As credenciais do Mercado Pago são inválidas. Confira o Access Token no painel.', 502);
       throw new ErroApi('O Mercado Pago recusou a operação: ' . $detalhe, $status >= 500 ? 502 : 422);
     }
     return $dados;
   }
 
-  public static function criarPagamento(array $corpo): array
+  public static function criarPagamento(array $corpo, string $app = 'loja'): array
   {
-    return self::requisicao('POST', '/v1/payments', $corpo, ['X-Idempotency-Key: ' . self::uuid()]);
+    return self::requisicao('POST', '/v1/payments', $corpo, ['X-Idempotency-Key: ' . self::uuid()], $app);
   }
 
-  public static function consultar(string $id): array
+  public static function consultar(string $id, string $app = 'loja'): array
   {
-    return self::requisicao('GET', '/v1/payments/' . rawurlencode($id));
+    return self::requisicao('GET', '/v1/payments/' . rawurlencode($id), null, [], $app);
   }
 
   /** Estorno total ou parcial de um pagamento aprovado. */
-  public static function estornar(string $id, ?string $valor = null): array
+  public static function estornar(string $id, ?string $valor = null, string $app = 'loja'): array
   {
     $corpo = $valor !== null ? ['amount' => (float)$valor] : new stdClass();
-    return self::requisicao('POST', '/v1/payments/' . rawurlencode($id) . '/refunds', $corpo, ['X-Idempotency-Key: ' . self::uuid()]);
+    return self::requisicao('POST', '/v1/payments/' . rawurlencode($id) . '/refunds', $corpo, ['X-Idempotency-Key: ' . self::uuid()], $app);
   }
 
   /** Cancela um Pix ou boleto ainda não pago. */
-  public static function cancelar(string $id): array
+  public static function cancelar(string $id, string $app = 'loja'): array
   {
-    return self::requisicao('PUT', '/v1/payments/' . rawurlencode($id), ['status' => 'cancelled']);
+    return self::requisicao('PUT', '/v1/payments/' . rawurlencode($id), ['status' => 'cancelled'], [], $app);
+  }
+
+  // ---------------- Assinaturas (cobrança recorrente no cartão) ----------------
+  // https://www.mercadopago.com.br/developers/pt/reference/subscriptions/_preapproval/post
+
+  /** Cria a assinatura já autorizada com o cartão (token do Card Payment Brick). */
+  public static function criarAssinatura(array $corpo): array
+  {
+    return self::requisicao('POST', '/preapproval', $corpo, ['X-Idempotency-Key: ' . self::uuid()], 'servicos');
+  }
+
+  public static function consultarAssinatura(string $id): array
+  {
+    return self::requisicao('GET', '/preapproval/' . rawurlencode($id), null, [], 'servicos');
+  }
+
+  /** Cancela a assinatura no Mercado Pago: não haverá novas cobranças no cartão. */
+  public static function cancelarAssinatura(string $id): array
+  {
+    return self::requisicao('PUT', '/preapproval/' . rawurlencode($id), ['status' => 'cancelled'], [], 'servicos');
+  }
+
+  /** Uma cobrança (fatura) da assinatura. Quando processada, traz o pagamento em ['payment']['id']. */
+  public static function consultarFatura(string $id): array
+  {
+    return self::requisicao('GET', '/authorized_payments/' . rawurlencode($id), null, [], 'servicos');
+  }
+
+  /** Faturas de uma assinatura (usado quando algum aviso do webhook se perde). */
+  public static function faturasDaAssinatura(string $preapprovalId): array
+  {
+    $r = self::requisicao('GET', '/authorized_payments/search?preapproval_id=' . rawurlencode($preapprovalId), null, [], 'servicos');
+    return is_array($r['results'] ?? null) ? $r['results'] : [];
   }
 
   /** Pix, boleto, crédito ou débito, a partir do tipo informado pelo Mercado Pago. */
@@ -131,9 +193,9 @@ final class MercadoPago
    * Confere a assinatura das notificações (webhooks) com a "assinatura secreta" do painel do Mercado Pago.
    * https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
    */
-  public static function assinaturaValida(string $dataId): bool
+  public static function assinaturaValida(string $dataId, string $app = 'loja'): bool
   {
-    $segredo = Config::get('mp_webhook_secret');
+    $segredo = self::credenciais($app)['webhook_secret'];
     if ($segredo === '') return true;
     $ts = $v1 = '';
     foreach (explode(',', (string)($_SERVER['HTTP_X_SIGNATURE'] ?? '')) as $parte) {

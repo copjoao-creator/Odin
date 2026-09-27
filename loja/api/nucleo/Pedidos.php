@@ -55,9 +55,43 @@ final class Pedidos
     return $itens;
   }
 
+  /**
+   * Cada pedido é pago por uma única aplicação do Mercado Pago, então produtos e serviços
+   * vão em pedidos separados. Uma assinatura (serviço recorrente) vai sozinha no pedido,
+   * porque vira uma cobrança automática no cartão com valor e período próprios.
+   */
+  public static function validarComposicao(array $itens, string $origem): void
+  {
+    $tipos = array_unique(array_column($itens, 'tipo'));
+    if (in_array('servico', $tipos, true) && count($tipos) > 1) {
+      throw new ErroApi('Produtos e serviços são pagos em pedidos separados. Finalize um pedido e depois faça o outro.', 422);
+    }
+    if ($origem === 'renovacao') return;
+    $assinaturas = array_filter($itens, fn($i) => !empty($i['renovacao']));
+    if ($assinaturas && count($itens) > 1) {
+      throw new ErroApi('Assinaturas são contratadas uma por pedido. Finalize a assinatura e depois compre os outros itens.', 422);
+    }
+  }
+
+  /** Aplicação do Mercado Pago do pedido: "servicos" para pedidos de serviços, "loja" para o resto. */
+  public static function app(array $p): string
+  {
+    $tipos = array_column($p['itens'] ?? [], 'tipo');
+    return in_array('servico', $tipos, true) ? MercadoPago::appEfetiva('servicos') : 'loja';
+  }
+
+  /** Item de assinatura do pedido (serviço recorrente contratado agora, pago no cartão automático). */
+  public static function itemAssinatura(array $p): ?array
+  {
+    if (($p['origem'] ?? '') === 'renovacao') return null;
+    foreach ($p['itens'] ?? [] as $i) if (!empty($i['renovacao'])) return $i;
+    return null;
+  }
+
   /** Grava o pedido com o endereço do cliente copiado e devolve o pedido completo. */
   public static function criar(array $cliente, array $itens, string $origem): array
   {
+    self::validarComposicao($itens, $origem);
     $subtotal = $custo = 0;
     $entrega = false;
     foreach ($itens as $i) {
@@ -150,6 +184,15 @@ final class Pedidos
       ],
       'pagamento' => $ultimo ? self::resumoPagamento($ultimo) : null,
       'link' => self::link($p),
+      // Chave pública da aplicação do Mercado Pago que cobra este pedido (loja ou serviços).
+      'mp_public_key' => MercadoPago::credenciais(self::app($p))['public_key'],
+      'pagamentos_ativos' => MercadoPago::configurado(self::app($p)),
+      // Serviço recorrente: pago só no cartão de crédito, com cobrança automática a cada período.
+      'assinatura' => ($a = self::itemAssinatura($p)) ? [
+        'renovacao' => $a['renovacao'],
+        'valor' => (float)$a['preco_unitario'],
+        'criada' => !empty($p['mp_assinatura']),
+      ] : null,
     ];
   }
 
@@ -171,9 +214,16 @@ final class Pedidos
     ];
   }
 
-  /** Grava (ou atualiza) um pagamento do Mercado Pago e recalcula o pedido. */
-  public static function registrarPagamento(int $pedidoId, array $mp): array
+  /**
+   * Grava (ou atualiza) um pagamento do Mercado Pago e recalcula o pedido.
+   * $app: aplicação que criou o pagamento; se omitida, vale a do pedido (só usada na primeira gravação).
+   */
+  public static function registrarPagamento(int $pedidoId, array $mp, ?string $app = null): array
   {
+    if ($app === null) {
+      $tipos = Banco::todos('SELECT DISTINCT tipo FROM pedido_itens WHERE pedido_id = ?', [$pedidoId]);
+      $app = self::app(['itens' => $tipos]);
+    }
     $t = $mp['point_of_interaction']['transaction_data'] ?? [];
     $det = $mp['transaction_details'] ?? [];
     $status = (string)($mp['status'] ?? 'pending');
@@ -181,6 +231,7 @@ final class Pedidos
     $dados = [
       'pedido_id' => $pedidoId,
       'mp_id' => (string)$mp['id'],
+      'app' => in_array($app, MercadoPago::APPS, true) ? $app : 'loja',
       'metodo' => MercadoPago::metodo($mp),
       'mp_metodo' => $mp['payment_method_id'] ?? null,
       'status' => $status,
@@ -197,7 +248,7 @@ final class Pedidos
       'aprovado_em' => self::dataMp($mp['date_approved'] ?? null),
     ];
     $colunas = array_keys($dados);
-    $atualizar = array_map(fn($c) => "{$c} = VALUES({$c})", array_diff($colunas, ['pedido_id', 'mp_id']));
+    $atualizar = array_map(fn($c) => "{$c} = VALUES({$c})", array_diff($colunas, ['pedido_id', 'mp_id', 'app']));
     Banco::executar(
       'INSERT INTO pagamentos (' . implode(', ', $colunas) . ') VALUES (' . implode(', ', array_fill(0, count($colunas), '?')) . ')
        ON DUPLICATE KEY UPDATE ' . implode(', ', $atualizar),
@@ -287,7 +338,7 @@ final class Pedidos
     foreach ($p['pagamentos'] as $pg) {
       if (in_array($pg['status'], ['pending', 'in_process'], true)) {
         try {
-          self::registrarPagamento($id, MercadoPago::cancelar($pg['mp_id']));
+          self::registrarPagamento($id, MercadoPago::cancelar($pg['mp_id'], $pg['app']), $pg['app']);
         } catch (Throwable $e) {
           error_log("Não foi possível cancelar o pagamento {$pg['mp_id']} no Mercado Pago: " . $e->getMessage());
         }
@@ -299,11 +350,16 @@ final class Pedidos
   /** Consulta de novo no Mercado Pago (caso algum aviso do webhook tenha se perdido). */
   public static function atualizarPagamentosPendentes(array $p): void
   {
-    if (!MercadoPago::configurado()) return;
     foreach ($p['pagamentos'] as $pg) {
+      if (!MercadoPago::configurado($pg['app'])) continue;
       if (in_array($pg['status'], ['pending', 'in_process', 'authorized'], true)) {
-        self::registrarPagamento((int)$p['id'], MercadoPago::consultar($pg['mp_id']));
+        self::registrarPagamento((int)$p['id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
       }
+    }
+    // Assinatura no cartão ainda sem a primeira cobrança registrada: pergunta ao Mercado Pago.
+    $servicos = Modulos::doItem('servico');
+    if (!empty($p['mp_assinatura']) && $p['status'] !== 'pago' && $servicos && method_exists($servicos, 'sincronizarAssinaturaMp')) {
+      $servicos->sincronizarAssinaturaMp((string)$p['mp_assinatura']);
     }
   }
 

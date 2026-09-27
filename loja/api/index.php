@@ -7,6 +7,7 @@ require __DIR__ . '/nucleo/bootstrap.php';
 
 try {
   if (!Config::instalado()) throw new ErroApi('A loja ainda não foi instalada. Abra o instalar.php para configurar.', 503);
+  Migracoes::aplicar();
   $roteador = new Roteador();
   foreach (glob(__DIR__ . '/nucleo/rotas/*.php') ?: [] as $arquivo) (require $arquivo)($roteador);
   foreach (Modulos::instalados() as $modulo) $modulo->rotas($roteador);

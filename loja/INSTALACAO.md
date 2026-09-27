@@ -104,6 +104,31 @@ Quando terminar os testes, troque pelas credenciais de produção.
 > O Access Token e a assinatura secreta são senhas: o painel mostra só o começo e o fim delas.
 > Para trocar, cole a nova. Deixar o campo em branco mantém a atual.
 
+### Aplicação de serviços e assinaturas no cartão
+
+Os serviços podem usar uma **segunda aplicação** do Mercado Pago, na **mesma conta**. Com ela:
+
+- os pedidos de serviços são cobrados por essa aplicação (produtos continuam na da loja);
+- os **serviços recorrentes** (assinaturas) são pagos **só com cartão de crédito** e o Mercado Pago
+  **cobra sozinho** a cada período. Cada cobrança vira um pedido de renovação no painel.
+- produtos e serviços ficam em **pedidos separados**, e cada assinatura vai sozinha no pedido
+  (a loja avisa o cliente ao tentar misturar no carrinho).
+
+Para ligar:
+
+1. Na aplicação de serviços, ative as **Credenciais de produção** e copie a **Public Key** e o **Access Token**.
+2. No painel da loja › **Configurações** › **Mercado Pago · Serviços**, cole as duas chaves e salve.
+3. Na aplicação de serviços › **Webhooks**, cole a URL mostrada nessa seção (termina em `&app=servicos`),
+   marque **Pagamentos** e **Planos e assinaturas**, salve e cole a **assinatura secreta** no painel.
+
+Sem essa seção preenchida, os serviços usam a aplicação da loja (as assinaturas também).
+Assinaturas criadas antes desta mudança continuam no modelo antigo: link de pagamento por e-mail
+antes de cada vencimento. Para cancelar uma assinatura no cartão, use **Assinaturas › Cancelar** no painel:
+ela é cancelada também no Mercado Pago.
+
+> **Teste com credenciais de teste:** nas assinaturas, o Mercado Pago exige que o comprador seja um
+> **usuário de teste** (Suas integrações › Contas de teste) e que o e-mail informado seja o dele.
+
 ---
 
 ## Passo 6. Rotina diária (renovações e pedidos vencidos)
@@ -226,6 +251,11 @@ Confira também, em *Adicionar usuário ao banco de dados*, se ele foi ligado ao
 
 **“Pagamento online em configuração” aparece para o cliente** – faltam a Public Key e o Access Token (passo 5).
 
+**“As credenciais de produção do Mercado Pago ainda não foram ativadas”** (ou, no `api/error_log`,
+*Unauthorized use of live credentials*) – em Mercado Pago Developers › sua aplicação › **Credenciais de produção**,
+clique em **Ativar credenciais**, preencha o ramo e o site da loja, copie de novo a Public Key e o Access Token
+e salve no painel. Para testar antes disso, use as **Credenciais de teste**.
+
 **O pagamento foi feito, mas o pedido continua “Aguardando pagamento”** – confira o webhook do passo 5.
 Enquanto isso, abra o pedido no painel e clique em **Atualizar** no pagamento: o sistema consulta o Mercado Pago na hora.
 
@@ -252,6 +282,11 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
 - Integração com o Mercado Pago pelo **Payment Brick** (Checkout Transparente): o cartão é digitado no formulário
   do Mercado Pago e a loja recebe só um token. O webhook tem a assinatura conferida e o pagamento é sempre
   reconsultado na API antes de mudar o pedido.
+- Duas aplicações do Mercado Pago (`MercadoPago::APPS`): `loja` e `servicos`. Cada pagamento guarda a aplicação
+  que o criou (`pagamentos.app`). Assinaturas usam a API de *preapproval* com o **Card Payment Brick**; o webhook
+  `&app=servicos` recebe `subscription_preapproval` e `subscription_authorized_payment`, e o módulo de serviços
+  decide se a cobrança é do pedido de origem ou de um pedido de renovação.
+- Mudanças no banco de lojas já instaladas ficam em `api/nucleo/Migracoes.php` e rodam sozinhas na primeira chamada à API.
 - Senhas com `password_hash`, sessão com cookie `HttpOnly`/`SameSite=Strict`, token CSRF no painel e limite de
   tentativas de login por IP. Fotos são validadas e regravadas (PNG/JPG) antes de salvar.
 

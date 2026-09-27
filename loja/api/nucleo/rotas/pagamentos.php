@@ -9,7 +9,9 @@ return function (Roteador $r) {
     if ($p['status'] === 'pago') throw new ErroApi('Este pedido já está pago.', 409);
     if ($p['status'] === 'em_analise') throw new ErroApi('Já existe um pagamento em análise para este pedido. Aguarde a confirmação por e-mail.', 409);
     if (in_array($p['status'], ['cancelado', 'estornado'], true)) throw new ErroApi('Este pedido foi cancelado. Faça um novo pedido na loja.', 409);
-    if (!MercadoPago::configurado()) throw new ErroApi('Pagamentos indisponíveis no momento. Fale com a loja.', 503);
+    $app = Pedidos::app($p);
+    if (!MercadoPago::configurado($app)) throw new ErroApi('Pagamentos indisponíveis no momento. Fale com a loja.', 503);
+    if (Pedidos::itemAssinatura($p)) throw new ErroApi('Assinaturas são pagas com cartão de crédito, com cobrança automática. Recarregue a página.', 422);
 
     $f = is_array($d['dados'] ?? null) ? $d['dados'] : [];
     $metodo = (string)($f['payment_method_id'] ?? '');
@@ -74,14 +76,14 @@ return function (Roteador $r) {
     $url = Http::urlLoja();
     if (strpos($url, 'https://') === 0) $corpo['notification_url'] = $url . 'api/?r=webhook/mercadopago';
 
-    $pg = Pedidos::registrarPagamento((int)$p['id'], MercadoPago::criarPagamento($corpo));
+    $pg = Pedidos::registrarPagamento((int)$p['id'], MercadoPago::criarPagamento($corpo, $app), $app);
 
     // Cliente trocou a forma de pagamento: invalida o Pix/boleto anterior para não pagar duas vezes.
     if ($pg['status'] !== 'rejected') {
       foreach ($p['pagamentos'] as $antigo) {
         if ($antigo['status'] === 'pending' && $antigo['mp_id'] !== $pg['mp_id']) {
           try {
-            Pedidos::registrarPagamento((int)$p['id'], MercadoPago::cancelar($antigo['mp_id']));
+            Pedidos::registrarPagamento((int)$p['id'], MercadoPago::cancelar($antigo['mp_id'], $antigo['app']), $antigo['app']);
           } catch (Throwable $e) {
             error_log("Não foi possível cancelar o pagamento anterior {$antigo['mp_id']}: " . $e->getMessage());
           }
@@ -91,8 +93,9 @@ return function (Roteador $r) {
     return ['pedido' => Pedidos::publico(Pedidos::carregar((int)$p['id'])), 'pagamento' => Pedidos::resumoPagamento($pg)];
   });
 
-  // Aviso do Mercado Pago de que um pagamento mudou. Os dados são sempre consultados
-  // de novo na API com o nosso token, então um aviso falso não consegue marcar nada como pago.
+  // Aviso do Mercado Pago de que um pagamento (ou uma assinatura) mudou. Os dados são sempre
+  // consultados de novo na API com o nosso token, então um aviso falso não consegue marcar nada como pago.
+  // A aplicação de serviços usa o mesmo endereço com &app=servicos.
   $webhook = function () {
     $q = [];
     foreach (explode('&', (string)($_SERVER['QUERY_STRING'] ?? '')) as $parte) {
@@ -103,13 +106,28 @@ return function (Roteador $r) {
     $corpo = json_decode((string)file_get_contents('php://input'), true) ?: [];
     $tipo = $q['type'] ?? $q['topic'] ?? $corpo['type'] ?? $corpo['topic'] ?? '';
     $id = (string)($q['data.id'] ?? $corpo['data']['id'] ?? $q['id'] ?? '');
-    if ($tipo !== 'payment' || !preg_match('/^\d{1,30}$/', $id)) return ['ok' => true, 'ignorado' => true];
-    if (!MercadoPago::assinaturaValida($id)) throw new ErroApi('Assinatura do aviso inválida.', 401);
+    $app = MercadoPago::appEfetiva(($q['app'] ?? '') === 'servicos' ? 'servicos' : 'loja');
+    $assinaturas = ['subscription_preapproval', 'subscription_authorized_payment'];
+    if (!in_array($tipo, array_merge(['payment'], $assinaturas), true) || !preg_match('/^[A-Za-z0-9]{1,40}$/', $id)) return ['ok' => true, 'ignorado' => true];
+    if (!MercadoPago::assinaturaValida($id, $app)) throw new ErroApi('Assinatura do aviso inválida.', 401);
 
-    $mp = MercadoPago::consultar($id);
+    if (in_array($tipo, $assinaturas, true)) {
+      $servicos = Modulos::doItem('servico');
+      if ($app !== 'servicos' || !$servicos || !method_exists($servicos, 'avisoAssinaturaMp')) return ['ok' => true, 'ignorado' => true];
+      $servicos->avisoAssinaturaMp($tipo, $id);
+      return ['ok' => true];
+    }
+
+    if (!ctype_digit($id)) return ['ok' => true, 'ignorado' => true];
+    $mp = MercadoPago::consultar($id, $app);
+    // Cobranças de assinatura: o pedido certo (primeiro pagamento ou renovação) é decidido pelo módulo de serviços.
+    $servicos = Modulos::doItem('servico');
+    if ($app === 'servicos' && $servicos && method_exists($servicos, 'pagamentoDeAssinaturaMp') && $servicos->pagamentoDeAssinaturaMp($mp)) {
+      return ['ok' => true];
+    }
     $pedidoId = (int)($mp['external_reference'] ?? 0);
     if (!$pedidoId || !Banco::valor('SELECT id FROM pedidos WHERE id = ?', [$pedidoId])) return ['ok' => true, 'ignorado' => true];
-    Pedidos::registrarPagamento($pedidoId, $mp);
+    Pedidos::registrarPagamento($pedidoId, $mp, $app);
     return ['ok' => true];
   };
   $r->publica('POST', 'webhook/mercadopago', $webhook);
@@ -126,15 +144,15 @@ return function (Roteador $r) {
     if ($valor !== null && ((float)$valor <= 0 || (float)$valor > $disponivel + 0.001)) {
       throw new ErroApi('O valor do estorno deve ser maior que zero e no máximo ' . Pedidos::brl($disponivel) . '.', 422, ['campo' => 'valor']);
     }
-    MercadoPago::estornar($pg['mp_id'], $valor);
-    Pedidos::registrarPagamento((int)$pg['pedido_id'], MercadoPago::consultar($pg['mp_id']));
+    MercadoPago::estornar($pg['mp_id'], $valor, $pg['app']);
+    Pedidos::registrarPagamento((int)$pg['pedido_id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
     return ['ok' => true];
   });
 
   $r->admin('POST', 'pagamentos/{id}/atualizar', function ($id) {
     $pg = Banco::um('SELECT * FROM pagamentos WHERE id = ?', [(int)$id]);
     if (!$pg) throw new ErroApi('Pagamento não encontrado.', 404);
-    Pedidos::registrarPagamento((int)$pg['pedido_id'], MercadoPago::consultar($pg['mp_id']));
+    Pedidos::registrarPagamento((int)$pg['pedido_id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
     return ['ok' => true];
   });
 };

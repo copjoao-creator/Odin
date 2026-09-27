@@ -36,6 +36,9 @@ return new class implements ModuloCatalogo {
     $r->admin('POST', 'servicos/{codigo}/foto', fn($c) => $this->enviarFoto($c));
     $r->admin('DELETE', 'servicos/{codigo}/foto', fn($c) => $this->excluirFoto($c));
 
+    // Página de pagamento: contrata a assinatura com o cartão (cobrança automática pelo Mercado Pago).
+    $r->publica('POST', 'assinaturas/cartao', fn() => $this->assinarNoCartao());
+
     $r->admin('GET', 'assinaturas', fn() => $this->assinaturas());
     $r->admin('POST', 'assinaturas/renovacoes', fn() => ['mensagens' => $this->tarefasDiarias()]);
     $r->admin('POST', 'assinaturas/{id}/cancelar', fn($id) => $this->cancelarAssinatura((int)$id));
@@ -221,9 +224,9 @@ return new class implements ModuloCatalogo {
       return;
     }
     Banco::executar(
-      'INSERT INTO assinaturas (cliente_cpf, codigo_servico, descricao, renovacao, valor, inicio, proxima_cobranca, pedido_origem)
-       VALUES (?, ?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), ?)',
-      [$pedido['cliente_cpf'], $item['codigo'], $item['descricao'], $item['renovacao'], $item['preco_unitario'], $meses, $pedido['id']]
+      'INSERT INTO assinaturas (cliente_cpf, codigo_servico, descricao, renovacao, valor, inicio, proxima_cobranca, pedido_origem, mp_assinatura)
+       VALUES (?, ?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), ?, ?)',
+      [$pedido['cliente_cpf'], $item['codigo'], $item['descricao'], $item['renovacao'], $item['preco_unitario'], $meses, $pedido['id'], $pedido['mp_assinatura'] ?? null]
     );
     Banco::executar('UPDATE pedido_itens SET referencia = ? WHERE id = ?', [Banco::ultimoId(), $item['id']]);
   }
@@ -241,7 +244,9 @@ return new class implements ModuloCatalogo {
         [$meses, $ref]
       );
     } else {
+      // Primeiro pagamento estornado: a assinatura acaba, inclusive a cobrança automática no cartão.
       Banco::executar("UPDATE assinaturas SET status = 'cancelada', cancelada_em = NOW() WHERE id = ? AND pedido_origem = ?", [$ref, $pedido['id']]);
+      $this->encerrarNoMercadoPago($pedido['mp_assinatura'] ?? null);
     }
   }
 
@@ -250,7 +255,170 @@ return new class implements ModuloCatalogo {
   {
     if ($pedido['origem'] === 'renovacao' && $item['referencia']) {
       Banco::executar('UPDATE assinaturas SET pedido_renovacao = NULL WHERE id = ? AND pedido_renovacao = ?', [$item['referencia'], $pedido['id']]);
+      return;
     }
+    // Pedido de assinatura cancelado sem pagamento: para a cobrança automática.
+    $this->encerrarNoMercadoPago($pedido['mp_assinatura'] ?? null);
+  }
+
+  private function encerrarNoMercadoPago(?string $mpAssinatura): void
+  {
+    if (!$mpAssinatura) return;
+    try {
+      MercadoPago::cancelarAssinatura($mpAssinatura);
+    } catch (Throwable $e) {
+      error_log("Não foi possível cancelar a assinatura {$mpAssinatura} no Mercado Pago: " . $e->getMessage());
+    }
+  }
+
+  // ---------------- Assinaturas no cartão (Mercado Pago) ----------------
+
+  /**
+   * Cria a assinatura no Mercado Pago com o cartão do cliente. O Mercado Pago cobra a primeira
+   * parcela logo em seguida e depois a cada período; cada cobrança chega pelo webhook.
+   */
+  private function assinarNoCartao(): array
+  {
+    $d = Http::entrada();
+    $p = Pedidos::peloToken($d['pedido_id'] ?? 0, $d['token'] ?? '');
+    $item = Pedidos::itemAssinatura($p);
+    if (!$item) throw new ErroApi('Este pedido não é de assinatura.', 422);
+    if ($p['status'] !== 'aguardando_pagamento') throw new ErroApi('Este pedido não está aguardando pagamento.', 409);
+    if (!empty($p['mp_assinatura'])) throw new ErroApi('A assinatura deste pedido já foi criada. Aguarde a confirmação da primeira cobrança.', 409);
+    if (!MercadoPago::configurado('servicos')) throw new ErroApi('Pagamentos indisponíveis no momento. Fale com a loja.', 503);
+
+    $f = is_array($d['dados'] ?? null) ? $d['dados'] : [];
+    $cartao = (string)($f['token'] ?? '');
+    if (!preg_match('/^[A-Za-z0-9]{10,100}$/', $cartao)) throw new ErroApi('Preencha os dados do cartão.', 422);
+    $c = Clientes::buscar($p['cliente_cpf']);
+    $email = filter_var($f['payer']['email'] ?? '', FILTER_VALIDATE_EMAIL) ?: $c['email'];
+    $meses = self::MESES[$item['renovacao']] ?? 0;
+    if (!$meses) throw new ErroApi('Período da assinatura inválido.', 422);
+
+    $url = Http::urlLoja();
+    $corpo = [
+      'reason' => $this->nomeDaAssinatura($item),
+      'external_reference' => (string)$p['id'],
+      'payer_email' => $email,
+      'card_token_id' => $cartao,
+      'auto_recurring' => [
+        'frequency' => $meses,
+        'frequency_type' => 'months',
+        'transaction_amount' => (float)$item['preco_unitario'],
+        'currency_id' => 'BRL',
+      ],
+      'back_url' => $url !== '' ? $url : 'https://www.mercadopago.com.br',
+      'status' => 'authorized',
+    ];
+    try {
+      $mp = MercadoPago::criarAssinatura($corpo);
+    } catch (ErroApi $e) {
+      // Só troca a mensagem quando o problema é o cartão; os outros motivos seguem como vieram (e ficam no error_log).
+      if ($e->status === 422 && preg_match('/card|cc_|cartão|cartao/i', $e->getMessage())) {
+        throw new ErroApi('O cartão não foi aceito para a assinatura. Confira os dados ou use outro cartão de crédito.', 422);
+      }
+      throw $e;
+    }
+    if (empty($mp['id'])) throw new ErroApi('O Mercado Pago não confirmou a assinatura. Tente de novo.', 502);
+    Banco::executar(
+      "UPDATE pedidos SET mp_assinatura = ?, observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
+      [(string)$mp['id'], date('d/m/Y H:i') . ' - Assinatura criada no Mercado Pago: ' . $mp['id'], $p['id']]
+    );
+    $this->sincronizarAssinaturaMp((string)$mp['id']);
+    return ['pedido' => Pedidos::publico(Pedidos::carregar((int)$p['id']))];
+  }
+
+  /**
+   * Nome da assinatura no Mercado Pago (aparece para o cliente). Limite do Mercado Pago: 60 caracteres.
+   * Ex.: "Consultoria mensal (Mensal) - Odin Focus"; se não couber, o nome do serviço é encurtado.
+   */
+  private function nomeDaAssinatura(array $item): string
+  {
+    $limite = 60;
+    $periodo = ' (' . self::RENOVACOES[$item['renovacao']] . ')';
+    $loja = ' - ' . Config::get('loja_nome');
+    $servico = trim((string)$item['descricao']);
+    if (mb_strlen($servico . $periodo . $loja) <= $limite) return $servico . $periodo . $loja;
+    if (mb_strlen($servico . $periodo) <= $limite) return $servico . $periodo;
+    return rtrim(mb_substr($servico, 0, $limite - mb_strlen($periodo) - 1)) . '…' . $periodo;
+  }
+
+  /** Webhook da aplicação de serviços: mudança na assinatura ou em uma cobrança dela. */
+  public function avisoAssinaturaMp(string $tipo, string $id): void
+  {
+    if ($tipo === 'subscription_authorized_payment') {
+      $fatura = MercadoPago::consultarFatura($id);
+      $this->registrarFatura($fatura);
+      return;
+    }
+    $pre = MercadoPago::consultarAssinatura($id);
+    if (($pre['status'] ?? '') === 'cancelled') {
+      $n = Banco::executar("UPDATE assinaturas SET status = 'cancelada', cancelada_em = NOW() WHERE mp_assinatura = ? AND status <> 'cancelada'", [$id]);
+      if ($n) error_log("Assinatura {$id} cancelada no Mercado Pago.");
+    }
+  }
+
+  /** Aviso de "payment" da aplicação de serviços: se for cobrança de assinatura, registra no pedido certo. */
+  public function pagamentoDeAssinaturaMp(array $mp): bool
+  {
+    $pre = (string)($mp['point_of_interaction']['transaction_data']['subscription_id'] ?? $mp['metadata']['preapproval_id'] ?? '');
+    if ($pre === '') {
+      // Sem a indicação da assinatura: confere se a referência é de um pedido de assinatura no cartão.
+      $pre = (string)(Banco::valor('SELECT mp_assinatura FROM pedidos WHERE id = ?', [(int)($mp['external_reference'] ?? 0)]) ?? '');
+    }
+    if ($pre === '' || !Banco::valor('SELECT id FROM pedidos WHERE mp_assinatura = ?', [$pre])) return false;
+    $this->registrarCobranca($pre, $mp);
+    return true;
+  }
+
+  /** Consulta as cobranças da assinatura (reserva para avisos do webhook que se perderam). */
+  public function sincronizarAssinaturaMp(string $pre): void
+  {
+    try {
+      foreach (MercadoPago::faturasDaAssinatura($pre) as $fatura) $this->registrarFatura($fatura);
+    } catch (Throwable $e) {
+      error_log("Não foi possível consultar as cobranças da assinatura {$pre}: " . $e->getMessage());
+    }
+  }
+
+  private function registrarFatura(array $fatura): void
+  {
+    $pagamento = $fatura['payment']['id'] ?? null;
+    $pre = (string)($fatura['preapproval_id'] ?? '');
+    if (!$pagamento || $pre === '') return; // cobrança ainda agendada
+    $this->registrarCobranca($pre, MercadoPago::consultar((string)$pagamento, 'servicos'));
+  }
+
+  /**
+   * Primeira cobrança: vai para o pedido em que o cliente assinou.
+   * Seguintes: cada período ganha um pedido de renovação (já existente em aberto ou criado agora).
+   */
+  private function registrarCobranca(string $pre, array $mp): void
+  {
+    $existente = Banco::valor('SELECT pedido_id FROM pagamentos WHERE mp_id = ?', [(string)$mp['id']]);
+    if ($existente) {
+      Pedidos::registrarPagamento((int)$existente, $mp, 'servicos');
+      return;
+    }
+    $origem = Banco::um('SELECT id, status FROM pedidos WHERE mp_assinatura = ? ORDER BY id LIMIT 1', [$pre]);
+    if (!$origem) {
+      error_log("Cobrança {$mp['id']} de assinatura desconhecida ({$pre}).");
+      return;
+    }
+    if ($origem['status'] !== 'pago') {
+      Pedidos::registrarPagamento((int)$origem['id'], $mp, 'servicos');
+      return;
+    }
+    $a = Banco::um('SELECT id, pedido_renovacao FROM assinaturas WHERE mp_assinatura = ?', [$pre]);
+    if (!$a) {
+      error_log("Cobrança {$mp['id']}: assinatura {$pre} não encontrada no banco.");
+      return;
+    }
+    $aberto = $a['pedido_renovacao'] ? Banco::um('SELECT id, status FROM pedidos WHERE id = ?', [$a['pedido_renovacao']]) : null;
+    $pedidoId = ($aberto && in_array($aberto['status'], ['aguardando_pagamento', 'em_analise'], true))
+      ? (int)$aberto['id']
+      : (int)$this->criarPedidoRenovacao((int)$a['id'])['id'];
+    Pedidos::registrarPagamento($pedidoId, $mp, 'servicos');
   }
 
   // ---------------- Assinaturas ----------------
@@ -284,6 +452,7 @@ return new class implements ModuloCatalogo {
       'pedido_origem' => (int)$a['pedido_origem'],
       'pedido_renovacao' => $a['pedido_renovacao'] ? (int)$a['pedido_renovacao'] : null,
       'renovacao_status' => $a['renovacao_status'],
+      'cartao_automatico' => !empty($a['mp_assinatura']),
     ], $lista)];
   }
 
@@ -291,6 +460,9 @@ return new class implements ModuloCatalogo {
   {
     $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
     if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
+    // No cartão: cancela primeiro no Mercado Pago. Se falhar, nada muda aqui, para o cliente não
+    // continuar sendo cobrado com a assinatura marcada como cancelada.
+    if ($a['mp_assinatura'] && $a['status'] !== 'cancelada') MercadoPago::cancelarAssinatura($a['mp_assinatura']);
     Banco::executar("UPDATE assinaturas SET status = 'cancelada', cancelada_em = NOW() WHERE id = ?", [$id]);
     if ($a['pedido_renovacao']) {
       try {
@@ -307,6 +479,7 @@ return new class implements ModuloCatalogo {
     $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
     if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
     if ($a['status'] === 'cancelada') throw new ErroApi('Assinatura cancelada.', 422);
+    if ($a['mp_assinatura']) throw new ErroApi('Esta assinatura é cobrada automaticamente no cartão pelo Mercado Pago.', 422);
     if ($a['pedido_renovacao']) {
       $p = Pedidos::carregar((int)$a['pedido_renovacao']);
       $enviado = Pedidos::enviarLink($p, "Renovação: {$a['descricao']}");
@@ -319,12 +492,34 @@ return new class implements ModuloCatalogo {
   /** Cria o pedido de renovação e envia o link de pagamento ao cliente. */
   private function gerarCobranca(int $id): array
   {
-    $p = Banco::transacao(function () use ($id) {
+    $p = $this->criarPedidoRenovacao($id);
+    if (!$p) throw new ErroApi('Esta assinatura já tem uma cobrança em aberto.', 409);
+    $a = Banco::um('SELECT descricao FROM assinaturas WHERE id = ?', [$id]);
+    return [$p, Pedidos::enviarLink($p, "Renovação: {$a['descricao']}")];
+  }
+
+  /**
+   * Pedido de renovação de um período da assinatura.
+   * - Assinatura antiga (link de pagamento): usa o preço atual do serviço; null se já houver cobrança em aberto.
+   * - Assinatura no cartão: usa o valor contratado no Mercado Pago e reaproveita a renovação em aberto,
+   *   para as novas tentativas de cobrança do mesmo período caírem no mesmo pedido.
+   */
+  private function criarPedidoRenovacao(int $id): ?array
+  {
+    return Banco::transacao(function () use ($id) {
       $a = Banco::um('SELECT * FROM assinaturas WHERE id = ? FOR UPDATE', [$id]);
-      if (!$a || $a['pedido_renovacao'] || $a['status'] === 'cancelada') return null;
+      if (!$a) return null;
+      $automatica = !empty($a['mp_assinatura']);
+      if ($a['pedido_renovacao']) {
+        if (!$automatica) return null;
+        $aberto = Pedidos::carregar((int)$a['pedido_renovacao']);
+        if ($aberto && in_array($aberto['status'], ['aguardando_pagamento', 'em_analise'], true)) return $aberto;
+      }
+      // Assinatura no cartão cancelada ainda recebe a cobrança que o Mercado Pago já tinha feito.
+      if ($a['status'] === 'cancelada' && !$automatica) return null;
       $cliente = Clientes::buscar($a['cliente_cpf']);
       $s = Banco::um('SELECT preco_venda, preco_custo FROM servicos WHERE codigo_servico = ?', [$a['codigo_servico']]);
-      $preco = $s['preco_venda'] ?? $a['valor'];
+      $preco = $automatica ? $a['valor'] : ($s['preco_venda'] ?? $a['valor']);
       $vencimento = date('d/m/Y', strtotime($a['proxima_cobranca']));
       $p = Pedidos::criar($cliente, [[
         'tipo' => $this->tipo(),
@@ -340,21 +535,28 @@ return new class implements ModuloCatalogo {
       Banco::executar('UPDATE assinaturas SET pedido_renovacao = ?, valor = ? WHERE id = ?', [$p['id'], $preco, $id]);
       return $p;
     });
-    if (!$p) throw new ErroApi('Esta assinatura já tem uma cobrança em aberto.', 409);
-    $a = Banco::um('SELECT descricao FROM assinaturas WHERE id = ?', [$id]);
-    return [$p, Pedidos::enviarLink($p, "Renovação: {$a['descricao']}")];
   }
 
   public function tarefasDiarias(): array
   {
     $log = [];
-    $n = Banco::executar("UPDATE assinaturas SET status = 'atrasada' WHERE status = 'ativa' AND proxima_cobranca < CURDATE()");
+    // No cartão, o Mercado Pago cobra no dia dele e tenta de novo se falhar: só marca atraso após 3 dias.
+    $n = Banco::executar(
+      "UPDATE assinaturas SET status = 'atrasada'
+       WHERE status = 'ativa' AND proxima_cobranca < IF(mp_assinatura IS NULL, CURDATE(), DATE_SUB(CURDATE(), INTERVAL 3 DAY))"
+    );
     if ($n) $log[] = "{$n} assinatura(s) com pagamento atrasado.";
     $dias = max(0, (int)Config::get('dias_antecedencia_renovacao'));
+    // Links de renovação só para as assinaturas antigas; as do cartão são cobradas pelo Mercado Pago.
     $vencendo = Banco::todos(
-      "SELECT id FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND pedido_renovacao IS NULL
+      "SELECT id FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND pedido_renovacao IS NULL AND mp_assinatura IS NULL
          AND proxima_cobranca <= DATE_ADD(CURDATE(), INTERVAL {$dias} DAY)"
     );
+    // Assinaturas no cartão vencidas: confere no Mercado Pago se alguma cobrança chegou sem aviso.
+    $cartao = Banco::todos(
+      "SELECT DISTINCT mp_assinatura FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND mp_assinatura IS NOT NULL AND proxima_cobranca <= CURDATE()"
+    );
+    foreach ($cartao as ['mp_assinatura' => $pre]) $this->sincronizarAssinaturaMp((string)$pre);
     foreach ($vencendo as ['id' => $id]) {
       try {
         [$p, $enviado] = $this->gerarCobranca((int)$id);

@@ -263,7 +263,7 @@
           <p class="item-preco">${precoHtml(i)}</p>
           ${parcelasHtml()}
           ${i.detalhes ? `<div class="item-detalhes">${esc(i.detalhes)}</div>` : ''}
-          ${tipo === 'servico' && i.recorrente ? `<p class="item-nota">${Loja.icone('relogio')} Assinatura ${esc(i.renovacao_texto.toLowerCase())}: antes de cada vencimento enviamos por e-mail o link para pagar a renovação com Pix, boleto ou cartão.</p>` : ''}
+          ${tipo === 'servico' && i.recorrente ? `<p class="item-nota">${Loja.icone('relogio')} Assinatura ${esc(i.renovacao_texto.toLowerCase())}: cobrança automática no cartão de crédito a cada período. Cancele quando quiser falando com a loja.</p>` : ''}
           ${estoqueTexto ? `<p class="item-estoque${esgotado ? ' esgotado' : ''}">${estoqueTexto}</p>` : ''}
           <div class="item-comprar">
             ${max > 1 ? `<div class="qtd" data-max="${max}"><button type="button" data-qtd="-1" aria-label="Diminuir">${Loja.icone('menos')}</button><input type="number" value="1" min="1" max="${max}" aria-label="Quantidade"><button type="button" data-qtd="1" aria-label="Aumentar">${Loja.icone('mais')}</button></div>` : ''}
@@ -311,9 +311,32 @@
     salvarCarrinho();
   }
 
+  /**
+   * Produtos e serviços são pagos em pedidos separados, e cada assinatura vai sozinha no pedido
+   * (a mesma regra é conferida no servidor). Devolve o motivo de não poder adicionar, ou ''.
+   */
+  function conflitoNoCarrinho(tipo, codigo, item) {
+    const outros = estado.carrinho.filter((c) => !(c.tipo === tipo && c.codigo === codigo));
+    if (!outros.length) return '';
+    if (outros.some((c) => c.tipo !== tipo) && (tipo === 'servico' || outros.some((c) => c.tipo === 'servico'))) {
+      return 'Produtos e serviços são pagos em pedidos separados. Finalize o pedido que está no carrinho e depois adicione este item.';
+    }
+    const assinatura = (c) => { const i = acharItem(c.tipo, c.codigo); return c.tipo === 'servico' && i && i.recorrente; };
+    if ((tipo === 'servico' && item.recorrente) || outros.some(assinatura)) {
+      return 'Assinaturas são contratadas uma por pedido. Finalize o pedido que está no carrinho e depois adicione este item.';
+    }
+    return '';
+  }
+
   function adicionar(tipo, codigo, qtd = 1) {
     const i = acharItem(tipo, codigo);
     if (!i) return;
+    const conflito = conflitoNoCarrinho(tipo, codigo, i);
+    if (conflito) {
+      Loja.aviso(conflito, 'erro');
+      abrirCarrinho();
+      return;
+    }
     const max = limite(tipo, i);
     const linha = estado.carrinho.find((c) => c.tipo === tipo && c.codigo === codigo);
     const atual = linha ? linha.quantidade : 0;

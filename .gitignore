@@ -4,3 +4,7 @@ loja/uploads/**
 !loja/uploads/.htaccess
 !loja/uploads/*/
 !loja/uploads/*/.gitkeep
+
+# Logs de erro do PHP baixados da hospedagem (podem ter dados de clientes)
+error_log
+**/error_log

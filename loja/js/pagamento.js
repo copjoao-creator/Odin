@@ -52,18 +52,120 @@
     if (pedido.status === 'pago') return telaAprovado(alvo, ctx);
     if (pedido.status === 'em_analise') return telaAnalise(alvo, ctx);
     if (pedido.status === 'cancelado' || pedido.status === 'estornado') return telaCancelado(alvo, ctx);
+    // Serviço recorrente: só cartão de crédito, com cobrança automática a cada período.
+    if (pedido.assinatura) return pedido.assinatura.criada ? telaAssinaturaCriada(alvo, ctx) : formularioAssinatura(alvo, ctx);
     if (pg && pg.status === 'pending' && (pg.pix_copia_cola || pg.link_pagamento)) return telaPendente(alvo, ctx);
     return formulario(alvo, ctx);
   }
 
-  async function formulario(alvo, ctx, alerta = '') {
-    const { loja, pedido } = ctx;
-    if (!loja.pagamentos_ativos || !loja.mp_public_key) {
-      alvo.innerHTML = `<div class="pg-resultado">${Loja.icone('alerta', 'ico ico-grande')}<h3>Pagamento online em configuração</h3>
-        <p>Seu pedido <strong>#${pedido.id}</strong> foi registrado. Fale com a loja para concluir o pagamento.</p>
-        <a class="btn" href="${Loja.esc(Loja.linkContato({ assunto: 'Meu pedido ou pagamento', pedido: pedido.id }))}">Fale conosco</a></div>`;
+  /** Chave pública da aplicação do Mercado Pago que cobra este pedido (loja ou serviços). */
+  const chavePublica = (ctx) => ctx.pedido.mp_public_key || ctx.loja.mp_public_key;
+  const pagamentosAtivos = (ctx) => (ctx.pedido.pagamentos_ativos ?? ctx.loja.pagamentos_ativos) && !!chavePublica(ctx);
+
+  const ESTILO_BRICK = {
+    theme: 'default',
+    customVariables: {
+      baseColor: '#1B2D42',
+      textPrimaryColor: '#333333',
+      formBackgroundColor: '#FFFFFF',
+      inputBackgroundColor: '#FFFFFF',
+      borderRadiusMedium: '6px',
+      borderRadiusLarge: '8px'
+    }
+  };
+
+  const PERIODO = { mensal: 'mês', trimestral: 'trimestre', semestral: 'semestre', anual: 'ano' };
+
+  function telaSemPagamento(alvo, pedido) {
+    alvo.innerHTML = `<div class="pg-resultado">${Loja.icone('alerta', 'ico ico-grande')}<h3>Pagamento online em configuração</h3>
+      <p>Seu pedido <strong>#${pedido.id}</strong> foi registrado. Fale com a loja para concluir o pagamento.</p>
+      <a class="btn" href="${Loja.esc(Loja.linkContato({ assunto: 'Meu pedido ou pagamento', pedido: pedido.id }))}">Fale conosco</a></div>`;
+  }
+
+  /** Assinatura: cartão de crédito (Card Payment Brick), cobrado agora e a cada período pelo Mercado Pago. */
+  async function formularioAssinatura(alvo, ctx, alerta = '') {
+    const { pedido } = ctx;
+    if (!pagamentosAtivos(ctx)) return telaSemPagamento(alvo, pedido);
+    const a = pedido.assinatura;
+    const periodo = PERIODO[a.renovacao] || a.renovacao;
+    const id = `brick-${Math.random().toString(36).slice(2)}`;
+    alvo.innerHTML = `
+      ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
+      <div class="pg-total"><span>Assinatura · pedido #${pedido.id}</span><strong>${Loja.brl(a.valor)}/${Loja.esc(periodo)}</strong></div>
+      <p class="pg-assinatura">${Loja.icone('relogio')} Cobrança automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}. Para cancelar, é só falar com a loja.</p>
+      <div id="${id}" class="pg-brick"><p class="carregando">Carregando o formulário do cartão…</p></div>
+      <p class="pg-seguro">${Loja.icone('escudo')} Assinatura processada pelo Mercado Pago. A loja não tem acesso aos dados do seu cartão.</p>`;
+    try {
+      await carregarSdk();
+    } catch (e) {
+      document.getElementById(id).innerHTML = `<p class="pg-alerta">${Loja.esc(e.message)}</p>`;
       return;
     }
+    const c = pedido.cliente;
+    const mp = new window.MercadoPago(chavePublica(ctx), { locale: 'pt-BR' });
+    controle = await mp.bricks().create('cardPayment', id, {
+      initialization: {
+        amount: a.valor,
+        payer: { email: c.email, identification: { type: 'CPF', number: c.cpf } }
+      },
+      customization: {
+        visual: { style: ESTILO_BRICK },
+        paymentMethods: { maxInstallments: 1, types: { excluded: ['debit_card', 'prepaid_card'] } }
+      },
+      callbacks: {
+        onReady: () => {},
+        onError: erroDoBrick,
+        onSubmit: (dados) => enviarAssinatura(alvo, ctx, dados)
+      }
+    });
+  }
+
+  async function enviarAssinatura(alvo, ctx, dados) {
+    let r;
+    try {
+      r = await Loja.api('assinaturas/cartao', { metodo: 'POST', dados: { pedido_id: ctx.pedido.id, token: ctx.pedido.token, dados } });
+    } catch (e) {
+      Loja.aviso(e.message, 'erro');
+      throw e;
+    }
+    // Avisa a vitrine que o pedido seguiu (esvazia o carrinho), mesmo antes da primeira cobrança.
+    if (ctx.aoMudar) ctx.aoMudar(r.pedido, { status: 'pending' });
+    setTimeout(() => montar(alvo, { ...ctx, pedido: r.pedido }), 0);
+  }
+
+  /** Assinatura criada: espera a primeira cobrança no cartão (normalmente alguns minutos). */
+  function telaAssinaturaCriada(alvo, ctx) {
+    const { pedido } = ctx;
+    const pg = pedido.pagamento;
+    const recusada = pg && pg.status === 'rejected';
+    alvo.innerHTML = `
+      <div class="pg-resultado">
+        ${Loja.icone(recusada ? 'alerta' : 'relogio', 'ico ico-grande')}
+        <h3>${recusada ? 'Primeira cobrança recusada' : 'Assinatura criada!'}</h3>
+        <p>${recusada
+          ? `${Loja.esc(pg.mensagem)} O Mercado Pago tentará cobrar de novo nos próximos dias. Se preferir trocar o cartão, fale com a loja.`
+          : 'Estamos processando a primeira cobrança no seu cartão. A confirmação aparece aqui e chega por e-mail.'}</p>
+        ${recusada ? '' : '<p class="pg-status"><span class="pulso"></span> Aguardando a confirmação do Mercado Pago.</p>'}
+        <p class="muted">Pedido #${pedido.id}</p>
+        ${voltarHtml(ctx)}
+        ${ajudaHtml(pedido)}
+      </div>`;
+    ligarVoltar(alvo, ctx);
+    acompanhar(alvo, ctx, recusada ? 60000 : 10000);
+  }
+
+  function erroDoBrick(erro) {
+    // Erros graves do formulário do Mercado Pago também aparecem na tela. Os "non_critical"
+    // (ex.: falha ao preencher o endereço pelo CEP) não impedem o pagamento e ficam só no console.
+    console.error('Mercado Pago:', erro);
+    if (!erro || erro.type !== 'critical') return;
+    const detalhe = [erro.message, erro.cause].filter(Boolean).join(' · ');
+    Loja.aviso(`O Mercado Pago não aceitou os dados${detalhe ? `: ${detalhe}` : '.'} Confira os dados e tente de novo.`, 'erro');
+  }
+
+  async function formulario(alvo, ctx, alerta = '') {
+    const { loja, pedido } = ctx;
+    if (!pagamentosAtivos(ctx)) return telaSemPagamento(alvo, pedido);
     const id = `brick-${Math.random().toString(36).slice(2)}`;
     alvo.innerHTML = `
       ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
@@ -78,7 +180,7 @@
     }
     const c = pedido.cliente;
     const [primeiro = '', ...resto] = String(c.nome || '').trim().split(/\s+/);
-    const mp = new window.MercadoPago(loja.mp_public_key, { locale: 'pt-BR' });
+    const mp = new window.MercadoPago(chavePublica(ctx), { locale: 'pt-BR' });
     controle = await mp.bricks().create('payment', id, {
       initialization: {
         amount: pedido.total,
@@ -94,19 +196,7 @@
         }
       },
       customization: {
-        visual: {
-          style: {
-            theme: 'default',
-            customVariables: {
-              baseColor: '#1B2D42',
-              textPrimaryColor: '#333333',
-              formBackgroundColor: '#FFFFFF',
-              inputBackgroundColor: '#FFFFFF',
-              borderRadiusMedium: '6px',
-              borderRadiusLarge: '8px'
-            }
-          }
-        },
+        visual: { style: ESTILO_BRICK },
         paymentMethods: {
           bankTransfer: 'all',
           creditCard: 'all',
@@ -117,7 +207,7 @@
       },
       callbacks: {
         onReady: () => {},
-        onError: (erro) => console.error('Mercado Pago:', erro),
+        onError: erroDoBrick,
         onSubmit: ({ formData }) => enviar(alvo, ctx, formData)
       }
     });

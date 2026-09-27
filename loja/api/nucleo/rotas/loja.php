@@ -1,0 +1,58 @@
+<?php
+/* Rotas públicas da vitrine: dados da loja, criação do pedido e página de pagamento. */
+return function (Roteador $r) {
+  // Textos, contatos, frete e chave pública do Mercado Pago (nunca as chaves secretas).
+  $r->publica('GET', 'loja', function () {
+    $c = Config::todas();
+    $modulos = [];
+    foreach (Modulos::instalados() as $m) $modulos[$m->tipo()] = Modulos::ligado($m->tipo());
+    return ['loja' => [
+      'nome' => $c['loja_nome'],
+      'titulo' => $c['loja_titulo'],
+      'subtitulo' => $c['loja_subtitulo'],
+      'sobre' => $c['loja_sobre'],
+      'aviso_topo' => $c['aviso_topo'],
+      'email' => $c['loja_email'],
+      'whatsapp' => $c['loja_whatsapp'],
+      'instagram' => $c['loja_instagram'],
+      'frete_valor' => (float)$c['frete_valor'],
+      'frete_gratis_acima' => (float)$c['frete_gratis_acima'],
+      'max_parcelas' => (int)$c['max_parcelas'],
+      'mp_public_key' => $c['mp_public_key'],
+      'pagamentos_ativos' => MercadoPago::configurado(),
+      'modulos' => $modulos,
+    ]];
+  });
+
+  // Checkout: cadastra/atualiza o cliente e cria o pedido com preços e estoque do banco.
+  $r->publica('POST', 'pedidos', function () {
+    $d = Http::entrada();
+    $cliente = Clientes::validar(is_array($d['cliente'] ?? null) ? $d['cliente'] : []);
+    $itens = Pedidos::itensDoCarrinho($d['itens'] ?? []);
+    $p = Banco::transacao(function () use ($cliente, $itens) {
+      Clientes::salvarDoCheckout($cliente);
+      return Pedidos::criar($cliente, $itens, 'loja');
+    });
+    return ['pedido' => Pedidos::publico($p)];
+  });
+
+  // Página de pagamento (pagar.html) e acompanhamento do Pix. Exige o token secreto do pedido.
+  $r->publica('GET', 'pedidos/{id}/publico', function ($id) {
+    $p = Pedidos::peloToken($id, $_GET['t'] ?? '');
+    // Consulta o Mercado Pago de novo se o cliente está esperando (Pix/cartão em análise), no máximo a cada 15 s.
+    if (!empty($_GET['atualizar']) && in_array($p['status'], ['aguardando_pagamento', 'em_analise'], true) && $p['pagamentos']) {
+      $ultimo = $p['pagamentos'][count($p['pagamentos']) - 1];
+      $quando = strtotime($ultimo['atualizado_em'] ?? $ultimo['criado_em']);
+      if (time() - $quando >= 15) {
+        try {
+          Pedidos::atualizarPagamentosPendentes($p);
+          Banco::executar('UPDATE pagamentos SET atualizado_em = NOW() WHERE id = ?', [$ultimo['id']]);
+        } catch (ErroApi $e) {
+          // Sem resposta do Mercado Pago agora: o webhook ou a próxima consulta resolvem.
+        }
+        $p = Pedidos::carregar((int)$p['id']);
+      }
+    }
+    return ['pedido' => Pedidos::publico($p)];
+  });
+};

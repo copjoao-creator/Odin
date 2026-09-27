@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Pagamento do pedido · Odin Focus</title>
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="img/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/loja.css">
+</head>
+<body class="pagina-pagar">
+  <header class="cabecalho">
+    <div class="container cabecalho-in cabecalho-simples">
+      <a href="./" class="logo" aria-label="Voltar à loja">
+        <span class="logo-marca" data-marca></span>
+        <span class="logo-texto"><strong id="logoNome">ODIN FOCUS</strong><small>Pagamento seguro</small></span>
+      </a>
+      <p class="selo-seguro"><span data-icone="escudo"></span>Ambiente seguro Mercado Pago</p>
+    </div>
+  </header>
+
+  <main class="container pagar">
+    <section class="pagar-caixa">
+      <div class="checkout-principal">
+        <h1 class="pagar-titulo" id="titulo">Pagamento do pedido</h1>
+        <div id="alvo"><p class="carregando">Carregando seu pedido…</p></div>
+      </div>
+      <aside class="resumo" id="resumo" hidden></aside>
+    </section>
+  </main>
+
+  <script src="js/comum.js"></script>
+  <script src="js/pagamento.js"></script>
+  <script>
+    /* Link de pagamento: pagar.html?p=NUMERO&t=TOKEN (enviado por e-mail, WhatsApp ou gerado no painel) */
+    (async () => {
+      document.querySelectorAll('[data-icone]').forEach((el) => { el.innerHTML = Loja.icone(el.dataset.icone); });
+      document.querySelectorAll('[data-marca]').forEach((el) => { el.innerHTML = Loja.marca(); });
+      const alvo = document.getElementById('alvo');
+      const q = new URLSearchParams(location.search);
+      const id = Loja.digitos(q.get('p'));
+      const token = (q.get('t') || '').replace(/[^a-f0-9]/g, '');
+      if (!id || !token) {
+        alvo.innerHTML = '<p class="pg-alerta">Link de pagamento incompleto. Confira o endereço recebido.</p>';
+        return;
+      }
+      let loja;
+      let pedido;
+      try {
+        [{ loja }, { pedido }] = await Promise.all([Loja.api('loja'), Loja.api(`pedidos/${id}/publico&t=${token}`)]);
+      } catch (e) {
+        alvo.innerHTML = `<p class="pg-alerta">${Loja.esc(e.message)}</p>`;
+        return;
+      }
+      document.title = `Pedido #${pedido.id} · ${loja.nome}`;
+      document.getElementById('logoNome').textContent = loja.nome.toUpperCase();
+      document.getElementById('titulo').textContent = `Pedido #${pedido.id}`;
+
+      const resumo = (p) => {
+        const r = document.getElementById('resumo');
+        r.hidden = false;
+        r.innerHTML = `
+          <h3>Resumo</h3>
+          <ul class="resumo-itens">${p.itens.map((i) => `<li><span>${i.quantidade}× ${Loja.esc(i.descricao)}</span><span>${Loja.brl(i.preco_unitario * i.quantidade)}</span></li>`).join('')}</ul>
+          <dl class="valores">
+            <div><dt>Subtotal</dt><dd>${Loja.brl(p.subtotal)}</dd></div>
+            ${p.precisa_entrega ? `<div><dt>Frete</dt><dd>${p.frete ? Loja.brl(p.frete) : 'Grátis'}</dd></div>` : ''}
+            <div class="valores-total"><dt>Total</dt><dd>${Loja.brl(p.total)}</dd></div>
+          </dl>
+          <p class="muted">Cliente: ${Loja.esc(p.cliente.nome)}</p>
+          <p class="resumo-seguro">${Loja.icone('escudo')} Compra protegida pelo Mercado Pago</p>`;
+      };
+      resumo(pedido);
+      LojaPagamento.montar(alvo, {
+        loja,
+        pedido,
+        aoMudar: resumo,
+        voltar: { texto: 'Ir para a loja', acao: () => { location.href = './'; } }
+      });
+    })();
+  </script>
+</body>
+</html>

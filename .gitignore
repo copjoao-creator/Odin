@@ -1,0 +1,6 @@
+# Loja: senha do banco (criado pelo instalar.php) e fotos enviadas pelo painel
+loja/config.php
+loja/uploads/**
+!loja/uploads/.htaccess
+!loja/uploads/*/
+!loja/uploads/*/.gitkeep

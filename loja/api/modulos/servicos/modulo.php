@@ -62,7 +62,7 @@ return new class implements ModuloCatalogo {
 
   private function vitrine(): array
   {
-    if (!Modulos::ligado($this->tipo())) return ['servicos' => []];
+    if (!Modulos::naLoja($this->tipo())) return ['servicos' => []];
     $lista = Banco::todos('SELECT * FROM servicos WHERE ativo = 1 ORDER BY categoria, subcategoria, descricao');
     return ['servicos' => array_map(function ($s) {
       [$titulo, $detalhes] = Modulos::tituloEDetalhes($s['descricao']);

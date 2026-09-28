@@ -257,12 +257,18 @@ Endereço: **`https://www.odinfocus.com.br/loja/admin/`**
 - **Assinaturas:** criadas automaticamente quando um serviço recorrente é pago. Antes de cada vencimento o sistema gera
   o pedido de renovação e manda o link de pagamento ao cliente. Você pode cobrar na hora ou cancelar.
 - **Configurações:** textos da loja, contatos, frete (valor fixo e frete grátis acima de um valor), parcelas,
-  Mercado Pago, módulos, rotina diária, administradores e troca de senha.
+  Mercado Pago, Asaas, abas da loja, módulos, rotina diária, administradores e troca de senha.
 
 **Dica da descrição:** a primeira linha da descrição vira o **título** do item na loja. As linhas seguintes são os detalhes.
 
+**Abas da loja:** em **Configurações › Abas da loja** você habilita ou desabilita, de forma independente, as abas
+**Produtos** e **Serviços**. Desabilitada, a aba some da loja por completo (menu, página inicial, categorias, busca,
+rodapé e carrinho) e a loja não aceita mais pedidos daquele tipo. O cadastro continua no painel e você ainda pode
+vender por **Novo link de pagamento**.
+
 **Módulos independentes:** produtos e serviços são módulos separados. Em **Configurações › Módulos** você pode
-desligar qualquer um deles: ele some da loja, mas os dados e as vendas antigas continuam no painel.
+desligar qualquer um deles: ele some da loja e não aceita novas vendas (nem por link), mas os dados e as vendas
+antigas continuam no painel.
 
 ### Situações de um pedido
 

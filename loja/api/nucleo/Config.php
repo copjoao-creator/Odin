@@ -39,6 +39,9 @@ final class Config
     'asaas_webhook_token' => '',
     'modulo_produto' => '1',
     'modulo_servico' => '1',
+    // Abas da loja: "0" esconde a aba (e tudo daquele tipo) da loja, sem desligar o módulo no painel.
+    'aba_produto' => '1',
+    'aba_servico' => '1',
   ];
 
   /** Chaves secretas: nunca voltam inteiras para o navegador. */

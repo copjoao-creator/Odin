@@ -62,6 +62,16 @@ final class Modulos
     return isset(self::instalados()[$tipo]) && Config::get('modulo_' . $tipo) !== '0';
   }
 
+  /**
+   * A aba do tipo aparece na loja: módulo ligado e aba não desativada em Configurações › Abas da loja.
+   * Com a aba desativada, nada desse tipo aparece nem é vendido pela loja; o painel continua
+   * cadastrando e gerando links de pagamento normalmente.
+   */
+  public static function naLoja(string $tipo): bool
+  {
+    return self::ligado($tipo) && Config::get('aba_' . $tipo) !== '0';
+  }
+
   /** Módulos ligados: aparecem na loja e aceitam novas vendas. */
   public static function ativos(): array
   {

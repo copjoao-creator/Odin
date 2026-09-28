@@ -789,8 +789,11 @@
     acoes.innerHTML = `<button type="button" class="btn btn-pequeno" id="btnNovo">${K.novo}</button>`;
     $('#btnNovo').addEventListener('click', () => formCatalogo(tipo, null));
     const ligado = A.loja.modulos[tipo];
+    const naLoja = !A.loja.abas || A.loja.abas[tipo] !== false;
+    const nomeTipo = tipo === 'produto' ? 'produtos' : 'serviços';
     el.innerHTML = `
-      ${ligado ? '' : `<div class="alerta">${Loja.icone('alerta')}<p>O módulo de ${tipo === 'produto' ? 'produtos' : 'serviços'} está desligado: nada daqui aparece na loja. Ligue em <a href="#configuracoes">Configurações</a>.</p></div>`}
+      ${!ligado ? `<div class="alerta">${Loja.icone('alerta')}<p>O módulo de ${nomeTipo} está desligado: nada daqui aparece na loja. Ligue em <a href="#configuracoes">Configurações</a>.</p></div>`
+        : !naLoja ? `<div class="alerta">${Loja.icone('alerta')}<p>A aba de ${nomeTipo} está desabilitada: nada daqui aparece na loja (os links de pagamento continuam funcionando). Habilite em <a href="#configuracoes">Configurações › Abas da loja</a>.</p></div>` : ''}
       <div class="bloco filtros"><label class="f-busca">Buscar <input type="search" id="fBusca" placeholder="Código, descrição ou categoria"></label></div>
       <div class="tabela-caixa" id="lista"><p class="carregando">Carregando…</p></div>`;
     const minimo = Number((await api('admin/configuracoes').catch(() => ({ configuracoes: {} }))).configuracoes.estoque_minimo || 0);
@@ -1184,8 +1187,16 @@
         </section>
 
         <section class="bloco">
+          <h2>Abas da loja</h2>
+          <p class="bloco-sub">Desabilitada, a aba some da loja por completo: menu, página inicial, categorias, busca, rodapé e carrinho. O cadastro continua aqui no painel e você ainda pode vender por <strong>Novo link de pagamento</strong>.</p>
+          <div class="campos">
+            ${r.modulos.map((m) => `<label class="c-6 marcar"><input type="checkbox" name="aba_${m.tipo}" ${m.aba ? 'checked' : ''}> Mostrar a aba <strong>${esc(m.nome)}</strong> na loja</label>`).join('')}
+          </div>
+        </section>
+
+        <section class="bloco">
           <h2>Módulos</h2>
-          <p class="bloco-sub">Cada módulo funciona sozinho. Desligado, some da loja, mas os dados e as vendas antigas continuam aqui.</p>
+          <p class="bloco-sub">Cada módulo funciona sozinho. Desligado, some da loja e não aceita novas vendas (nem por link), mas os dados e as vendas antigas continuam aqui.</p>
           <div class="campos">
             ${r.modulos.map((m) => `<label class="c-6 marcar"><input type="checkbox" name="modulo_${m.tipo}" ${m.ligado ? 'checked' : ''}> ${esc(m.nome)}</label>`).join('')}
           </div>
@@ -1234,7 +1245,10 @@
       e.preventDefault();
       const f = e.target;
       const d = Object.fromEntries(new FormData(f));
-      r.modulos.forEach((m) => { d[`modulo_${m.tipo}`] = f.elements[`modulo_${m.tipo}`].checked; });
+      r.modulos.forEach((m) => {
+        d[`modulo_${m.tipo}`] = f.elements[`modulo_${m.tipo}`].checked;
+        d[`aba_${m.tipo}`] = f.elements[`aba_${m.tipo}`].checked;
+      });
       try {
         await api('admin/configuracoes', { metodo: 'PUT', dados: d });
         await carregarLoja();

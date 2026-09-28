@@ -23,7 +23,9 @@ return function (Roteador $r) {
     $c = Config::todas();
     foreach (Config::SECRETAS as $k) $c[$k] = Config::mascarar($c[$k]);
     $modulos = [];
-    foreach (Modulos::instalados() as $m) $modulos[] = ['tipo' => $m->tipo(), 'nome' => $m->nome(), 'ligado' => Modulos::ligado($m->tipo())];
+    foreach (Modulos::instalados() as $m) {
+      $modulos[] = ['tipo' => $m->tipo(), 'nome' => $m->nome(), 'ligado' => Modulos::ligado($m->tipo()), 'aba' => Config::get('aba_' . $m->tipo()) !== '0'];
+    }
     $cron = (PHP_OS_FAMILY === 'Windows' ? 'php ' : '/usr/local/bin/php ') . realpath(API_RAIZ . '/cron.php');
     return [
       'configuracoes' => $c,
@@ -83,8 +85,10 @@ return function (Roteador $r) {
       $v[$k] = $s;
     }
     foreach (Modulos::instalados() as $m) {
-      $k = 'modulo_' . $m->tipo();
-      if (array_key_exists($k, $d)) $v[$k] = Validacao::booleano($d[$k]) ? '1' : '0';
+      foreach (['modulo_', 'aba_'] as $prefixo) {
+        $k = $prefixo . $m->tipo();
+        if (array_key_exists($k, $d)) $v[$k] = Validacao::booleano($d[$k]) ? '1' : '0';
+      }
     }
     Config::salvar($v);
     return ['ok' => true];

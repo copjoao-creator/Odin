@@ -92,14 +92,20 @@
 
     // Contatos (a página Fale conosco fica em contato.html)
     $('#rodapeContatos').innerHTML = Loja.rodapeContatos(l);
-    // Produtos e Serviços aparecem sempre (vazios, mostram "em breve"); só somem com o módulo desligado no painel.
-    if (l.modulos.produto === false) esconder('produtos');
-    if (l.modulos.servico === false) esconder('servicos');
+    // Produtos e Serviços aparecem sempre (vazios, mostram "em breve"); somem por completo com a aba
+    // desabilitada (Configurações › Abas da loja) ou com o módulo desligado no painel.
+    const naLoja = (tipo) => l.modulos[tipo] !== false && (!l.abas || l.abas[tipo] !== false);
+    if (!naLoja('produto')) esconder('produtos');
+    if (!naLoja('servico')) esconder('servicos');
   }
 
+  /** Esconde a seção e todos os links para ela (menu, botões da página inicial, rodapé e atalho de acessibilidade). */
   function esconder(secao) {
     $(`#${secao}`).hidden = true;
-    $$(`a[href="#${secao}"]`).forEach((a) => { a.hidden = true; });
+    $$(`a[href="#${secao}"]`).forEach((a) => {
+      a.hidden = true;
+      if (a.parentElement && a.parentElement.tagName === 'LI') a.parentElement.hidden = true;
+    });
   }
 
   function categoriasDeProdutos() {

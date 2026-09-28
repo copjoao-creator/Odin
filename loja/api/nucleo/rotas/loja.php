@@ -4,8 +4,11 @@ return function (Roteador $r) {
   // Textos, contatos, frete e chave pública do Mercado Pago (nunca as chaves secretas).
   $r->publica('GET', 'loja', function () {
     $c = Config::todas();
-    $modulos = [];
-    foreach (Modulos::instalados() as $m) $modulos[$m->tipo()] = Modulos::ligado($m->tipo());
+    $modulos = $abas = [];
+    foreach (Modulos::instalados() as $m) {
+      $modulos[$m->tipo()] = Modulos::ligado($m->tipo());
+      $abas[$m->tipo()] = Modulos::naLoja($m->tipo()); // aparece na loja (módulo ligado e aba visível)
+    }
     return ['loja' => [
       'nome' => $c['loja_nome'],
       'titulo' => $c['loja_titulo'],
@@ -27,6 +30,7 @@ return function (Roteador $r) {
       'mp_public_key' => $c['mp_public_key'],
       'pagamentos_ativos' => MercadoPago::configurado(),
       'modulos' => $modulos,
+      'abas' => $abas,
     ]];
   });
 
@@ -44,7 +48,7 @@ return function (Roteador $r) {
   //   pedido mostra os dados do cliente mascarados (quem digitou o CPF pode não ser o dono dele).
   $r->publica('POST', 'pedidos', function () {
     $d = Http::entrada();
-    $itens = Pedidos::itensDoCarrinho($d['itens'] ?? []);
+    $itens = Pedidos::itensDoCarrinho($d['itens'] ?? [], true);
     if (Validacao::booleano($d['usar_cadastro'] ?? false)) {
       $cpf = Validacao::cpf($d['cliente']['cpf'] ?? '');
       Clientes::limitarConsultas();

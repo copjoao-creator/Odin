@@ -33,8 +33,11 @@ final class Pedidos
     return self::centavos(Config::get('frete_valor'));
   }
 
-  /** Converte o carrinho [{tipo, codigo, quantidade}] em itens com preço e custo do banco. */
-  public static function itensDoCarrinho($carrinho): array
+  /**
+   * Converte o carrinho [{tipo, codigo, quantidade}] em itens com preço e custo do banco.
+   * $daLoja: pedido feito pela loja (e não pelo painel), que só vende os tipos com a aba visível.
+   */
+  public static function itensDoCarrinho($carrinho, bool $daLoja = false): array
   {
     if (!is_array($carrinho) || !$carrinho) throw new ErroApi('Seu carrinho está vazio.', 422);
     if (count($carrinho) > 50) throw new ErroApi('Carrinho com itens demais (máximo 50).', 422);
@@ -49,6 +52,9 @@ final class Pedidos
     }
     $itens = [];
     foreach ($agrupados as $a) {
+      if ($daLoja && Modulos::ligado($a['tipo']) && !Modulos::naLoja($a['tipo'])) {
+        throw new ErroApi('Um item do carrinho não está mais disponível na loja. Atualize a página e confira o carrinho.', 422);
+      }
       $venda = Modulos::paraVenda($a['tipo'])->itemParaVenda($a['codigo'], $a['quantidade']);
       $itens[] = $a + $venda + ['referencia' => null];
     }

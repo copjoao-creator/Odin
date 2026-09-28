@@ -64,7 +64,7 @@ return new class implements ModuloCatalogo {
   /** Dados para a loja: sem preço de custo. */
   private function vitrine(): array
   {
-    if (!Modulos::ligado($this->tipo())) return ['produtos' => []];
+    if (!Modulos::naLoja($this->tipo())) return ['produtos' => []];
     $lista = Banco::todos('SELECT * FROM produtos WHERE ativo = 1 ORDER BY categoria, subcategoria, descricao');
     $fotos = $this->fotos(array_column($lista, 'codigo_produto'));
     return ['produtos' => array_map(function ($p) use ($fotos) {

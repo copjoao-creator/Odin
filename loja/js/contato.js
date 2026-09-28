@@ -147,7 +147,7 @@
       return;
     }
     document.title = `Fale conosco · ${l.nome}`;
-    $('#logoNome').textContent = l.nome.toUpperCase();
+    Loja.nomeLogo($('#logoNome'), l.nome);
     $('#rodapeCopy').textContent = l.nome;
     renderCanais(l);
     if (l.emailjs) {

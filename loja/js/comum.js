@@ -171,9 +171,22 @@ const ICONES = {
 Loja.icone = (nome, classe = 'ico') =>
   `<svg class="${classe}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[nome] || ''}</svg>`;
 
-/** Marca ODIN (hexágono com o olho), na cor do texto. */
-Loja.marca = (classe = 'marca') =>
-  `<svg class="${classe}" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,3 58,18 58,46 32,61 6,46 6,18" fill="none" stroke="currentColor" stroke-width="3"/><path d="M13 32 Q32 14 51 32 Q32 50 13 32 Z" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="32" cy="32" r="7" fill="currentColor"/></svg>`;
+/**
+ * Marca Odin Focus (obturador de foco com a pupila laranja no centro). Mesmo desenho de
+ * img/odin-focus-simbolo.svg. Cada cópia na página recebe ids próprios para o degradê e o recorte.
+ */
+let marcaSeq = 0;
+Loja.marca = (classe = 'marca') => {
+  const id = `of${++marcaSeq}`;
+  return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="${id}-c"><circle cx="50" cy="50" r="46"/></clipPath><radialGradient id="${id}-p" cx=".4" cy=".4"><stop offset="0" stop-color="#FFD27A"/><stop offset=".6" stop-color="#F45900"/><stop offset="1" stop-color="#B83A00"/></radialGradient></defs><g clip-path="url(#${id}-c)"><polygon points="50,50 51.21,35.7 118.26,8.63 121.31,86.69 63.67,41.63 62.99,42.5" fill="#80FFFF"/><polygon points="50,50 62.99,43.9 119.96,88.42 53.88,130.1 64.08,57.65 62.99,57.5" fill="#45D8F0"/><polygon points="50,50 61.78,58.2 51.7,129.8 -17.43,93.41 50.41,66.02 50,65" fill="#1FA8DD"/><polygon points="50,50 48.79,64.3 -18.26,91.37 -21.31,13.31 36.33,58.37 37.01,57.5" fill="#2A62B8"/><polygon points="50,50 37.01,56.1 -19.96,11.58 46.12,-30.1 35.92,42.35 37.01,42.5" fill="#1C86CF"/><polygon points="50,50 38.22,41.8 48.3,-29.8 117.43,6.59 49.59,33.98 50,35" fill="#3CC4EA"/></g><polygon points="50,35 62.99,42.5 62.99,57.5 50,65 37.01,57.5 37.01,42.5" fill="#0E1A2B"/><circle cx="50" cy="50" r="7.5" fill="url(#${id}-p)"/><circle cx="52.6" cy="47.4" r="2.2" fill="#fff"/></svg>`;
+};
+
+/** Nome da loja no logotipo: primeira palavra forte e o restante na cor da marca (ex.: ODIN FOCUS). */
+Loja.nomeLogo = (el, nome) => {
+  if (!el) return;
+  const [primeira = '', ...resto] = String(nome || '').toUpperCase().trim().split(/\s+/);
+  el.innerHTML = Loja.esc(primeira) + (resto.length ? ` <span class="realce">${Loja.esc(resto.join(' '))}</span>` : '');
+};
 
 /**
  * Avisos rápidos no canto da tela. Com uma janela (dialog) aberta, como o checkout, o aviso vai

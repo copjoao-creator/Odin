@@ -72,8 +72,8 @@
     const l = estado.loja;
     document.title = `${l.nome} · Loja oficial`;
     $('#avisoTopo').textContent = l.aviso_topo || '';
-    $('#logoNome').textContent = l.nome.toUpperCase();
-    $('#rodapeNome').textContent = l.nome.toUpperCase();
+    Loja.nomeLogo($('#logoNome'), l.nome);
+    Loja.nomeLogo($('#rodapeNome'), l.nome);
     $('#rodapeCopy').textContent = l.nome;
     $('#heroSobretitulo').textContent = l.nome;
     $('#heroTitulo').textContent = l.titulo;

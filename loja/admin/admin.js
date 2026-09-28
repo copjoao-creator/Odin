@@ -84,7 +84,7 @@
 
   async function carregarLoja() {
     A.loja = (await Loja.api('loja')).loja;
-    $('#nomeLoja').textContent = A.loja.nome.toUpperCase();
+    Loja.nomeLogo($('#nomeLoja'), A.loja.nome);
     document.title = `Painel · ${A.loja.nome}`;
     $$('#nav a[data-modulo]').forEach((a) => { a.hidden = !(a.dataset.modulo in A.loja.modulos); });
   }

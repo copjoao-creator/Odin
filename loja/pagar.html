@@ -14,7 +14,7 @@
     <div class="container cabecalho-in cabecalho-simples">
       <a href="./" class="logo" aria-label="Voltar à loja">
         <span class="logo-marca" data-marca></span>
-        <span class="logo-texto"><strong id="logoNome">ODIN FOCUS</strong><small>Pagamento seguro</small></span>
+        <span class="logo-texto"><strong id="logoNome">ODIN <span class="realce">FOCUS</span></strong><small>Pagamento seguro</small></span>
       </a>
       <p class="selo-seguro"><span data-icone="escudo"></span>Ambiente seguro Mercado Pago</p>
     </div>
@@ -54,7 +54,7 @@
         return;
       }
       document.title = `Pedido #${pedido.id} · ${loja.nome}`;
-      document.getElementById('logoNome').textContent = loja.nome.toUpperCase();
+      Loja.nomeLogo(document.getElementById('logoNome'), loja.nome);
       document.getElementById('titulo').textContent = `Pedido #${pedido.id}`;
 
       const resumo = (p) => {

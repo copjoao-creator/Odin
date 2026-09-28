@@ -84,9 +84,13 @@
       <a class="btn" href="${Loja.esc(Loja.linkContato({ assunto: 'Meu pedido ou pagamento', pedido: pedido.id }))}">Fale conosco</a></div>`;
   }
 
-  /** Assinatura: cartão de crédito (Card Payment Brick), cobrado agora e a cada período pelo Mercado Pago. */
+  /**
+   * Assinatura: cartão de crédito, cobrado agora e renovado automaticamente a cada período.
+   * Asaas (formulário da loja) quando configurado; senão, Mercado Pago (Card Payment Brick).
+   */
   async function formularioAssinatura(alvo, ctx, alerta = '') {
     const { pedido } = ctx;
+    if (pedido.assinatura.gateway === 'asaas') return formularioAsaas(alvo, ctx, alerta);
     if (!pagamentosAtivos(ctx)) return telaSemPagamento(alvo, pedido);
     const a = pedido.assinatura;
     const periodo = PERIODO[a.renovacao] || a.renovacao;
@@ -94,7 +98,7 @@
     alvo.innerHTML = `
       ${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}
       <div class="pg-total"><span>Assinatura · pedido #${pedido.id}</span><strong>${Loja.brl(a.valor)}/${Loja.esc(periodo)}</strong></div>
-      <p class="pg-assinatura">${Loja.icone('relogio')} Cobrança automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}${a.data_final ? `, até <strong>${Loja.data(a.data_final)}</strong>, quando a assinatura termina sozinha` : ''}. Para cancelar antes, é só falar com a loja.</p>
+      <p class="pg-assinatura">${Loja.icone('relogio')}<span>Cobrança automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}${a.data_final ? `, até <strong>${Loja.data(a.data_final)}</strong>, quando a assinatura termina sozinha` : ''}. Para cancelar antes, é só falar com a loja.</span></p>
       <div id="${id}" class="pg-brick"><p class="carregando">Carregando o formulário do cartão…</p></div>
       <p class="pg-seguro">${Loja.icone('escudo')} Assinatura processada pelo Mercado Pago. A loja não tem acesso aos dados do seu cartão.</p>`;
     try {
@@ -136,6 +140,124 @@
     setTimeout(() => montar(alvo, { ...ctx, pedido: r.pedido }), 0);
   }
 
+  /**
+   * Assinatura pelo Asaas: formulário de cartão da própria loja. Os dados seguem por conexão segura
+   * para o servidor da loja, que os repassa ao Asaas sem gravar. O Asaas cobra o primeiro período na
+   * hora e depois renova sozinho a cada período.
+   */
+  function formularioAsaas(alvo, ctx, alerta = '') {
+    const { pedido } = ctx;
+    const a = pedido.assinatura;
+    const periodo = PERIODO[a.renovacao] || a.renovacao;
+    const c = pedido.cliente;
+    // CPF do cliente como sugestão (o mais comum é o cartão ser dele); some se o cartão for de outra pessoa.
+    const cpfCliente = !c.protegido && Loja.cpfValido(c.cpf) ? Loja.formatar.cpf(c.cpf) : '';
+    const rotuloBotao = `Assinar · ${Loja.brl(a.valor)}/${periodo}`;
+    alvo.innerHTML = `
+      <div class="pg-alertas">${alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : ''}</div>
+      <div class="pg-total"><span>Assinatura · pedido #${pedido.id}</span><strong>${Loja.brl(a.valor)}/${Loja.esc(periodo)}</strong></div>
+      <p class="pg-assinatura">${Loja.icone('relogio')}<span>Renovação automática no <strong>cartão de crédito</strong>: ${Loja.brl(a.valor)} agora e depois a cada ${Loja.esc(periodo)}${a.data_final ? `, até <strong>${Loja.data(a.data_final)}</strong>, quando a assinatura termina sozinha` : ''}. Para cancelar antes, é só falar com a loja.</span></p>
+      <form class="pg-cartao" novalidate>
+        <div class="campos">
+          <label class="c-12">Número do cartão <input name="numero" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" required></label>
+          <label class="c-12">Nome do titular (como está no cartão) <input name="nome" autocomplete="cc-name" maxlength="100" required></label>
+          <label class="c-6">Validade <input name="validade" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5" required></label>
+          <label class="c-6">Código de segurança <input name="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="CVV" maxlength="4" required></label>
+          <label class="c-12">CPF do titular do cartão <input name="cpf" inputmode="numeric" placeholder="000.000.000-00" value="${Loja.esc(cpfCliente)}" required></label>
+          <label class="c-12 marcar"><input type="checkbox" name="outro"> O cartão é de outra pessoa</label>
+        </div>
+        <div class="campos pg-titular" hidden>
+          <p class="c-12 pg-dica">Dados do titular do cartão, iguais aos que o banco dele tem:</p>
+          <label class="c-4">CEP <input name="cep" inputmode="numeric" placeholder="00000-000"></label>
+          <label class="c-4">Número do endereço <input name="numero_endereco" maxlength="20"></label>
+          <label class="c-4">Celular <input name="celular" inputmode="tel" placeholder="(00) 00000-0000"></label>
+        </div>
+        <button type="submit" class="btn btn-largo">${Loja.esc(rotuloBotao)}</button>
+      </form>
+      <p class="pg-seguro">${Loja.icone('escudo')} Assinatura processada pelo Asaas, com conexão segura. A loja não guarda os dados do seu cartão.</p>`;
+
+    const f = alvo.querySelector('form');
+    const el = f.elements;
+    el.numero.addEventListener('input', () => { el.numero.value = Loja.digitos(el.numero.value).slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 '); });
+    el.validade.addEventListener('input', () => {
+      const d = Loja.digitos(el.validade.value).slice(0, 4);
+      el.validade.value = d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+    });
+    el.cvv.addEventListener('input', () => { el.cvv.value = Loja.digitos(el.cvv.value).slice(0, 4); });
+    Loja.mascarar(el.cpf, 'cpf');
+    Loja.mascarar(el.cep, 'cep');
+    Loja.mascarar(el.celular, 'celular');
+    el.outro.addEventListener('change', () => {
+      alvo.querySelector('.pg-titular').hidden = !el.outro.checked;
+      if (el.outro.checked && el.cpf.value === cpfCliente) el.cpf.value = '';
+      if (!el.outro.checked && !el.cpf.value) el.cpf.value = cpfCliente;
+    });
+
+    const mostrarErro = (mensagem, campo) => {
+      alvo.querySelector('.pg-alertas').innerHTML = `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(mensagem)}</p>`;
+      const input = campo && el[campo === 'validade' ? 'validade' : campo];
+      if (input) {
+        input.classList.add('invalido');
+        input.focus();
+      } else {
+        alvo.querySelector('.pg-alertas').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
+    f.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      f.querySelectorAll('.invalido').forEach((x) => x.classList.remove('invalido'));
+      const [mes = '', ano = ''] = el.validade.value.split('/');
+      const outro = el.outro.checked;
+      const cartao = {
+        numero: Loja.digitos(el.numero.value),
+        nome: el.nome.value.trim(),
+        mes,
+        ano,
+        cvv: el.cvv.value,
+        cpf: Loja.digitos(el.cpf.value),
+        cep: outro ? Loja.digitos(el.cep.value) : '',
+        numero_endereco: outro ? el.numero_endereco.value.trim() : '',
+        celular: outro ? Loja.digitos(el.celular.value) : ''
+      };
+      // Conferência rápida aqui; o servidor confere tudo de novo.
+      if (cartao.numero.length < 13 || !luhn(cartao.numero)) return mostrarErro('Número do cartão inválido. Confira os números digitados.', 'numero');
+      if (cartao.nome.length < 3) return mostrarErro('Informe o nome do titular como está impresso no cartão.', 'nome');
+      if (!/^\d{2}$/.test(mes) || +mes < 1 || +mes > 12 || !/^\d{2}$/.test(ano)) return mostrarErro('Informe a validade no formato MM/AA.', 'validade');
+      if (cartao.cvv.length < 3) return mostrarErro('Informe o código de segurança (CVV).', 'cvv');
+      if (!Loja.cpfValido(cartao.cpf)) return mostrarErro('CPF do titular do cartão inválido.', 'cpf');
+      if (outro && (cartao.cep.length !== 8 || !cartao.numero_endereco || cartao.celular.length < 10)) {
+        return mostrarErro('Preencha CEP, número do endereço e celular do titular do cartão.', cartao.cep.length !== 8 ? 'cep' : !cartao.numero_endereco ? 'numero_endereco' : 'celular');
+      }
+
+      const botao = f.querySelector('[type="submit"]');
+      botao.disabled = true;
+      botao.textContent = 'Processando o cartão…';
+      try {
+        const r = await Loja.api('assinaturas/asaas', { metodo: 'POST', dados: { pedido_id: pedido.id, token: pedido.token, cartao } });
+        // Avisa a vitrine que o pedido seguiu (esvazia o carrinho).
+        if (ctx.aoMudar) ctx.aoMudar(r.pedido, { status: 'pending' });
+        montar(alvo, { ...ctx, pedido: r.pedido });
+      } catch (e) {
+        botao.disabled = false;
+        botao.textContent = rotuloBotao;
+        el.cvv.value = '';
+        mostrarErro(e.message, e.campo);
+      }
+    });
+  }
+
+  /** Dígito verificador do número do cartão (algoritmo de Luhn). */
+  function luhn(n) {
+    let soma = 0;
+    for (let i = n.length - 1, dobra = false; i >= 0; i--, dobra = !dobra) {
+      let d = Number(n[i]);
+      if (dobra && (d *= 2) > 9) d -= 9;
+      soma += d;
+    }
+    return soma % 10 === 0;
+  }
+
   function telaCobrancaAutomatica(alvo, ctx) {
     const { pedido } = ctx;
     alvo.innerHTML = `
@@ -143,7 +265,7 @@
         ${Loja.icone('cartao', 'ico ico-grande')}
         <h3>Cobrança automática no cartão</h3>
         <p>A renovação da sua assinatura (pedido <strong>#${pedido.id}</strong>) é debitada automaticamente no cartão cadastrado. Não é preciso pagar por aqui.</p>
-        <p class="muted">Se o cartão recusar, o Mercado Pago tenta de novo nos próximos dias. Para trocar o cartão, fale com a loja.</p>
+        <p class="muted">Se o cartão recusar, a cobrança é tentada de novo automaticamente. Para trocar o cartão, fale com a loja.</p>
         ${voltarHtml(ctx)}
         ${ajudaHtml(pedido)}
       </div>`;
@@ -160,9 +282,9 @@
         ${Loja.icone(recusada ? 'alerta' : 'relogio', 'ico ico-grande')}
         <h3>${recusada ? 'Primeira cobrança recusada' : 'Assinatura criada!'}</h3>
         <p>${recusada
-          ? `${Loja.esc(pg.mensagem)} O Mercado Pago tentará cobrar de novo nos próximos dias. Se preferir trocar o cartão, fale com a loja.`
+          ? `${Loja.esc(pg.mensagem)} A cobrança será tentada de novo automaticamente. Se preferir trocar o cartão, fale com a loja.`
           : 'Estamos processando a primeira cobrança no seu cartão. A confirmação aparece aqui e chega por e-mail.'}</p>
-        ${recusada ? '' : '<p class="pg-status"><span class="pulso"></span> Aguardando a confirmação do Mercado Pago.</p>'}
+        ${recusada ? '' : '<p class="pg-status"><span class="pulso"></span> Aguardando a confirmação do pagamento.</p>'}
         <p class="muted">Pedido #${pedido.id}</p>
         ${voltarHtml(ctx)}
         ${ajudaHtml(pedido)}

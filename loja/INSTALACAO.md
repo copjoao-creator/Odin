@@ -134,6 +134,50 @@ ela é cancelada também no Mercado Pago.
 > **Teste com credenciais de teste:** nas assinaturas, o Mercado Pago exige que o comprador seja um
 > **usuário de teste** (Suas integrações › Contas de teste) e que o e-mail informado seja o dele.
 
+### Assinaturas com renovação automática pelo Asaas (recomendado)
+
+Com o Asaas configurado, **toda assinatura nova** é cobrada por ele, com **renovação automática no
+cartão de crédito**. As compras avulsas (Pix, boleto e cartão) continuam no Mercado Pago, e as
+assinaturas antigas do Mercado Pago seguem como estão até terminarem.
+
+Como funciona:
+
+- o cliente digita o cartão na página de pagamento da loja. O Asaas valida o cartão e cobra o
+  **primeiro período na hora**. Se o banco recusar, nada é criado e o cliente pode tentar outro cartão.
+- depois, o Asaas **renova sozinho** a cada mês, trimestre, semestre ou ano. Se o cartão recusar,
+  ele tenta de novo no dia do vencimento. Cada cobrança vira um pedido de renovação no painel.
+- os dados do cartão passam pelo servidor da loja só para serem enviados ao Asaas: **não são
+  gravados** nem vão para os logs. Por isso o site precisa estar com o cadeado (HTTPS) ativo.
+- o nome e o CPF enviados são os do **titular do cartão**. Se o cartão for de outra pessoa, o cliente
+  marca "O cartão é de outra pessoa" e informa também CEP, número do endereço e celular dela.
+- para evitar que alguém use a página para testar cartões roubados, cada pedido aceita até 5
+  tentativas por hora, e cada IP até 10.
+
+Para ligar (comece pelo **ambiente de teste**):
+
+1. Crie uma conta de teste em **https://sandbox.asaas.com**.
+2. No Asaas, em **Integrações › Chaves de API**, gere uma chave.
+3. No painel da loja › **Configurações** › **Asaas · Assinaturas no cartão**, escolha o ambiente
+   **Teste (sandbox)**, cole a chave e salve.
+4. No Asaas, em **Integrações › Webhooks**, crie um webhook:
+   - **URL:** a mostrada na seção do Asaas no painel (termina em `webhook/asaas`);
+   - **Versão da API:** v3; **Fila de sincronização:** ativada;
+   - **Token de autenticação:** crie um token (sem espaços) e cole o **mesmo** no painel da loja;
+   - **Eventos:** marque os de **Cobranças** e os de **Assinaturas**.
+5. Faça uma assinatura de teste na loja com um cartão de teste do Asaas (veja a documentação do
+   sandbox) e confira no painel: o pedido fica **Pago** e a assinatura aparece em **Assinaturas**.
+6. Quando estiver tudo certo, crie (ou use) a sua conta em **https://www.asaas.com**, gere a chave
+   de **produção**, crie o webhook de novo nessa conta e, no painel, troque o ambiente para
+   **Produção** e cole a nova chave e o novo token.
+
+> A chave de teste só funciona com o ambiente **Teste** e a de produção só com **Produção**. Se
+> aparecer "chave de API do Asaas inválida", confira se o ambiente escolhido combina com a chave.
+
+**No painel:** cancelar uma assinatura, mudar a data final e estornar uma cobrança funcionam com o
+Asaas do mesmo jeito que com o Mercado Pago. O estorno pelo painel é sempre do valor total; estorno
+parcial se faz no painel do Asaas. Se uma assinatura for removida direto no Asaas, ela também é
+cancelada na loja (pelo aviso do webhook).
+
 ---
 
 ## Passo 6. Rotina diária (renovações e pedidos vencidos)

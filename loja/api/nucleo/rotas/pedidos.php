@@ -37,6 +37,7 @@ return function (Roteador $r) {
       'pagamentos' => array_map(fn($pg) => [
         'id' => (int)$pg['id'],
         'mp_id' => $pg['mp_id'],
+        'gateway' => $pg['app'] === Asaas::APP ? 'Asaas' : 'Mercado Pago',
         'metodo' => $pg['metodo'],
         'metodo_texto' => Pedidos::METODOS[$pg['metodo']] ?? $pg['metodo'],
         'mp_metodo' => $pg['mp_metodo'],

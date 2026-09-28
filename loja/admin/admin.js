@@ -276,7 +276,7 @@
       ${mods.servico && mods.servico.renovacoes_proximas.length ? `
         <section class="bloco">
           <h2>Renovações nos próximos 30 dias</h2>
-          <p class="bloco-sub">Assinaturas no cartão são cobradas sozinhas pelo Mercado Pago; nas antigas, o link de pagamento é enviado por e-mail antes do vencimento.</p>
+          <p class="bloco-sub">Assinaturas no cartão são renovadas sozinhas (Asaas ou Mercado Pago); nas antigas, o link de pagamento é enviado por e-mail antes do vencimento.</p>
           <div class="tabela-caixa">${tabela(['Cliente', 'Serviço', '#Valor', 'Vencimento', 'Situação'], mods.servico.renovacoes_proximas.map((a) => `
             <tr><td>${esc(a.cliente)}</td><td>${esc(a.descricao)}</td><td class="num">${brl(a.valor)}</td><td>${Loja.data(a.proxima_cobranca)}</td><td>${selo(a.status, STATUS_ASSINATURA[a.status])}</td></tr>`))}</div>
         </section>` : ''}`;
@@ -462,7 +462,7 @@
       ${aberto && p.cobranca_automatica ? `
       <div class="secao-dlg">
         <h3>Cobrança automática</h3>
-        <p class="fraco">Renovação de assinatura no cartão: o Mercado Pago debita sozinho e tenta de novo se o cartão recusar. Não envie link de pagamento, para o cliente não pagar duas vezes.</p>
+        <p class="fraco">Renovação de assinatura no cartão: o Asaas (ou o Mercado Pago, nas assinaturas antigas) debita sozinho e tenta de novo se o cartão recusar. Não envie link de pagamento, para o cliente não pagar duas vezes.</p>
       </div>` : ''}
       ${aberto && !p.cobranca_automatica ? `
       <div class="secao-dlg">
@@ -490,12 +490,12 @@
       </div>
 
       <div class="secao-dlg">
-        <h3>Pagamentos no Mercado Pago</h3>
+        <h3>Pagamentos</h3>
         ${p.pagamentos.length ? p.pagamentos.map((pg) => `
           <div class="pagamento-linha" data-pg="${pg.id}">
             <div>
               <strong>${esc(pg.metodo_texto)}</strong>${pg.parcelas > 1 ? ` em ${pg.parcelas}x` : ''} · ${brl(pg.valor)} ${selo(pg.status, STATUS_MP[pg.status] || pg.status)}<br>
-              <span class="fraco">${esc(pg.mensagem)} · Nº MP ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>
+              <span class="fraco">${esc(pg.mensagem)} · ${esc(pg.gateway || 'Mercado Pago')} nº ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>
               ${pg.valor_liquido !== null ? `<br><span class="fraco">Líquido recebido: ${brl(pg.valor_liquido)}${pg.valor_estornado > 0 ? ` · Estornado: ${brl(pg.valor_estornado)}` : ''}</span>` : ''}
               <div class="estorno" hidden>
                 <div class="filtros" style="margin-top:10px">
@@ -542,7 +542,7 @@
           acao(() => api(`pedidos/${id}/enviar-link`, { metodo: 'POST' }), 'Link enviado por e-mail.');
           break;
         case 'atualizar':
-          acao(() => api(`pagamentos/${pgId}/atualizar`, { metodo: 'POST' }), 'Situação atualizada com o Mercado Pago.');
+          acao(() => api(`pagamentos/${pgId}/atualizar`, { metodo: 'POST' }), 'Situação do pagamento atualizada.');
           break;
         case 'estornar':
           b.hidden = true;
@@ -551,7 +551,7 @@
         case 'confirmar-estorno': {
           const valor = $('.estorno input', b.closest('[data-pg]')).value.trim();
           if (!confirm(`Confirma o estorno de ${valor ? `R$ ${valor}` : 'todo o valor restante'}? O dinheiro volta para o cliente e não é possível desfazer.`)) return;
-          acao(() => api(`pagamentos/${pgId}/estornar`, { metodo: 'POST', dados: { valor } }), 'Estorno solicitado ao Mercado Pago.');
+          acao(() => api(`pagamentos/${pgId}/estornar`, { metodo: 'POST', dados: { valor } }), 'Estorno solicitado.');
           break;
         }
         case 'cancelar': {
@@ -994,7 +994,7 @@
     el.innerHTML = `
       <div class="bloco filtros">
         <label>Situação <select id="fStatus"><option value="">Todas</option><option value="ativa">Ativas</option><option value="atrasada">Atrasadas</option><option value="encerrada">Encerradas</option><option value="cancelada">Canceladas</option></select></label>
-        <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Mercado Pago cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
+        <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Asaas (ou o Mercado Pago, nas assinaturas antigas) cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
       </div>
       <div class="tabela-caixa" id="lista"><p class="carregando">Carregando…</p></div>`;
     $('#fStatus').value = filtro;
@@ -1036,7 +1036,7 @@
       }
       const cancelar = e.target.closest('[data-cancelar]');
       if (cancelar) {
-        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças (no cartão automático, a assinatura também é cancelada no Mercado Pago).')) return;
+        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças (no cartão automático, a assinatura também é cancelada no Asaas ou no Mercado Pago).')) return;
         try {
           await api(`assinaturas/${cancelar.dataset.cancelar}/cancelar`, { metodo: 'POST' });
           Loja.aviso('Assinatura cancelada.', 'ok');
@@ -1057,7 +1057,7 @@
       <p>${esc(a.cliente_nome)} · ${esc(a.descricao)} (${esc(a.renovacao_texto.toLowerCase())})</p>
       <form id="fFim" class="campos" novalidate style="margin-top:14px">
         <label class="c-6">Termina em <input type="date" name="data_final" min="${amanha()}" value="${esc(a.data_final || '')}"></label>
-        <p class="c-12 fraco">Nesse dia a assinatura é <strong>encerrada</strong>${a.cartao_automatico ? ' e o Mercado Pago para de cobrar no cartão' : ''}. Cobranças que cairiam nessa data ou depois não acontecem. Deixe em branco para não ter data final. Para terminar hoje, use <strong>Cancelar</strong>.</p>
+        <p class="c-12 fraco">Nesse dia a assinatura é <strong>encerrada</strong>${a.cartao_automatico ? ' e a cobrança automática no cartão para' : ''}. Cobranças que cairiam nessa data ou depois não acontecem. Deixe em branco para não ter data final. Para terminar hoje, use <strong>Cancelar</strong>.</p>
       </form>`,
     '<button type="button" class="btn btn-pequeno btn-linha" data-fechar>Voltar</button><button type="button" class="btn btn-pequeno" id="btnSalvarFim">Salvar</button>');
     $('#btnSalvarFim').addEventListener('click', async (e) => {
@@ -1134,7 +1134,7 @@
 
         <section class="bloco">
           <h2>Mercado Pago · Serviços</h2>
-          <p class="bloco-sub">Aplicação separada (na mesma conta do Mercado Pago) para os pedidos de serviços e as <strong>assinaturas cobradas automaticamente no cartão de crédito</strong>. Sem ela, os serviços usam a aplicação acima.</p>
+          <p class="bloco-sub">Aplicação separada (na mesma conta do Mercado Pago) para os pedidos de serviços. Sem ela, os serviços usam a aplicação acima. As <strong>assinaturas</strong> usam o Asaas (abaixo) quando ele estiver configurado.</p>
           <ol class="passo-a-passo">
             <li>Na aplicação de serviços, em <strong>Credenciais de produção</strong>, copie a <strong>Public Key</strong> e o <strong>Access Token</strong> e cole abaixo.</li>
             <li>Em <strong>Webhooks</strong>, cole o endereço abaixo e marque os eventos <strong>Pagamentos</strong> e <strong>Planos e assinaturas</strong> (assinaturas e pagamentos recorrentes). Salve e copie a <strong>assinatura secreta</strong>.</li>
@@ -1144,6 +1144,27 @@
             <label class="c-12">Public Key <input name="mp_serv_public_key" autocomplete="off" value="${esc(c.mp_serv_public_key)}" placeholder="APP_USR-..."></label>
             ${secreto('mp_serv_access_token', 'Access Token')}
             ${secreto('mp_serv_webhook_secret', 'Assinatura secreta do webhook')}
+          </div>
+        </section>
+
+        <section class="bloco">
+          <h2>Asaas · Assinaturas no cartão</h2>
+          <p class="bloco-sub">Serviços recorrentes são cobrados pelo Asaas com <strong>renovação automática no cartão de crédito</strong>: o primeiro período na hora e depois a cada mês, trimestre, semestre ou ano. Se o cartão recusar, o Asaas tenta de novo no dia do vencimento. Assinaturas antigas do Mercado Pago continuam como estão até terminarem.</p>
+          <ol class="passo-a-passo">
+            <li>Comece pelo ambiente de <strong>teste</strong>: crie uma conta em <a href="https://sandbox.asaas.com" target="_blank" rel="noopener">sandbox.asaas.com</a>. Para valer, use a conta de <a href="https://www.asaas.com" target="_blank" rel="noopener">asaas.com</a> e mude o ambiente para Produção.</li>
+            <li>No Asaas, em <strong>Integrações › Chaves de API</strong>, gere uma chave e cole abaixo.</li>
+            <li>Em <strong>Integrações › Webhooks</strong>, crie um webhook com o endereço abaixo, API <strong>v3</strong>, fila de sincronização ativada e um <strong>token de autenticação</strong> (cole o mesmo token abaixo). Marque os eventos de <strong>cobranças</strong>.</li>
+          </ol>
+          <div class="copiavel" style="margin:14px 0"><code id="urlWebhookAsaas">${esc(r.webhook_url_asaas)}</code><button type="button" class="btn btn-pequeno btn-linha" data-copiar="#urlWebhookAsaas">Copiar</button></div>
+          <div class="campos">
+            <label class="c-4">Ambiente
+              <select name="asaas_ambiente">
+                <option value="sandbox" ${c.asaas_ambiente !== 'producao' ? 'selected' : ''}>Teste (sandbox)</option>
+                <option value="producao" ${c.asaas_ambiente === 'producao' ? 'selected' : ''}>Produção</option>
+              </select>
+            </label>
+            ${secreto('asaas_api_key', 'Chave de API')}
+            ${secreto('asaas_webhook_token', 'Token de autenticação do webhook')}
           </div>
         </section>
 

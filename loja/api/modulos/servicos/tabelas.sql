@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS servicos (
   KEY ix_servicos_categoria (categoria, subcategoria)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Uma assinatura nasce quando um serviço recorrente é pago. Com mp_assinatura, o Mercado Pago cobra
--- sozinho no cartão a cada período. Sem ela (assinaturas antigas), o sistema gera
--- um pedido de renovação e envia ao cliente o link para pagar (Pix, boleto ou cartão).
+-- Uma assinatura nasce quando um serviço recorrente é pago. Com mp_assinatura, o gateway cobra
+-- sozinho no cartão a cada período: Asaas quando o id começa com "sub_", senão Mercado Pago.
+-- Sem ela (assinaturas antigas), o sistema gera um pedido de renovação e envia ao cliente
+-- o link para pagar (Pix, boleto ou cartão).
 CREATE TABLE IF NOT EXISTS assinaturas (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   cliente_cpf CHAR(11) NOT NULL,

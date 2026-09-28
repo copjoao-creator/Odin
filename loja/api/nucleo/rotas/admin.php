@@ -30,6 +30,7 @@ return function (Roteador $r) {
       'modulos' => $modulos,
       'webhook_url' => Http::urlLoja() . 'api/?r=webhook/mercadopago',
       'webhook_url_servicos' => Http::urlLoja() . 'api/?r=webhook/mercadopago&app=servicos',
+      'webhook_url_asaas' => Http::urlLoja() . 'api/?r=webhook/asaas',
       'comando_cron' => $cron,
       'ultima_tarefa_diaria' => $c['ultima_tarefa_diaria'] ?? null,
     ];
@@ -65,6 +66,14 @@ return function (Roteador $r) {
       $s = trim((string)$d[$k]);
       if ($s === '' || strpos($s, '…') !== false || strpos($s, '•') !== false) continue; // não mexe (campo mascarado)
       if (!preg_match('/^[A-Za-z0-9_\-]{8,300}$/', $s)) throw new ErroApi('Chave do Mercado Pago inválida: copie e cole sem espaços.', 422, ['campo' => $k]);
+      $v[$k] = $s;
+    }
+    if (array_key_exists('asaas_ambiente', $d)) $v['asaas_ambiente'] = $d['asaas_ambiente'] === 'producao' ? 'producao' : 'sandbox';
+    foreach (['asaas_api_key' => 'Chave de API do Asaas', 'asaas_webhook_token' => 'Token do webhook do Asaas'] as $k => $rotulo) {
+      if (!array_key_exists($k, $d)) continue;
+      $s = trim((string)$d[$k]);
+      if ($s === '' || strpos($s, '…') !== false || strpos($s, '•') !== false) continue; // não mexe (campo mascarado)
+      if (!preg_match('/^\S{8,400}$/', $s)) throw new ErroApi("{$rotulo} inválido: copie e cole sem espaços.", 422, ['campo' => $k]);
       $v[$k] = $s;
     }
     foreach (['emailjs_public_key' => 'Public Key', 'emailjs_service_id' => 'Service ID', 'emailjs_template_id' => 'Template ID'] as $k => $rotulo) {

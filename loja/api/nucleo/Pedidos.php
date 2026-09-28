@@ -89,6 +89,16 @@ final class Pedidos
   }
 
   /**
+   * Quem cobra a assinatura do pedido: a já criada fica onde nasceu; uma nova vai para o Asaas
+   * quando ele estiver configurado (senão, para o Mercado Pago, como antes).
+   */
+  public static function gatewayAssinatura(array $p): string
+  {
+    if (!empty($p['mp_assinatura'])) return Asaas::ehAssinatura($p['mp_assinatura']) ? 'asaas' : 'mercadopago';
+    return Asaas::configurado() ? 'asaas' : 'mercadopago';
+  }
+
+  /**
    * Data final (opcional) de uma assinatura: vazia = sem fim; senão, uma data depois de hoje.
    * Devolve null (sem data) ou a data em Y-m-d.
    */
@@ -213,12 +223,14 @@ final class Pedidos
       'mp_public_key' => MercadoPago::credenciais(self::app($p))['public_key'],
       'pagamentos_ativos' => MercadoPago::configurado(self::app($p)),
       'cobranca_automatica' => self::cobrancaAutomatica($p),
-      // Serviço recorrente: pago só no cartão de crédito, com cobrança automática a cada período.
+      // Serviço recorrente: pago só no cartão de crédito, com renovação automática a cada período.
+      // gateway: "asaas" (formulário de cartão da loja) ou "mercadopago" (formulário do Mercado Pago).
       'assinatura' => ($a = self::itemAssinatura($p)) ? [
         'renovacao' => $a['renovacao'],
         'valor' => (float)$a['preco_unitario'],
         'criada' => !empty($p['mp_assinatura']),
         'data_final' => $p['assinatura_data_final'] ?? null,
+        'gateway' => self::gatewayAssinatura($p),
       ] : null,
     ];
   }
@@ -258,7 +270,7 @@ final class Pedidos
     $dados = [
       'pedido_id' => $pedidoId,
       'mp_id' => (string)$mp['id'],
-      'app' => in_array($app, MercadoPago::APPS, true) ? $app : 'loja',
+      'app' => in_array($app, array_merge(MercadoPago::APPS, [Asaas::APP]), true) ? $app : 'loja',
       'metodo' => MercadoPago::metodo($mp),
       'mp_metodo' => $mp['payment_method_id'] ?? null,
       'status' => $status,
@@ -362,7 +374,9 @@ final class Pedidos
       return $p;
     });
     // Invalida Pix e boletos em aberto para não serem pagos depois do cancelamento.
+    // (Cobranças do Asaas pertencem à assinatura; quem as encerra é o cancelamento da assinatura.)
     foreach ($p['pagamentos'] as $pg) {
+      if ($pg['app'] === Asaas::APP) continue;
       if (in_array($pg['status'], ['pending', 'in_process'], true)) {
         try {
           self::registrarPagamento($id, MercadoPago::cancelar($pg['mp_id'], $pg['app']), $pg['app']);
@@ -374,19 +388,22 @@ final class Pedidos
     return self::carregar($id);
   }
 
-  /** Consulta de novo no Mercado Pago (caso algum aviso do webhook tenha se perdido). */
+  /** Consulta de novo no Mercado Pago ou no Asaas (caso algum aviso do webhook tenha se perdido). */
   public static function atualizarPagamentosPendentes(array $p): void
   {
     foreach ($p['pagamentos'] as $pg) {
-      if (!MercadoPago::configurado($pg['app'])) continue;
-      if (in_array($pg['status'], ['pending', 'in_process', 'authorized'], true)) {
-        self::registrarPagamento((int)$p['id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
+      if (!in_array($pg['status'], ['pending', 'in_process', 'authorized'], true)) continue;
+      if ($pg['app'] === Asaas::APP) {
+        if (Asaas::configurado()) self::registrarPagamento((int)$p['id'], Asaas::comoPagamento(Asaas::consultar($pg['mp_id'])), Asaas::APP);
+        continue;
       }
+      if (!MercadoPago::configurado($pg['app'])) continue;
+      self::registrarPagamento((int)$p['id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
     }
-    // Assinatura no cartão ainda sem a primeira cobrança registrada: pergunta ao Mercado Pago.
+    // Assinatura no cartão ainda sem a primeira cobrança registrada: pergunta ao gateway.
     $servicos = Modulos::doItem('servico');
-    if (!empty($p['mp_assinatura']) && $p['status'] !== 'pago' && $servicos && method_exists($servicos, 'sincronizarAssinaturaMp')) {
-      $servicos->sincronizarAssinaturaMp((string)$p['mp_assinatura']);
+    if (!empty($p['mp_assinatura']) && $p['status'] !== 'pago' && $servicos && method_exists($servicos, 'sincronizarAssinaturaCartao')) {
+      $servicos->sincronizarAssinaturaCartao((string)$p['mp_assinatura']);
     }
   }
 

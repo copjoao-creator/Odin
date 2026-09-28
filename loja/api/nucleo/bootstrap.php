@@ -20,6 +20,7 @@ require __DIR__ . '/Validacao.php';
 require __DIR__ . '/Auth.php';
 require __DIR__ . '/Imagem.php';
 require __DIR__ . '/MercadoPago.php';
+require __DIR__ . '/Asaas.php';
 require __DIR__ . '/Email.php';
 require __DIR__ . '/Modulos.php';
 require __DIR__ . '/Clientes.php';

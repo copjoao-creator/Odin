@@ -33,12 +33,16 @@ final class Config
     'mp_serv_public_key' => '',
     'mp_serv_access_token' => '',
     'mp_serv_webhook_secret' => '',
+    // Asaas: assinaturas de serviços com renovação automática no cartão de crédito.
+    'asaas_ambiente' => 'sandbox',
+    'asaas_api_key' => '',
+    'asaas_webhook_token' => '',
     'modulo_produto' => '1',
     'modulo_servico' => '1',
   ];
 
   /** Chaves secretas: nunca voltam inteiras para o navegador. */
-  public const SECRETAS = ['mp_access_token', 'mp_webhook_secret', 'mp_serv_access_token', 'mp_serv_webhook_secret'];
+  public const SECRETAS = ['mp_access_token', 'mp_webhook_secret', 'mp_serv_access_token', 'mp_serv_webhook_secret', 'asaas_api_key', 'asaas_webhook_token'];
 
   private static ?array $arquivo = null;
   private static ?array $valores = null;

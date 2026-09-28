@@ -391,6 +391,12 @@ p { margin: 0; }
 .pg-opcao strong { color: var(--azul); font-size: 1rem; font-weight: 600; }
 .pg-assinatura { display: flex; gap: 10px; align-items: flex-start; background: var(--creme); border-left: 4px solid var(--azul); padding: 12px 14px; margin-bottom: 16px; font-size: .9rem; }
 .pg-assinatura .ico { flex: none; width: 20px; height: 20px; color: var(--azul); margin-top: 2px; }
+/* Formulário de cartão das assinaturas (Asaas) */
+.pg-cartao { display: grid; gap: 14px; }
+.pg-cartao .campos label.marcar { flex-direction: row; align-items: center; gap: 8px; font-size: .9rem; color: var(--texto); cursor: pointer; }
+.pg-cartao .campos label.marcar input { width: 18px; height: 18px; padding: 0; }
+.pg-titular { background: var(--creme); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px; }
+.pg-dica { font-size: .85rem; color: var(--suave); margin: 0; }
 .pg-seguro { display: flex; gap: 8px; align-items: center; font-size: .8rem; color: var(--suave); margin-top: 12px; }
 .pg-seguro .ico { color: var(--ok); width: 18px; height: 18px; }
 .pg-alerta { display: flex; gap: 10px; align-items: flex-start; background: #F6E3E3; border-left: 4px solid var(--erro); padding: 12px 14px; margin-bottom: 16px; font-size: .9rem; }

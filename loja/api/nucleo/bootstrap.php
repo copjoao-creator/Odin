@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 date_default_timezone_set('America/Sao_Paulo');
 mb_internal_encoding('UTF-8');
+// Valores em JSON com a menor forma exata (5.69 em vez de 5.69000000000000039…): algumas
+// hospedagens deixam serialize_precision em 17.
+ini_set('serialize_precision', '-1');
 
 define('API_RAIZ', dirname(__DIR__));           // loja/api
 define('LOJA_RAIZ', dirname(__DIR__, 2));       // loja

@@ -543,6 +543,7 @@ body.marca-sem-nome .logo-texto { display: none; }
 .tabela-loja tbody tr:last-child td { border-bottom: 0; }
 .tabela-loja tbody tr:hover { background: color-mix(in srgb, var(--creme) 60%, white); }
 .tabela-loja .col-foto { width: 76px; padding-right: 0; }
+#servicos .tabela-loja .col-foto { width: 60px; }
 .tabela-loja .col-preco { white-space: nowrap; text-align: right; }
 .tabela-loja th.col-preco { text-align: right; }
 .tabela-loja .col-acao { width: 1%; white-space: nowrap; text-align: right; }
@@ -579,3 +580,6 @@ body.marca-sem-nome .logo-texto { display: none; }
 }
 .tabela-foto .marca-mini { width: 34px; height: 34px; max-width: 100%; max-height: 100%; object-fit: contain; }
 .tabela-foto .marca-img.marca-mini { width: 44px; height: 44px; }
+.tabela-foto-servico { width: 44px; height: 44px; border-radius: 5px; }
+.tabela-foto-servico .marca-mini { width: 26px; height: 26px; }
+.tabela-foto-servico .marca-img.marca-mini { width: 34px; height: 34px; }

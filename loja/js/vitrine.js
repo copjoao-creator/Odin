@@ -191,12 +191,16 @@
   }
 
   /**
-   * Miniatura da tabela com tamanho fixo (60×60) no próprio HTML: mesmo que o CSS ainda não tenha
-   * carregado (ou esteja desatualizado no servidor), a foto não aparece gigante.
+   * Miniatura da tabela com tamanho fixo no próprio HTML (produtos 60×60, serviços 44×44): mesmo que
+   * o CSS ainda não tenha carregado (ou esteja desatualizado no servidor), a foto não aparece gigante.
    */
-  const miniatura = (url, alt) => (url
-    ? `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" width="60" height="60" style="width:60px;height:60px;object-fit:cover">`
-    : `<span class="sem-foto" role="img" aria-label="${esc(alt)}" style="display:inline-grid;place-items:center;width:60px;height:60px">${Loja.marca('marca-mini')}</span>`);
+  const miniatura = (url, alt, px = 60) => {
+    const tam = `width:${px}px;height:${px}px`;
+    return url
+      ? `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" width="${px}" height="${px}" style="${tam};object-fit:cover;display:block">`
+      : `<span class="sem-foto" role="img" aria-label="${esc(alt)}" style="display:inline-grid;place-items:center;${tam}">${Loja.marca('marca-mini')}</span>`;
+  };
+  const MINI_SERVICO = 44;
 
   /** Tabela do catálogo (Produtos ou Serviços). No celular, cada linha vira um cartão (ver .tabela-loja no CSS). */
   const tabelaLoja = (colunas, linhas) => `
@@ -228,7 +232,7 @@
           : p.estoque <= 3 ? `<span class="disp disp-poucos">Últimas ${p.estoque}</span>` : '<span class="disp">Em estoque</span>';
         return `
           <tr${esgotado ? ' class="linha-esgotada"' : ''}>
-            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}">${miniatura(p.fotos[0], p.titulo)}</button></td>
+            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}" style="width:60px;height:60px;padding:0">${miniatura(p.fotos[0], p.titulo)}</button></td>
             <td class="col-item"><a href="#produtos" data-abrir="${k}" class="tabela-titulo">${esc(p.titulo)}</a>${p.detalhes ? `<span class="tabela-detalhe">${esc(p.detalhes)}</span>` : ''}</td>
             <td class="col-cat">${esc(p.categoria)}${p.subcategoria ? `<span class="tabela-detalhe">${esc(p.subcategoria)}</span>` : ''}</td>
             <td class="col-disp">${disp}</td>
@@ -255,7 +259,7 @@
         const k = `servico|${esc(s.codigo)}`;
         return `
           <tr>
-            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}">${miniatura(s.foto, s.titulo)}</button></td>
+            <td class="col-foto"><button type="button" class="tabela-foto tabela-foto-servico" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}" style="width:${MINI_SERVICO}px;height:${MINI_SERVICO}px;padding:0">${miniatura(s.foto, s.titulo, MINI_SERVICO)}</button></td>
             <td class="col-item"><a href="#servicos" data-abrir="${k}" class="tabela-titulo">${esc(s.titulo)}</a>${s.detalhes ? `<span class="tabela-detalhe">${esc(s.detalhes)}</span>` : ''}</td>
             <td class="col-cat">${esc(s.categoria)}${s.subcategoria ? `<span class="tabela-detalhe">${esc(s.subcategoria)}</span>` : ''}</td>
             <td class="col-disp"><span class="selo-renovacao${s.recorrente ? ' recorrente' : ''}">${s.recorrente ? `Assinatura ${esc(s.renovacao_texto.toLowerCase())}` : 'Pagamento único'}</span></td>
@@ -748,7 +752,12 @@
   function mostrarTela() {
     const tela = telaAtual();
     document.body.dataset.tela = tela;
-    $$('main [data-tela]').forEach((s) => s.classList.toggle('fora-da-tela', s.dataset.tela !== tela));
+    // Esconde pelo próprio estilo do elemento (e pela classe): funciona mesmo com o CSS antigo no servidor.
+    $$('main [data-tela]').forEach((s) => {
+      const fora = s.dataset.tela !== tela;
+      s.classList.toggle('fora-da-tela', fora);
+      s.style.display = fora ? 'none' : '';
+    });
     $$('#menu a').forEach((a) => {
       const href = a.getAttribute('href');
       const ativo = href === `#${tela}` || (tela === 'inicio' && href === '#inicio');

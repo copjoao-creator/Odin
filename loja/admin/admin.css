@@ -191,3 +191,25 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
   .pagamento-linha .acoes { justify-content: flex-start; }
 }
 .fraco { color: var(--suave); font-size: .82rem; }
+
+/* ---------- Personalização (Configurações) ---------- */
+.marca-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.marca-cartao { border: 1px solid var(--linha); border-radius: var(--raio); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.marca-previa { height: 90px; border: 1px dashed var(--bege-escuro); border-radius: 6px; display: grid; place-items: center; background: var(--branco); overflow: hidden; }
+.marca-previa.escura { background: var(--azul); border-style: solid; }
+.marca-previa.escura .fraco { color: var(--creme); opacity: .7; }
+.marca-previa.quadrada { width: 90px; }
+.marca-previa img { max-width: 90%; max-height: 76px; object-fit: contain; }
+.marca-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.marca-acoes label.btn { cursor: pointer; }
+.cor-campo .cor-linha { display: flex; gap: 8px; align-items: center; }
+.cor-campo input[type="color"] { width: 46px; height: 42px; padding: 2px; border: 1px solid var(--bege-escuro); border-radius: 4px; background: var(--branco); cursor: pointer; flex: none; }
+.cor-campo input[name^="cor_"] { font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
+.previa-cores { margin: 16px 0 10px; border: 1px solid var(--linha); border-radius: var(--raio); overflow: hidden; max-width: 460px; }
+.previa-cores .pc-topo { background: var(--pc-principal); color: var(--pc-fundo); padding: 10px 14px; display: flex; align-items: center; gap: 10px; letter-spacing: 2px; text-transform: uppercase; font-size: .85rem; }
+.previa-cores .pc-logo { width: 22px; height: 22px; border-radius: 50%; background: var(--pc-fundo); border: 3px solid var(--pc-realce); }
+.previa-cores .pc-corpo { background: var(--pc-fundo); color: var(--pc-texto); padding: 14px; display: grid; gap: 8px; justify-items: start; }
+.previa-cores .pc-corpo strong { color: var(--pc-principal); }
+.previa-cores .pc-realce { color: var(--pc-realce); font-weight: 600; }
+.previa-cores .pc-botao { background: var(--pc-principal); color: var(--pc-fundo); padding: 6px 14px; font-size: .8rem; letter-spacing: 1px; text-transform: uppercase; }
+.previa-cores .pc-etiqueta { background: var(--pc-secundaria); color: var(--pc-principal); padding: 3px 10px; font-size: .75rem; }

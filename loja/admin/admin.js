@@ -84,6 +84,10 @@
 
   async function carregarLoja() {
     A.loja = (await Loja.api('loja')).loja;
+    Loja.aplicarMarca(A.loja);
+    // Cores do tema: recarrega o CSS gerado pelo servidor (depois de salvar, já aparecem as novas).
+    const tema = document.getElementById('temaCss');
+    if (tema) tema.href = `../api/?r=tema.css&v=${Date.now()}`;
     Loja.nomeLogo($('#nomeLoja'), A.loja.nome);
     document.title = `Painel · ${A.loja.nome}`;
     $$('#nav a[data-modulo]').forEach((a) => { a.hidden = !(a.dataset.modulo in A.loja.modulos); });
@@ -1080,6 +1084,116 @@
 
   // ---------------- Configurações ----------------
 
+  // ---------------- Personalização (logotipos e cores) ----------------
+
+  /** Cores do tema: [chave, rótulo, onde aparece]. Os padrões são os mesmos do servidor (Config::PADROES). */
+  const CORES = [
+    ['principal', 'Cor principal', 'Botões, faixa do topo, destaque da página inicial e rodapé.'],
+    ['fundo', 'Cor de fundo', 'Fundo das páginas.'],
+    ['secundaria', 'Cor secundária', 'Menu, etiquetas e áreas de apoio.'],
+    ['texto', 'Cor do texto', 'Textos corridos.'],
+    ['realce', 'Cor de realce', 'Detalhes e parte do nome da loja.']
+  ];
+  const PADRAO_CORES = { principal: '#1B2D42', fundo: '#F7F6F2', secundaria: '#E5DECF', texto: '#333333', realce: '#1FA8DD' };
+  const IMAGENS_MARCA = [
+    ['logo', 'Logotipo', 'Para fundo claro (topo da loja). Horizontal, até 600 px.', 'logo', false],
+    ['logo-escuro', 'Logotipo para fundo escuro', 'Opcional: rodapé, painel e destaque. Sem ele, o logotipo vai sobre uma etiqueta clara.', 'logo_escuro', true],
+    ['icone', 'Ícone da aba', 'Opcional, quadrado. Sem ele, o ícone é gerado do logotipo.', 'icone', false]
+  ];
+
+  /** Cartões de logotipo/ícone: prévia, enviar/trocar e remover (cada envio já grava, sem precisar salvar). */
+  function desenharMarca(caixa, marca) {
+    caixa.innerHTML = IMAGENS_MARCA.map(([tipo, rotulo, dica, campo, escuro]) => {
+      const url = marca[campo];
+      return `
+        <div class="marca-cartao">
+          <strong>${rotulo}</strong>
+          <div class="marca-previa${escuro ? ' escura' : ''}${tipo === 'icone' ? ' quadrada' : ''}">${url ? `<img src="${esc(Loja.RAIZ + url)}?v=${Date.now()}" alt="${esc(rotulo)}">` : '<span class="fraco">Sem imagem</span>'}</div>
+          <span class="dica">${dica}</span>
+          <div class="marca-acoes">
+            <label class="btn btn-pequeno btn-linha">${url ? 'Trocar' : 'Enviar imagem'}<input type="file" accept="image/png,image/jpeg" data-marca-enviar="${tipo}" hidden></label>
+            ${url ? `<button type="button" class="link" data-marca-remover="${tipo}">Remover</button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    const atualizar = async (resp, msg) => {
+      A.loja = { ...A.loja, ...resp };
+      Loja.aplicarMarca(A.loja);
+      desenharMarca(caixa, resp.marca);
+      Loja.aviso(msg, 'ok');
+    };
+    $$('[data-marca-enviar]', caixa).forEach((input) => input.addEventListener('change', async () => {
+      const arquivo = input.files[0];
+      if (!arquivo) return;
+      if (!/^image\/(png|jpeg)$/.test(arquivo.type)) return Loja.aviso('Envie uma imagem PNG ou JPG.', 'erro');
+      const fd = new FormData();
+      fd.append('imagem', arquivo);
+      input.closest('.marca-cartao').style.opacity = '.5';
+      try {
+        await atualizar(await api(`admin/marca/${input.dataset.marcaEnviar}`, { metodo: 'POST', arquivo: fd }), 'Imagem enviada.');
+      } catch (err) {
+        falha(err);
+        input.closest('.marca-cartao').style.opacity = '';
+      }
+    }));
+    $$('[data-marca-remover]', caixa).forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Remover esta imagem?')) return;
+      try {
+        await atualizar(await api(`admin/marca/${b.dataset.marcaRemover}`, { metodo: 'DELETE' }), 'Imagem removida.');
+      } catch (err) {
+        falha(err);
+      }
+    }));
+  }
+
+  /** Cores: quadrado de cor e código sincronizados, com prévia ao vivo. */
+  function ligarCores(f) {
+    const previa = $('#previaCores');
+    const pintar = () => {
+      const v = (k) => f.elements[`cor_${k}`].value;
+      previa.style.setProperty('--pc-principal', v('principal'));
+      previa.style.setProperty('--pc-fundo', v('fundo'));
+      previa.style.setProperty('--pc-secundaria', v('secundaria'));
+      previa.style.setProperty('--pc-texto', v('texto'));
+      previa.style.setProperty('--pc-realce', v('realce'));
+    };
+    $$('[data-cor]', f).forEach((seletor) => {
+      const texto = f.elements[seletor.dataset.cor];
+      seletor.addEventListener('input', () => { texto.value = seletor.value.toUpperCase(); pintar(); });
+      texto.addEventListener('input', () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(texto.value)) { seletor.value = texto.value; pintar(); }
+      });
+    });
+    $('#btnCoresPadrao').addEventListener('click', () => {
+      Object.entries(PADRAO_CORES).forEach(([k, cor]) => {
+        f.elements[`cor_${k}`].value = cor;
+        $(`[data-cor="cor_${k}"]`, f).value = cor;
+      });
+      pintar();
+      Loja.aviso('Cores padrão aplicadas na prévia. Clique em Salvar configurações para confirmar.', 'info');
+    });
+    pintar();
+  }
+
+  /** Dados da empresa: rótulo CPF/CNPJ e endereço pelo CEP. */
+  function ligarEmpresa(f) {
+    f.elements.empresa_tipo.addEventListener('change', () => {
+      $('#rotuloDoc').textContent = f.elements.empresa_tipo.value === 'pf' ? 'CPF' : 'CNPJ';
+    });
+    f.elements.empresa_cep.addEventListener('input', async () => {
+      const cep = Loja.digitos(f.elements.empresa_cep.value);
+      if (cep.length !== 8) return;
+      try {
+        const e = await Loja.buscarCep(cep);
+        if (e.rua) f.elements.empresa_rua.value = e.rua;
+        if (e.bairro) f.elements.empresa_bairro.value = e.bairro;
+        f.elements.empresa_cidade.value = e.cidade;
+        f.elements.empresa_uf.value = e.estado;
+        (e.rua ? f.elements.empresa_numero : f.elements.empresa_rua).focus();
+      } catch { /* CEP não encontrado: preenche à mão */ }
+    });
+  }
+
   async function telaConfiguracoes(el) {
     const [r, adm] = await Promise.all([api('admin/configuracoes'), api('admin/administradores')]);
     const c = r.configuracoes;
@@ -1102,6 +1216,53 @@
             ${campo('loja_email', 'E-mail de contato', 'type="email"', 'c-4')}
             ${campo('loja_whatsapp', 'WhatsApp (com DDD)', 'inputmode="tel"', 'c-4')}
             ${campo('loja_instagram', 'Instagram', 'placeholder="@odinfocus"', 'c-4')}
+            ${campo('loja_telefone', 'Telefone fixo (com DDD)', 'inputmode="tel" placeholder="Opcional"', 'c-4')}
+            ${campo('loja_facebook', 'Facebook', 'placeholder="Endereço da página (opcional)"', 'c-8')}
+          </div>
+        </section>
+
+        <section class="bloco" id="blocoIdentidade">
+          <h2>Personalização · Logotipos</h2>
+          <p class="bloco-sub">Imagens PNG ou JPG. Elas aparecem na loja, no painel e nos e-mails. Sem logotipo, a loja usa a inicial do nome.</p>
+          <div class="marca-grade" id="marcaGrade"></div>
+          <div class="campos" style="margin-top:14px">
+            <label class="c-12 marcar"><input type="checkbox" name="marca_mostrar_nome" ${c.marca_mostrar_nome !== '0' ? 'checked' : ''}> Mostrar o nome da loja ao lado do logotipo</label>
+          </div>
+        </section>
+
+        <section class="bloco">
+          <h2>Personalização · Cores</h2>
+          <p class="bloco-sub">A paleta vale para a loja, o painel e os e-mails. Clique no quadrado para escolher a cor ou digite o código (#RRGGBB).</p>
+          <div class="campos cores-grade">
+            ${CORES.map(([k, rotulo, dica]) => `
+              <label class="c-4 cor-campo">${rotulo}
+                <span class="cor-linha"><input type="color" data-cor="cor_${k}" value="${esc(c[`cor_${k}`] || PADRAO_CORES[k])}"><input name="cor_${k}" value="${esc(c[`cor_${k}`] || PADRAO_CORES[k])}" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></span>
+                <span class="dica">${dica}</span>
+              </label>`).join('')}
+          </div>
+          <div class="previa-cores" id="previaCores" aria-hidden="true">
+            <div class="pc-topo"><span class="pc-logo"></span><span class="pc-nome">${esc(c.loja_nome || 'Minha Loja')}</span></div>
+            <div class="pc-corpo"><strong>Título da loja</strong><p>Texto de exemplo com um <span class="pc-realce">destaque</span>.</p><span class="pc-botao">Comprar</span><span class="pc-etiqueta">Categoria</span></div>
+          </div>
+          <button type="button" class="link" id="btnCoresPadrao">Voltar às cores padrão</button>
+        </section>
+
+        <section class="bloco">
+          <h2>Dados da empresa</h2>
+          <p class="bloco-sub">Aparecem no rodapé da loja e nos e-mails. A lei do comércio eletrônico (Decreto 7.962/2013) exige nome, CPF/CNPJ e endereço de quem vende.</p>
+          <div class="campos">
+            <label class="c-4">Tipo <select name="empresa_tipo"><option value="pj" ${c.empresa_tipo !== 'pf' ? 'selected' : ''}>Pessoa jurídica (CNPJ)</option><option value="pf" ${c.empresa_tipo === 'pf' ? 'selected' : ''}>Pessoa física (CPF)</option></select></label>
+            <label class="c-4"><span id="rotuloDoc">${c.empresa_tipo === 'pf' ? 'CPF' : 'CNPJ'}</span> <input name="empresa_documento" inputmode="numeric" value="${esc(c.empresa_documento || '')}"></label>
+            ${campo('empresa_ie', 'Inscrição estadual', 'maxlength="30" placeholder="Opcional"', 'c-4')}
+            ${campo('empresa_razao_social', 'Razão social / nome completo', 'maxlength="150"', 'c-8')}
+            ${campo('empresa_responsavel', 'Responsável', 'maxlength="120"', 'c-4')}
+            <label class="c-4">CEP <input name="empresa_cep" inputmode="numeric" value="${esc(c.empresa_cep || '')}"></label>
+            ${campo('empresa_rua', 'Rua', 'maxlength="150"', 'c-8')}
+            ${campo('empresa_numero', 'Número', 'maxlength="20"', 'c-4')}
+            ${campo('empresa_complemento', 'Complemento', 'maxlength="80"', 'c-4')}
+            ${campo('empresa_bairro', 'Bairro', 'maxlength="100"', 'c-4')}
+            ${campo('empresa_cidade', 'Cidade', 'maxlength="100"', 'c-8')}
+            <label class="c-4">Estado <select name="empresa_uf"><option value="">UF</option>${Loja.UFS.map((uf) => `<option ${c.empresa_uf === uf ? 'selected' : ''}>${uf}</option>`).join('')}</select></label>
           </div>
         </section>
 
@@ -1118,6 +1279,7 @@
           </div>
         </section>
 
+        ${r.tecnico ? `
         <section class="bloco">
           <h2>Mercado Pago</h2>
           <p class="bloco-sub">Pix, boleto, cartão de crédito e débito são processados pelo Mercado Pago.</p>
@@ -1170,6 +1332,11 @@
             ${secreto('asaas_webhook_token', 'Token de autenticação do webhook')}
           </div>
         </section>
+        ` : `
+        <section class="bloco">
+          <h2>Pagamentos</h2>
+          <p class="bloco-sub">${r.pagamentos_configurados ? 'Os pagamentos (Mercado Pago e Asaas) já estão configurados.' : 'Os pagamentos ainda não foram configurados.'} As chaves de pagamento são mantidas pelo <strong>suporte técnico</strong> da loja.</p>
+        </section>`}
 
         <section class="bloco">
           <h2>Formulário de contato (EmailJS)</h2>
@@ -1215,14 +1382,15 @@
 
       <section class="bloco">
         <h2>Administradores</h2>
-        <p class="bloco-sub">Pessoas com acesso a este painel.</p>
-        <div class="tabela-caixa">${tabela(['Nome', 'E-mail', 'Último acesso', ''], adm.administradores.map((a) => `
-          <tr><td>${esc(a.nome)}</td><td>${esc(a.email)}</td><td>${a.ultimo_acesso ? Loja.dataHora(a.ultimo_acesso) : '—'}</td>
-          <td>${a.id === A.admin.id ? '<span class="fraco">você</span>' : `<button type="button" class="link" data-remover-adm="${a.id}">Remover</button>`}</td></tr>`))}</div>
+        <p class="bloco-sub">Pessoas com acesso a este painel. <strong>Técnico</strong>: instala e mantém a loja (vê as chaves de pagamento). <strong>Administrador</strong>: cuida da loja no dia a dia.</p>
+        <div class="tabela-caixa">${tabela(['Nome', 'E-mail', 'Perfil', 'Último acesso', ''], adm.administradores.map((a) => `
+          <tr><td>${esc(a.nome)}</td><td>${esc(a.email)}</td><td>${a.perfil === 'tecnico' ? 'Técnico' : 'Administrador'}</td><td>${a.ultimo_acesso ? Loja.dataHora(a.ultimo_acesso) : '—'}</td>
+          <td>${a.id === A.admin.id ? '<span class="fraco">você</span>' : (a.perfil === 'tecnico' && !r.tecnico ? '' : `<button type="button" class="link" data-remover-adm="${a.id}">Remover</button>`)}</td></tr>`))}</div>
         <form id="fAdm" class="campos" style="margin-top:16px" novalidate>
           <label class="c-4">Nome <input name="nome" required></label>
           <label class="c-4">E-mail <input name="email" type="email" required></label>
           <label class="c-4">Senha (mín. 8) <input name="senha" type="password" minlength="8" required autocomplete="new-password"></label>
+          ${r.tecnico ? '<label class="c-4">Perfil <select name="perfil"><option value="administrador">Administrador</option><option value="tecnico">Técnico</option></select></label>' : ''}
           <div class="c-12"><button type="submit" class="btn btn-pequeno btn-linha">Adicionar administrador</button></div>
         </form>
       </section>
@@ -1240,11 +1408,15 @@
     $$('[data-copiar]', el).forEach((b) => b.addEventListener('click', async () => {
       if (await Loja.copiar($(b.dataset.copiar).textContent)) Loja.aviso('Copiado!', 'ok');
     }));
+    desenharMarca($('#marcaGrade'), r.identidade.marca);
+    ligarCores($('#fConfig'));
+    ligarEmpresa($('#fConfig'));
 
     $('#fConfig').addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = e.target;
       const d = Object.fromEntries(new FormData(f));
+      d.marca_mostrar_nome = f.elements.marca_mostrar_nome.checked;
       r.modulos.forEach((m) => {
         d[`modulo_${m.tipo}`] = f.elements[`modulo_${m.tipo}`].checked;
         d[`aba_${m.tipo}`] = f.elements[`aba_${m.tipo}`].checked;

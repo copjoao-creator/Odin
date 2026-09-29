@@ -577,3 +577,5 @@ body.marca-sem-nome .logo-texto { display: none; }
   .tabela-loja .col-acao .btn { width: 100%; }
   .tabela-detalhe { max-width: none; white-space: normal; }
 }
+.tabela-foto .marca-mini { width: 34px; height: 34px; max-width: 100%; max-height: 100%; object-fit: contain; }
+.tabela-foto .marca-img.marca-mini { width: 44px; height: 44px; }

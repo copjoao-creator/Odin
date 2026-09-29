@@ -190,6 +190,14 @@
     return r;
   }
 
+  /**
+   * Miniatura da tabela com tamanho fixo (60×60) no próprio HTML: mesmo que o CSS ainda não tenha
+   * carregado (ou esteja desatualizado no servidor), a foto não aparece gigante.
+   */
+  const miniatura = (url, alt) => (url
+    ? `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" width="60" height="60" style="width:60px;height:60px;object-fit:cover">`
+    : `<span class="sem-foto" role="img" aria-label="${esc(alt)}" style="display:inline-grid;place-items:center;width:60px;height:60px">${Loja.marca('marca-mini')}</span>`);
+
   /** Tabela do catálogo (Produtos ou Serviços). No celular, cada linha vira um cartão (ver .tabela-loja no CSS). */
   const tabelaLoja = (colunas, linhas) => `
     <table class="tabela-loja">
@@ -220,7 +228,7 @@
           : p.estoque <= 3 ? `<span class="disp disp-poucos">Últimas ${p.estoque}</span>` : '<span class="disp">Em estoque</span>';
         return `
           <tr${esgotado ? ' class="linha-esgotada"' : ''}>
-            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}">${imagem(p.fotos[0], p.titulo)}</button></td>
+            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}">${miniatura(p.fotos[0], p.titulo)}</button></td>
             <td class="col-item"><a href="#produtos" data-abrir="${k}" class="tabela-titulo">${esc(p.titulo)}</a>${p.detalhes ? `<span class="tabela-detalhe">${esc(p.detalhes)}</span>` : ''}</td>
             <td class="col-cat">${esc(p.categoria)}${p.subcategoria ? `<span class="tabela-detalhe">${esc(p.subcategoria)}</span>` : ''}</td>
             <td class="col-disp">${disp}</td>
@@ -247,7 +255,7 @@
         const k = `servico|${esc(s.codigo)}`;
         return `
           <tr>
-            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}">${imagem(s.foto, s.titulo)}</button></td>
+            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}">${miniatura(s.foto, s.titulo)}</button></td>
             <td class="col-item"><a href="#servicos" data-abrir="${k}" class="tabela-titulo">${esc(s.titulo)}</a>${s.detalhes ? `<span class="tabela-detalhe">${esc(s.detalhes)}</span>` : ''}</td>
             <td class="col-cat">${esc(s.categoria)}${s.subcategoria ? `<span class="tabela-detalhe">${esc(s.subcategoria)}</span>` : ''}</td>
             <td class="col-disp"><span class="selo-renovacao${s.recorrente ? ' recorrente' : ''}">${s.recorrente ? `Assinatura ${esc(s.renovacao_texto.toLowerCase())}` : 'Pagamento único'}</span></td>

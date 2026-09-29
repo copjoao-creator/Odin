@@ -17,7 +17,9 @@ return function (Roteador $r) {
       'aviso_topo' => $c['aviso_topo'],
       'email' => $c['loja_email'],
       'whatsapp' => $c['loja_whatsapp'],
+      'telefone' => $c['loja_telefone'],
       'instagram' => $c['loja_instagram'],
+      'facebook' => $c['loja_facebook'],
       // Formulário de contato (contato.html). No EmailJS essas três chaves são públicas por natureza.
       'emailjs' => ($c['emailjs_public_key'] !== '' && $c['emailjs_service_id'] !== '' && $c['emailjs_template_id'] !== '') ? [
         'public_key' => $c['emailjs_public_key'],
@@ -31,7 +33,22 @@ return function (Roteador $r) {
       'pagamentos_ativos' => MercadoPago::configurado(),
       'modulos' => $modulos,
       'abas' => $abas,
-    ]];
+    ] + Marca::publica()]; // marca (logotipos), cores e empresa
+  });
+
+  // Cores escolhidas no painel, como CSS (carregado depois de loja.css em todas as páginas).
+  $r->publica('GET', 'tema.css', function () {
+    $css = Marca::temaCss();
+    $etag = '"' . substr(sha1($css), 0, 16) . '"';
+    header('Content-Type: text/css; charset=utf-8');
+    header('Cache-Control: no-cache');
+    header('ETag: ' . $etag);
+    if (trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+      http_response_code(304);
+      return null;
+    }
+    echo $css;
+    return null;
   });
 
   // Checkout, 1º passo: o cliente digita o CPF. Se já tiver cadastro, devolve só um resumo mascarado.

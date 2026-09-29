@@ -1,4 +1,4 @@
-/* Loja Odin Focus: vitrine, carrinho e checkout */
+/* Loja: vitrine, carrinho e checkout */
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -71,10 +71,14 @@
   function aplicarLoja() {
     const l = estado.loja;
     document.title = `${l.nome} · Loja oficial`;
+    const descricao = document.querySelector('meta[name="description"]');
+    if (descricao && l.subtitulo) descricao.content = l.subtitulo;
+    // Identidade (logotipo, ícone da aba, cores) e rodapé com os dados da empresa e o crédito do sistema.
+    Loja.aplicarMarca(l);
+    Loja.aplicarRodape(l);
     $('#avisoTopo').textContent = l.aviso_topo || '';
     Loja.nomeLogo($('#logoNome'), l.nome);
     Loja.nomeLogo($('#rodapeNome'), l.nome);
-    $('#rodapeCopy').textContent = l.nome;
     $('#heroSobretitulo').textContent = l.nome;
     $('#heroTitulo').textContent = l.titulo;
     $('#heroSubtitulo').textContent = l.subtitulo;

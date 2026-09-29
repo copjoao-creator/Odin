@@ -24,9 +24,30 @@
     });
   }
 
+  /** Dados da empresa (razão social, CPF/CNPJ, endereço e responsável) abaixo dos canais. */
+  function renderEmpresa(l) {
+    const e = l.empresa || {};
+    const linhas = [
+      e.razao_social ? `<strong>${esc(e.razao_social)}</strong>` : '',
+      e.documento ? `${esc(e.rotulo_documento)} ${esc(e.documento)}` : '',
+      e.endereco ? esc(e.endereco) : '',
+      e.responsavel ? `Responsável: ${esc(e.responsavel)}` : ''
+    ].filter(Boolean);
+    if (!linhas.length) return false;
+    const caixa = $('#empresaDados');
+    caixa.innerHTML = `<h3>Empresa</h3><p>${linhas.join('<br>')}</p>`;
+    caixa.hidden = false;
+    $('#canais').hidden = false;
+    return true;
+  }
+
   function renderCanais(l) {
+    const temEmpresa = renderEmpresa(l);
     const canais = Loja.contatos(l);
-    if (!canais.length) return;
+    if (!canais.length) {
+      if (temEmpresa) $('#tituloCanais').hidden = true;
+      return;
+    }
     // Com o formulário ativo, o card E-mail leva ao formulário desta página em vez de abrir o mailto:.
     const porFormulario = (c) => c.icone === 'email' && l.emailjs;
     $('#listaCanais').innerHTML = canais.map((c) => `
@@ -147,8 +168,9 @@
       return;
     }
     document.title = `Fale conosco · ${l.nome}`;
+    Loja.aplicarMarca(l);
+    Loja.aplicarRodape(l);
     Loja.nomeLogo($('#logoNome'), l.nome);
-    $('#rodapeCopy').textContent = l.nome;
     renderCanais(l);
     if (l.emailjs) {
       renderForm(l);

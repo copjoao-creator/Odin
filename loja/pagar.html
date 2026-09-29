@@ -4,19 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Pagamento do pedido · Odin Focus</title>
+  <title>Pagamento do pedido</title>
   <meta name="theme-color" content="#1B2D42">
   <link rel="icon" href="img/icone.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/loja.css">
+  <link rel="stylesheet" href="api/?r=tema.css">
 </head>
 <body class="pagina-pagar">
   <header class="cabecalho">
     <div class="container cabecalho-in cabecalho-simples">
       <a href="./" class="logo" aria-label="Voltar à loja">
         <span class="logo-marca" data-marca></span>
-        <span class="logo-texto"><strong id="logoNome">ODIN <span class="realce">FOCUS</span></strong><small>Pagamento seguro</small></span>
+        <span class="logo-texto"><strong id="logoNome"></strong><small>Pagamento seguro</small></span>
       </a>
-      <p class="selo-seguro"><span data-icone="escudo"></span>Ambiente seguro Mercado Pago</p>
+      <p class="selo-seguro"><span data-icone="escudo"></span>Ambiente de pagamento seguro</p>
     </div>
   </header>
 
@@ -30,13 +31,25 @@
     </section>
   </main>
 
+  <footer class="rodape rodape-simples">
+    <div class="rodape-base">
+      <div class="container rodape-base-in">
+        <p class="rodape-legal" id="rodapeLegal" hidden></p>
+        <p>© <span id="ano"></span> <span id="rodapeCopy"></span>. Todos os direitos reservados.</p>
+        <p class="credito" id="rodapeCredito"></p>
+      </div>
+    </div>
+  </footer>
+
   <script src="js/comum.js"></script>
   <script src="js/pagamento.js"></script>
   <script>
     /* Link de pagamento: pagar.html?p=NUMERO&t=TOKEN (enviado por e-mail, WhatsApp ou gerado no painel) */
     (async () => {
       document.querySelectorAll('[data-icone]').forEach((el) => { el.innerHTML = Loja.icone(el.dataset.icone); });
-      document.querySelectorAll('[data-marca]').forEach((el) => { el.innerHTML = Loja.marca(); });
+      document.getElementById('ano').textContent = new Date().getFullYear();
+      // Identidade da loja (logotipo, cores, rodapé) mesmo se o link do pedido estiver errado.
+      Loja.api('loja').then(({ loja }) => { Loja.aplicarMarca(loja); Loja.aplicarRodape(loja); }).catch(() => {});
       const alvo = document.getElementById('alvo');
       const q = new URLSearchParams(location.search);
       const id = Loja.digitos(q.get('p'));

@@ -7,11 +7,13 @@ CREATE TABLE IF NOT EXISTS configuracoes (
   PRIMARY KEY (chave)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- perfil: "tecnico" (quem instala e mantém: vê as chaves de pagamento) ou "administrador" (o dono da loja).
 CREATE TABLE IF NOT EXISTS administradores (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome VARCHAR(100) NOT NULL,
   email VARCHAR(190) NOT NULL,
   senha_hash VARCHAR(255) NOT NULL,
+  perfil VARCHAR(20) NOT NULL DEFAULT 'administrador',
   ultimo_acesso DATETIME NULL,
   criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

@@ -30,13 +30,27 @@ final class Auth
       return null;
     }
     $_SESSION['ultimo_uso'] = time();
-    return Banco::um('SELECT id, nome, email FROM administradores WHERE id = ?', [$id]);
+    return Banco::um('SELECT id, nome, email, perfil FROM administradores WHERE id = ?', [$id]);
   }
 
   public static function exigirAdmin(): array
   {
     $a = self::admin();
     if (!$a) throw new ErroApi('Sua sessão expirou. Entre novamente.', 401);
+    return $a;
+  }
+
+  /** Perfil "tecnico": quem instala e mantém a loja (vê e altera as chaves de pagamento). */
+  public static function ehTecnico(?array $a = null): bool
+  {
+    $a = $a ?? self::admin();
+    return $a !== null && ($a['perfil'] ?? '') === 'tecnico';
+  }
+
+  public static function exigirTecnico(): array
+  {
+    $a = self::exigirAdmin();
+    if (!self::ehTecnico($a)) throw new ErroApi('Só o acesso técnico pode fazer isso. Fale com o suporte técnico da loja.', 403);
     return $a;
   }
 
@@ -81,7 +95,7 @@ final class Auth
     self::iniciarSessao();
     session_regenerate_id(true);
     $_SESSION = ['admin_id' => (int)$a['id'], 'ultimo_uso' => time()];
-    return ['id' => (int)$a['id'], 'nome' => $a['nome'], 'email' => $a['email'], 'csrf' => self::csrf()];
+    return ['id' => (int)$a['id'], 'nome' => $a['nome'], 'email' => $a['email'], 'perfil' => $a['perfil'] ?? 'administrador', 'csrf' => self::csrf()];
   }
 
   public static function sair(): void

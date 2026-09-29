@@ -22,6 +22,23 @@ final class Validacao
     return true;
   }
 
+  /** CNPJ com os dois dígitos verificadores conferidos. */
+  public static function cnpjValido(string $cnpj): bool
+  {
+    if (!preg_match('/^\d{14}$/', $cnpj) || preg_match('/^(\d)\1{13}$/', $cnpj)) return false;
+    foreach ([12, 13] as $t) {
+      $soma = 0;
+      $peso = $t - 7;
+      for ($i = 0; $i < $t; $i++) {
+        $soma += (int)$cnpj[$i] * $peso;
+        $peso = $peso === 2 ? 9 : $peso - 1;
+      }
+      $dv = $soma % 11 < 2 ? 0 : 11 - $soma % 11;
+      if ((int)$cnpj[$t] !== $dv) return false;
+    }
+    return true;
+  }
+
   public static function cpf($v): string
   {
     $cpf = self::digitos($v);

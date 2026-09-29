@@ -6,11 +6,21 @@
  */
 final class Migracoes
 {
-  private const VERSAO = 4;
+  private const VERSAO = 5;
+
+  /** Textos padrão da loja até a v4 (a loja passou a vir com textos neutros para qualquer cliente). */
+  private const TEXTOS_ANTIGOS = [
+    'loja_nome' => 'Odin Focus',
+    'loja_titulo' => 'Qualidade que você sente em cada detalhe',
+    'loja_subtitulo' => 'Produtos e serviços selecionados, pagamento seguro pelo Mercado Pago e atendimento de verdade, do pedido à entrega.',
+    'loja_sobre' => 'A Odin Focus nasceu para oferecer produtos e serviços de alto padrão com um atendimento próximo e transparente. Cuidamos de cada pedido como se fosse nosso.',
+    'aviso_topo' => 'Pagamento seguro via Mercado Pago · Pix, boleto e cartões',
+  ];
 
   public static function aplicar(): void
   {
-    if ((int)Config::get('versao_banco') >= self::VERSAO) return;
+    $versao = (int)Config::get('versao_banco');
+    if ($versao >= self::VERSAO) return;
 
     // v2: duas aplicações do Mercado Pago e assinaturas cobradas no cartão.
     self::coluna('pagamentos', 'app', "VARCHAR(12) NOT NULL DEFAULT 'loja' AFTER mp_id");
@@ -35,6 +45,19 @@ final class Migracoes
     // v4: pedido feito "com os dados do cadastro" (pelo CPF) mostra os dados do cliente mascarados.
     self::coluna('pedidos', 'dados_protegidos', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER assinatura_data_final');
 
+    // v5: loja personalizável (white-label) e perfis de acesso.
+    // - Quem já administrava a loja vira "tecnico" (vê as chaves de pagamento); novos acessos nascem "administrador".
+    // - Lojas já instaladas guardam os textos que estavam usando, antes de os padrões ficarem neutros.
+    if (!self::colunaExiste('administradores', 'perfil')) {
+      self::coluna('administradores', 'perfil', "VARCHAR(20) NOT NULL DEFAULT 'administrador' AFTER senha_hash");
+      Banco::executar("UPDATE administradores SET perfil = 'tecnico'");
+    }
+    if ($versao >= 1) {
+      $salvos = array_column(Banco::todos('SELECT chave FROM configuracoes'), 'chave');
+      $manter = array_diff_key(self::TEXTOS_ANTIGOS, array_flip($salvos));
+      if ($manter) Config::salvar($manter);
+    }
+
     Config::salvar(['versao_banco' => (string)self::VERSAO]);
   }
 
@@ -46,13 +69,17 @@ final class Migracoes
     );
   }
 
-  private static function coluna(string $tabela, string $coluna, string $definicao): void
+  private static function colunaExiste(string $tabela, string $coluna): bool
   {
-    $existe = Banco::valor(
+    return (bool)Banco::valor(
       'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
       [$tabela, $coluna]
     );
-    if (!$existe) Banco::executar("ALTER TABLE {$tabela} ADD COLUMN {$coluna} {$definicao}");
+  }
+
+  private static function coluna(string $tabela, string $coluna, string $definicao): void
+  {
+    if (!self::colunaExiste($tabela, $coluna)) Banco::executar("ALTER TABLE {$tabela} ADD COLUMN {$coluna} {$definicao}");
   }
 
   private static function indice(string $tabela, string $indice): bool

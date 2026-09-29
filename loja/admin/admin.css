@@ -1,4 +1,4 @@
-/* Painel administrativo da loja Odin Focus (usa os tokens e componentes de ../css/loja.css) */
+/* Painel administrativo da loja (usa os tokens e componentes de ../css/loja.css e as cores do tema) */
 .painel { background: var(--creme); }
 
 /* ---------- Login ---------- */
@@ -7,21 +7,26 @@
 .login-caixa .campos { text-align: left; }
 .login-marca { color: var(--azul); justify-self: center; }
 .login-marca svg { width: 56px; height: 56px; display: block; }
+.login-marca .marca-img { max-height: 64px; max-width: 240px; width: auto; display: block; }
+.credito-sistema { font-size: .75rem; color: var(--suave); }
+.credito-sistema a { color: inherit; }
+.lateral .credito-sistema { color: color-mix(in srgb, var(--creme) 55%, transparent); }
 .login-caixa h1 { color: var(--azul); font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
 
 /* ---------- Estrutura ---------- */
 .app { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
 .lateral { background: var(--azul); color: var(--creme); padding: 22px 16px; display: flex; flex-direction: column; gap: 26px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .lateral .logo-marca svg { width: 36px; height: 36px; }
+.lateral .logo-marca .marca-img { height: 38px; max-width: 200px; }
 .lateral .logo-texto strong { font-size: 1rem; letter-spacing: 4px; }
 .nav { display: grid; gap: 2px; }
-.nav a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 4px; text-decoration: none; color: rgba(247, 246, 242, .78); font-size: .92rem; }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 4px; text-decoration: none; color: color-mix(in srgb, var(--creme) 78%, transparent); font-size: .92rem; }
 .nav a .ico { width: 20px; height: 20px; }
-.nav a:hover { background: rgba(247, 246, 242, .08); color: var(--creme); }
+.nav a:hover { background: color-mix(in srgb, var(--creme) 8%, transparent); color: var(--creme); }
 .nav a.ativa { background: var(--creme); color: var(--azul); }
-.lateral-rodape { margin-top: auto; display: grid; gap: 8px; font-size: .85rem; border-top: 1px solid rgba(247, 246, 242, .15); padding-top: 16px; }
-.lateral-rodape a { color: rgba(247, 246, 242, .85); text-decoration: none; }
-.lateral-rodape .link { color: rgba(247, 246, 242, .75); justify-self: start; }
+.lateral-rodape { margin-top: auto; display: grid; gap: 8px; font-size: .85rem; border-top: 1px solid color-mix(in srgb, var(--creme) 15%, transparent); padding-top: 16px; }
+.lateral-rodape a { color: color-mix(in srgb, var(--creme) 85%, transparent); text-decoration: none; }
+.lateral-rodape .link { color: color-mix(in srgb, var(--creme) 75%, transparent); justify-self: start; }
 .lateral-rodape p { opacity: .7; }
 
 .principal { min-width: 0; display: flex; flex-direction: column; }

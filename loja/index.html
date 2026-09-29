@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Odin Focus · Loja oficial</title>
-  <meta name="description" content="Loja oficial Odin Focus: produtos e serviços selecionados com pagamento seguro por Pix, boleto e cartões via Mercado Pago.">
+  <title>Loja oficial</title>
+  <meta name="description" content="Loja oficial: produtos e serviços selecionados com pagamento seguro por Pix, boleto e cartões.">
   <meta name="theme-color" content="#1B2D42">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Odin Focus · Loja oficial">
-  <meta property="og:description" content="Produtos e serviços selecionados. Pix, boleto e cartões via Mercado Pago.">
+  <meta property="og:title" content="Loja oficial">
+  <meta property="og:description" content="Produtos e serviços selecionados. Pagamento seguro por Pix, boleto e cartões.">
   <link rel="icon" href="img/icone.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/loja.css">
+  <!-- Cores escolhidas no painel (Configurações › Cores) -->
+  <link rel="stylesheet" href="api/?r=tema.css">
 </head>
 <body>
   <a class="pular" href="#produtos">Pular para os produtos</a>
@@ -26,7 +28,7 @@
     <div class="container cabecalho-in">
       <a href="./" class="logo" aria-label="Página inicial">
         <span class="logo-marca" data-marca></span>
-        <span class="logo-texto"><strong id="logoNome">ODIN <span class="realce">FOCUS</span></strong><small>Loja oficial</small></span>
+        <span class="logo-texto"><strong id="logoNome"></strong><small>Loja oficial</small></span>
       </a>
 
       <form class="busca" id="formBusca" role="search">
@@ -62,7 +64,7 @@
     <section class="hero">
       <div class="container hero-in">
         <div class="hero-texto">
-          <p class="sobretitulo" id="heroSobretitulo">Odin Focus</p>
+          <p class="sobretitulo" id="heroSobretitulo"></p>
           <h1 id="heroTitulo">Qualidade que você sente em cada detalhe</h1>
           <p class="hero-sub" id="heroSubtitulo">Produtos e serviços selecionados, pagamento seguro pelo Mercado Pago e atendimento de verdade, do pedido à entrega.</p>
           <div class="hero-acoes">
@@ -149,7 +151,7 @@
       <div class="container sobre-in">
         <div>
           <p class="sobretitulo">Sobre nós</p>
-          <h2 id="sobreTitulo">Odin Focus</h2>
+          <h2 id="sobreTitulo"></h2>
         </div>
         <p class="sobre-texto" id="sobreTexto"></p>
       </div>
@@ -159,7 +161,7 @@
   <footer class="rodape">
     <div class="container rodape-in">
       <div class="rodape-marca">
-        <a href="./" class="logo logo-claro"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="rodapeNome">ODIN <span class="realce">FOCUS</span></strong><small>Loja oficial</small></span></a>
+        <a href="./" class="logo logo-claro"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="rodapeNome"></strong><small>Loja oficial</small></span></a>
         <p id="rodapeSobre"></p>
       </div>
       <div>
@@ -189,7 +191,11 @@
       </div>
     </div>
     <div class="rodape-base">
-      <div class="container"><p>© <span id="ano"></span> <span id="rodapeCopy">Odin Focus</span>. Todos os direitos reservados.</p></div>
+      <div class="container rodape-base-in">
+        <p class="rodape-legal" id="rodapeLegal" hidden></p>
+        <p>© <span id="ano"></span> <span id="rodapeCopy"></span>. Todos os direitos reservados.</p>
+        <p class="credito" id="rodapeCredito"></p>
+      </div>
     </div>
   </footer>
 

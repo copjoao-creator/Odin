@@ -1,20 +1,27 @@
-/* Loja Odin Focus · paleta Velasca (creme, bege areia, azul Mediterrâneo, cinza escuro) */
+/*
+ * Estilos da loja. As cores-base vêm do painel (Configurações › Cores), pelo api/?r=tema.css,
+ * que é carregado depois deste arquivo e substitui as cinco primeiras variáveis:
+ *   --azul = cor principal · --creme = fundo · --bege = secundária · --texto = texto · --realce = realce
+ * (os nomes ficaram da paleta original; os valores abaixo são só o padrão). As demais cores derivam delas.
+ */
 :root {
   --creme: #F7F6F2;
   --bege: #E5DECF;
   --azul: #1B2D42;
   --texto: #333333;
+  --realce: #1FA8DD;
 
-  --azul-claro: #2A4262;
-  --bege-escuro: #D5CBB7;
-  --linha: #E9E4D9;
-  --suave: #6B6760;
+  --azul-claro: color-mix(in srgb, var(--azul) 86%, white);
+  --bege-escuro: color-mix(in srgb, var(--bege) 90%, black);
+  --linha: color-mix(in srgb, var(--bege) 60%, var(--creme));
+  --suave: color-mix(in srgb, var(--texto) 72%, var(--creme));
+  --realce-claro: color-mix(in srgb, var(--realce) 55%, white);
   --branco: #FFFFFF;
   --ok: #2E6B4F;
   --erro: #A33A3A;
   --raio: 8px;
   --sombra: 0 4px 12px rgba(0, 0, 0, .05);
-  --sombra-forte: 0 18px 40px rgba(27, 45, 66, .16);
+  --sombra-forte: 0 18px 40px color-mix(in srgb, var(--azul) 16%, transparent);
   --fonte: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --topo: 132px;
   color-scheme: light;
@@ -56,7 +63,7 @@ p { margin: 0; }
 .btn:hover { opacity: .9; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn-creme { background: var(--creme); color: var(--azul); border-color: var(--creme); }
-.btn-contorno { background: transparent; color: var(--creme); border-color: rgba(247, 246, 242, .6); }
+.btn-contorno { background: transparent; color: var(--creme); border-color: color-mix(in srgb, var(--creme) 60%, transparent); }
 .btn-contorno:hover { background: var(--creme); color: var(--azul); opacity: 1; }
 .btn-claro { background: var(--bege); color: var(--azul); border-color: var(--bege); }
 .btn-largo { width: 100%; }
@@ -76,18 +83,24 @@ p { margin: 0; }
 
 .logo { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: var(--azul); }
 .logo-marca svg { width: 42px; height: 42px; display: block; }
+/* Logotipo enviado no painel: altura fixa, largura proporcional */
+.logo-marca .marca-img { height: 46px; width: auto; max-width: 240px; object-fit: contain; display: block; }
+/* Logo de fundo claro usado em área escura (sem versão para fundo escuro): vai sobre uma "etiqueta" clara */
+.marca-img.marca-fundo { background: var(--creme); padding: 4px 8px; border-radius: 6px; }
+/* Com logotipo e sem o nome ao lado (Configurações › Identidade visual) */
+body.marca-sem-nome .logo-texto { display: none; }
 .logo-texto { display: flex; flex-direction: column; line-height: 1.1; }
 .logo-texto strong { font-weight: 700; font-size: 1.25rem; letter-spacing: 5px; }
-/* Segunda palavra do nome (ex.: FOCUS), no degradê azul do logotipo */
+/* Segunda palavra do nome, na cor de realce */
 .logo-texto .realce {
   font-weight: 300;
-  background: linear-gradient(90deg, #1FA8DD, #2A62B8);
+  background: linear-gradient(90deg, var(--realce), color-mix(in srgb, var(--realce) 60%, var(--azul)));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.logo-claro .logo-texto .realce { background-image: linear-gradient(90deg, #80FFFF, #4FA8FF); }
+.logo-claro .logo-texto .realce { background-image: linear-gradient(90deg, var(--realce-claro), var(--realce)); }
 .logo-texto small { font-size: .62rem; letter-spacing: 3px; text-transform: uppercase; color: var(--suave); margin-top: 4px; }
 .logo-claro { color: var(--creme); }
-.logo-claro .logo-texto small { color: rgba(247, 246, 242, .6); }
+.logo-claro .logo-texto small { color: color-mix(in srgb, var(--creme) 60%, transparent); }
 
 .busca { display: flex; max-width: 560px; width: 100%; justify-self: center; border: 1px solid var(--bege-escuro); background: var(--branco); border-radius: 2px; }
 .busca input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 16px; outline: none; }
@@ -118,7 +131,7 @@ p { margin: 0; }
 
 /* ---------- Hero ---------- */
 .hero {
-  background: radial-gradient(900px 500px at 85% 20%, rgba(247, 246, 242, .07), transparent 60%), var(--azul);
+  background: radial-gradient(900px 500px at 85% 20%, color-mix(in srgb, var(--creme) 7%, transparent), transparent 60%), var(--azul);
   color: var(--creme); overflow: hidden;
 }
 .hero-in { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 40px; padding-top: 88px; padding-bottom: 88px; }
@@ -128,12 +141,13 @@ p { margin: 0; }
 .hero-sub { font-size: 1.1rem; line-height: 1.7; max-width: 52ch; opacity: .85; }
 .hero-acoes { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; }
 .hero-arte { position: relative; aspect-ratio: 1; max-width: 400px; width: 100%; justify-self: center; display: grid; place-items: center; }
-.anel { position: absolute; border: 1px solid rgba(247, 246, 242, .16); border-radius: 50%; }
+.anel { position: absolute; border: 1px solid color-mix(in srgb, var(--creme) 16%, transparent); border-radius: 50%; }
 .anel-1 { inset: 0; }
-.anel-2 { inset: 12%; border-color: rgba(247, 246, 242, .24); }
-.anel-3 { inset: 24%; background: rgba(247, 246, 242, .04); border-color: rgba(229, 222, 207, .4); }
+.anel-2 { inset: 12%; border-color: color-mix(in srgb, var(--creme) 24%, transparent); }
+.anel-3 { inset: 24%; background: color-mix(in srgb, var(--creme) 4%, transparent); border-color: color-mix(in srgb, var(--bege) 40%, transparent); }
 .hero-marca { position: relative; color: var(--bege); }
 .hero-marca svg { width: 150px; height: 150px; display: block; }
+.hero-marca .marca-img { max-width: 220px; max-height: 150px; width: auto; height: auto; display: block; }
 
 /* ---------- Benefícios ---------- */
 .beneficios { background: var(--branco); border-bottom: 1px solid var(--linha); }
@@ -194,10 +208,10 @@ p { margin: 0; }
 .selo { position: absolute; top: 12px; left: 12px; background: var(--azul); color: var(--creme); font-size: .65rem; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 9px; }
 .selo-esgotado { background: var(--bege-escuro); color: var(--azul); }
 
-.sem-foto { width: 100%; height: 100%; display: grid; place-items: center; background: var(--bege); color: rgba(27, 45, 66, .3); }
+.sem-foto { width: 100%; height: 100%; display: grid; place-items: center; background: var(--bege); color: color-mix(in srgb, var(--azul) 30%, transparent); }
 .sem-foto svg { width: 38%; height: 38%; max-width: 110px; }
 
-.esqueleto { aspect-ratio: 3 / 4.4; border-radius: var(--raio); background: linear-gradient(100deg, #efebe3 30%, #f8f6f1 50%, #efebe3 70%) 0 0 / 300% 100%; animation: brilho 1.4s infinite linear; }
+.esqueleto { aspect-ratio: 3 / 4.4; border-radius: var(--raio); background: linear-gradient(100deg, var(--linha) 30%, var(--creme) 50%, var(--linha) 70%) 0 0 / 300% 100%; animation: brilho 1.4s infinite linear; }
 @keyframes brilho { to { background-position: -150% 0; } }
 .vazio { grid-column: 1 / -1; text-align: center; color: var(--suave); padding: 48px 16px; }
 
@@ -243,6 +257,9 @@ p { margin: 0; }
 .canal span { display: flex; flex-direction: column; font-size: .9rem; color: var(--suave); word-break: break-word; }
 .canal strong { color: var(--azul); font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; font-size: .78rem; }
 .contato-sem-form { color: var(--suave); padding: 24px 0; }
+.empresa-dados { margin-top: 22px; }
+.empresa-dados p { font-size: .88rem; line-height: 1.7; color: var(--suave); }
+.empresa-dados strong { color: var(--texto); font-weight: 600; }
 .rodape-simples .rodape-base { border-top: 0; }
 
 /* ---------- Rodapé ---------- */
@@ -254,12 +271,18 @@ p { margin: 0; }
 .rodape a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 .rodape-marca p { margin-top: 16px; font-size: .9rem; line-height: 1.7; opacity: .7; max-width: 38ch; }
 .selos { grid-template-columns: repeat(2, auto); justify-content: start; }
-.selos li { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(247, 246, 242, .25); padding: 6px 10px; font-size: .8rem; }
+.selos li { display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--creme) 25%, transparent); padding: 6px 10px; font-size: .8rem; }
 .selos .ico { width: 18px; height: 18px; }
 .rodape-seguro { display: flex; gap: 8px; align-items: center; margin-top: 16px; font-size: .8rem; opacity: .75; }
 .rodape-seguro .ico { width: 18px; height: 18px; }
-.rodape-base { border-top: 1px solid rgba(247, 246, 242, .12); font-size: .78rem; opacity: .65; }
+.rodape-base { border-top: 1px solid color-mix(in srgb, var(--creme) 12%, transparent); font-size: .78rem; opacity: .65; }
 .rodape-base p { padding: 18px 0; }
+/* Linha legal (razão social, CPF/CNPJ e endereço) e crédito do sistema */
+.rodape-base-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding-top: 14px; padding-bottom: 14px; }
+.rodape-base-in p { padding: 0; }
+.rodape-legal { flex: 1 1 100%; }
+.credito { opacity: .8; }
+.credito a { text-decoration: underline; text-underline-offset: 2px; }
 
 .zap-flutuante {
   position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 56px; height: 56px; border-radius: 50%;
@@ -270,7 +293,7 @@ p { margin: 0; }
 .zap-flutuante .ico { width: 26px; height: 26px; }
 
 /* ---------- Carrinho (gaveta) ---------- */
-.gaveta-fundo { position: fixed; inset: 0; background: rgba(27, 45, 66, .45); z-index: 90; }
+.gaveta-fundo { position: fixed; inset: 0; background: color-mix(in srgb, var(--azul) 45%, transparent); z-index: 90; }
 .gaveta {
   position: fixed; top: 0; right: 0; z-index: 100; width: min(430px, 100%); height: 100vh; height: 100dvh;
   background: var(--creme); display: flex; flex-direction: column; box-shadow: var(--sombra-forte);
@@ -318,7 +341,7 @@ p { margin: 0; }
 
 /* ---------- Diálogos ---------- */
 .dlg { border: 0; padding: 0; border-radius: var(--raio); width: calc(100% - 32px); max-width: 960px; max-height: calc(100dvh - 32px); background: var(--branco); color: var(--texto); box-shadow: var(--sombra-forte); }
-.dlg::backdrop { background: rgba(27, 45, 66, .55); }
+.dlg::backdrop { background: color-mix(in srgb, var(--azul) 55%, transparent); }
 .dlg-fechar { position: absolute; top: 10px; right: 10px; z-index: 2; background: var(--branco); }
 
 .item { display: grid; grid-template-columns: 1fr 1fr; }
@@ -413,7 +436,7 @@ p { margin: 0; }
 .pg-copia textarea { width: 100%; resize: none; padding: 10px; border: 1px solid var(--bege-escuro); font: .8rem/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--creme); word-break: break-all; }
 .pg-status { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--azul); }
 .pulso { width: 10px; height: 10px; border-radius: 50%; background: var(--azul); animation: pulso 1.5s infinite; }
-@keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(27, 45, 66, .5); } 100% { box-shadow: 0 0 0 10px rgba(27, 45, 66, 0); } }
+@keyframes pulso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--azul) 50%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
 .pg-itens { list-style: none; margin: 6px 0; padding: 14px 16px; width: 100%; max-width: 440px; background: var(--creme); display: grid; gap: 8px; font-size: .88rem; text-align: left; }
 .pg-itens-total { border-top: 1px solid var(--linha); padding-top: 8px; font-weight: 700; color: var(--azul); }
 
@@ -455,6 +478,7 @@ p { margin: 0; }
   body { font-size: 15px; }
   .faixa-extra { display: none; }
   .logo-marca svg { width: 36px; height: 36px; }
+  .logo-marca .marca-img { height: 38px; max-width: 170px; }
   .logo-texto strong { font-size: 1.05rem; letter-spacing: 4px; }
   .secao { padding: 52px 0; }
   .secao h2 { font-size: 1.3rem; }

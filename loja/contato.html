@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fale conosco · Odin Focus</title>
-  <meta name="description" content="Fale com a Odin Focus: dúvidas sobre produtos, serviços, pagamentos e entregas.">
+  <title>Fale conosco</title>
+  <meta name="description" content="Fale com a loja: dúvidas sobre produtos, serviços, pagamentos e entregas.">
   <meta name="theme-color" content="#1B2D42">
   <link rel="icon" href="img/icone.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/loja.css">
+  <link rel="stylesheet" href="api/?r=tema.css">
 </head>
 <body class="pagina-contato">
   <header class="cabecalho">
     <div class="container cabecalho-in cabecalho-simples">
       <a href="./" class="logo" aria-label="Voltar à loja">
         <span class="logo-marca" data-marca></span>
-        <span class="logo-texto"><strong id="logoNome">ODIN <span class="realce">FOCUS</span></strong><small>Atendimento</small></span>
+        <span class="logo-texto"><strong id="logoNome"></strong><small>Atendimento</small></span>
       </a>
       <a class="link" href="./">← Voltar à loja</a>
     </div>
@@ -31,15 +32,20 @@
         <div id="alvoForm"><p class="carregando">Carregando…</p></div>
       </div>
       <aside class="resumo" id="canais" hidden>
-        <h3>Outros canais</h3>
+        <h3 id="tituloCanais">Outros canais</h3>
         <div class="canais" id="listaCanais"></div>
+        <div class="empresa-dados" id="empresaDados" hidden></div>
       </aside>
     </section>
   </main>
 
   <footer class="rodape rodape-simples">
     <div class="rodape-base">
-      <div class="container"><p>© <span id="ano"></span> <span id="rodapeCopy">Odin Focus</span>. Todos os direitos reservados.</p></div>
+      <div class="container rodape-base-in">
+        <p class="rodape-legal" id="rodapeLegal" hidden></p>
+        <p>© <span id="ano"></span> <span id="rodapeCopy"></span>. Todos os direitos reservados.</p>
+        <p class="credito" id="rodapeCredito"></p>
+      </div>
     </div>
   </footer>
 

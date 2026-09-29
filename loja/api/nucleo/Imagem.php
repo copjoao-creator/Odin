@@ -55,6 +55,35 @@ final class Imagem
     return ['arquivo' => $nome, 'largura' => $novaL, 'altura' => $novaA];
   }
 
+  /**
+   * Ícone quadrado (aba do navegador, atalho no celular) a partir de uma imagem já salva em uploads/{pasta}:
+   * a imagem inteira, centralizada num quadrado transparente de {lado}px, sem cortar. Sem a extensão GD, devolve null.
+   */
+  public static function icone(string $pasta, string $arquivo, int $lado = 180): ?string
+  {
+    if (!function_exists('imagecreatetruecolor')) return null;
+    $caminho = LOJA_RAIZ . '/uploads/' . $pasta . '/' . $arquivo;
+    $info = @getimagesize($caminho);
+    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true)) return null;
+    $origem = $info[2] === IMAGETYPE_PNG ? @imagecreatefrompng($caminho) : @imagecreatefromjpeg($caminho);
+    if (!$origem) return null;
+    [$larg, $alt] = $info;
+    $escala = min($lado / $larg, $lado / $alt);
+    $novaL = max(1, (int)round($larg * $escala));
+    $novaA = max(1, (int)round($alt * $escala));
+    $final = imagecreatetruecolor($lado, $lado);
+    imagealphablending($final, false);
+    imagesavealpha($final, true);
+    imagefill($final, 0, 0, imagecolorallocatealpha($final, 0, 0, 0, 127));
+    imagealphablending($final, true);
+    imagecopyresampled($final, $origem, intdiv($lado - $novaL, 2), intdiv($lado - $novaA, 2), 0, 0, $novaL, $novaA, $larg, $alt);
+    $nome = bin2hex(random_bytes(12)) . '.png';
+    $ok = imagepng($final, LOJA_RAIZ . '/uploads/' . $pasta . '/' . $nome, 6);
+    imagedestroy($origem);
+    imagedestroy($final);
+    return $ok ? $nome : null;
+  }
+
   public static function apagar(?string $pasta, ?string $arquivo): void
   {
     if (!$pasta || !$arquivo || !preg_match('/^[a-f0-9]{24}\.(png|jpg)$/', $arquivo)) return;

@@ -1,4 +1,4 @@
-/* Loja Odin Focus: etapa de pagamento (Payment Brick do Mercado Pago) e telas de resultado.
+/* Loja: etapa de pagamento (Payment Brick do Mercado Pago) e telas de resultado.
    Usada no checkout da vitrine e na página pagar.html (link de pagamento). */
 (() => {
   const SDK = 'https://sdk.mercadopago.com/js/v2';
@@ -64,16 +64,20 @@
   const chavePublica = (ctx) => ctx.pedido.mp_public_key || ctx.loja.mp_public_key;
   const pagamentosAtivos = (ctx) => (ctx.pedido.pagamentos_ativos ?? ctx.loja.pagamentos_ativos) && !!chavePublica(ctx);
 
-  const ESTILO_BRICK = {
-    theme: 'default',
-    customVariables: {
-      baseColor: '#1B2D42',
-      textPrimaryColor: '#333333',
-      formBackgroundColor: '#FFFFFF',
-      inputBackgroundColor: '#FFFFFF',
-      borderRadiusMedium: '6px',
-      borderRadiusLarge: '8px'
-    }
+  /** Visual do formulário do Mercado Pago nas cores da loja (Configurações › Cores). */
+  const estiloBrick = () => {
+    const c = (Loja.identidade && Loja.identidade.cores) || {};
+    return {
+      theme: 'default',
+      customVariables: {
+        baseColor: c.principal || '#1B2D42',
+        textPrimaryColor: c.texto || '#333333',
+        formBackgroundColor: '#FFFFFF',
+        inputBackgroundColor: '#FFFFFF',
+        borderRadiusMedium: '6px',
+        borderRadiusLarge: '8px'
+      }
+    };
   };
 
   const PERIODO = { mensal: 'mês', trimestral: 'trimestre', semestral: 'semestre', anual: 'ano' };
@@ -116,7 +120,7 @@
         payer: c.protegido ? { identification: { type: 'CPF', number: c.cpf } } : { email: c.email, identification: { type: 'CPF', number: c.cpf } }
       },
       customization: {
-        visual: { style: ESTILO_BRICK },
+        visual: { style: estiloBrick() },
         paymentMethods: { maxInstallments: 1, types: { excluded: ['debit_card', 'prepaid_card'] } }
       },
       callbacks: {
@@ -370,7 +374,7 @@
         } })
       },
       customization: {
-        visual: { style: ESTILO_BRICK },
+        visual: { style: estiloBrick() },
         paymentMethods: ctx.soCartao
           ? { creditCard: 'all', debitCard: 'all', maxInstallments: loja.max_parcelas || 12 }
           : { bankTransfer: 'all', creditCard: 'all', debitCard: 'all', ticket: 'all', maxInstallments: loja.max_parcelas || 12 }

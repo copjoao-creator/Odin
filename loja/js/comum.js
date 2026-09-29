@@ -1,4 +1,4 @@
-/* Loja Odin Focus: utilidades compartilhadas pela vitrine, pela página de pagamento e pelo painel */
+/* Loja: utilidades compartilhadas pela vitrine, pela página de pagamento e pelo painel */
 const Loja = window.Loja || (window.Loja = {});
 
 /** Pasta da API relativa à página (o painel usa "../api/"). */
@@ -59,7 +59,30 @@ Loja.cpfValido = (valor) => {
 Loja.formatar = {
   cpf: (v) => Loja.digitos(v).slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'),
   cep: (v) => Loja.digitos(v).slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2'),
-  celular: (v) => Loja.digitos(v).slice(0, 11).replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2')
+  celular: (v) => Loja.digitos(v).slice(0, 11).replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2'),
+  // Fixo (10 dígitos) ou celular (11 dígitos)
+  telefone: (v) => {
+    const d = Loja.digitos(v).slice(0, 11);
+    return d.length === 11 ? Loja.formatar.celular(d) : d.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+  },
+  cnpj: (v) => Loja.digitos(v).slice(0, 14).replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+};
+
+/** CNPJ com os dois dígitos verificadores conferidos. */
+Loja.cnpjValido = (valor) => {
+  const c = Loja.digitos(valor);
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+  for (const t of [12, 13]) {
+    let soma = 0;
+    let peso = t - 7;
+    for (let i = 0; i < t; i++) {
+      soma += Number(c[i]) * peso;
+      peso = peso === 2 ? 9 : peso - 1;
+    }
+    const dv = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (Number(c[t]) !== dv) return false;
+  }
+  return true;
 };
 
 /** Aplica a máscara enquanto a pessoa digita. */
@@ -115,14 +138,19 @@ Loja.copiar = async (texto) => {
   }
 };
 
-/** Canais de atendimento cadastrados no painel (WhatsApp, e-mail, Instagram). */
+/** Canais de atendimento cadastrados no painel (WhatsApp, telefone, e-mail, Instagram, Facebook). */
 Loja.contatos = (l) => {
   const lista = [];
   if (l.whatsapp) lista.push({ icone: 'conversa', titulo: 'WhatsApp', texto: Loja.formatar.celular(l.whatsapp.replace(/^55/, '')), url: `https://wa.me/${l.whatsapp}` });
+  if (l.telefone) lista.push({ icone: 'telefone', titulo: 'Telefone', texto: Loja.formatar.telefone(l.telefone), url: `tel:+55${l.telefone}` });
   if (l.email) lista.push({ icone: 'email', titulo: 'E-mail', texto: l.email, url: `mailto:${l.email}` });
   if (l.instagram) {
     const user = l.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
     lista.push({ icone: 'camera', titulo: 'Instagram', texto: `@${user}`, url: `https://instagram.com/${user}` });
+  }
+  if (l.facebook) {
+    const pagina = l.facebook.replace(/^@/, '').replace(/^https?:\/\/(www\.|m\.)?facebook\.com\//, '').replace(/\/$/, '');
+    lista.push({ icone: 'facebook', titulo: 'Facebook', texto: pagina, url: `https://facebook.com/${pagina}` });
   }
   return lista;
 };
@@ -166,22 +194,100 @@ const ICONES = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   estrela: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z"/>',
   pacote: '<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
-  alerta: '<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/>'
+  alerta: '<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/>',
+  telefone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/>',
+  facebook: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M15.5 8H14a2 2 0 0 0-2 2v11M9.5 13h5"/>',
+  paleta: '<path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.8 1.6-1.6 0-.9-.7-1.4-.7-2.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.7-4-8.6-9-8.6Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  imagem: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 4 4 3-3 4 4"/>'
 };
 Loja.icone = (nome, classe = 'ico') =>
   `<svg class="${classe}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[nome] || ''}</svg>`;
 
+/** Pasta da loja relativa à página (o painel fica em admin/, um nível abaixo). Usada nas imagens enviadas. */
+Loja.RAIZ = Loja.API.replace(/api\/?$/, '');
+
+/** Identidade da loja (logotipos, cores e empresa), preenchida por Loja.aplicarMarca() quando os dados chegam. */
+Loja.identidade = null;
+
 /**
- * Marca Odin Focus (obturador de foco com a pupila laranja no centro). Mesmo desenho de
- * img/odin-focus-simbolo.svg. Cada cópia na página recebe ids próprios para o degradê e o recorte.
+ * Marca da loja: o logotipo enviado no painel ou, sem ele, um monograma com a inicial do nome.
+ * escuro: a marca vai sobre fundo escuro (rodapé, painel, destaque da página inicial) e usa o
+ * "logotipo para fundo escuro"; sem ele, o logo normal vai sobre uma etiqueta clara.
+ * Antes de os dados da loja chegarem, não desenha nada (evita piscar uma marca errada).
  */
-let marcaSeq = 0;
-Loja.marca = (classe = 'marca') => {
-  const id = `of${++marcaSeq}`;
-  return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="${id}-c"><circle cx="50" cy="50" r="46"/></clipPath><radialGradient id="${id}-p" cx=".4" cy=".4"><stop offset="0" stop-color="#FFD27A"/><stop offset=".6" stop-color="#F45900"/><stop offset="1" stop-color="#B83A00"/></radialGradient></defs><g clip-path="url(#${id}-c)"><polygon points="50,50 51.21,35.7 118.26,8.63 121.31,86.69 63.67,41.63 62.99,42.5" fill="#80FFFF"/><polygon points="50,50 62.99,43.9 119.96,88.42 53.88,130.1 64.08,57.65 62.99,57.5" fill="#45D8F0"/><polygon points="50,50 61.78,58.2 51.7,129.8 -17.43,93.41 50.41,66.02 50,65" fill="#1FA8DD"/><polygon points="50,50 48.79,64.3 -18.26,91.37 -21.31,13.31 36.33,58.37 37.01,57.5" fill="#2A62B8"/><polygon points="50,50 37.01,56.1 -19.96,11.58 46.12,-30.1 35.92,42.35 37.01,42.5" fill="#1C86CF"/><polygon points="50,50 38.22,41.8 48.3,-29.8 117.43,6.59 49.59,33.98 50,35" fill="#3CC4EA"/></g><polygon points="50,35 62.99,42.5 62.99,57.5 50,65 37.01,57.5 37.01,42.5" fill="#0E1A2B"/><circle cx="50" cy="50" r="7.5" fill="url(#${id}-p)"/><circle cx="52.6" cy="47.4" r="2.2" fill="#fff"/></svg>`;
+Loja.marca = (classe = 'marca', escuro = false) => {
+  const id = Loja.identidade;
+  if (!id) return '';
+  const m = id.marca || {};
+  const src = escuro ? (m.logo_escuro || m.logo) : m.logo;
+  if (src) {
+    const etiqueta = escuro && !m.logo_escuro ? ' marca-fundo' : '';
+    return `<img class="${classe} marca-img${etiqueta}" src="${Loja.esc(Loja.RAIZ + src)}" alt="${Loja.esc(id.nome || '')}">`;
+  }
+  const inicial = Loja.esc((String(id.nome || '').trim().charAt(0) || '•').toUpperCase());
+  return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="var(--azul)" stroke="var(--creme)" stroke-width="4"/><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="50" font-weight="700" fill="var(--creme)">${inicial}</text></svg>`;
 };
 
-/** Nome da loja no logotipo: primeira palavra forte e o restante na cor da marca (ex.: ODIN FOCUS). */
+/** Monograma como ícone da aba do navegador (quando a loja não enviou logotipo nem ícone). */
+Loja.iconeMonograma = (nome, cores) => {
+  const inicial = (String(nome || '').trim().charAt(0) || '•').toUpperCase().replace(/[<>&"']/g, '');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${cores.principal}"/><text x="32" y="32" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="${cores.fundo}">${inicial}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
+/**
+ * Aplica a identidade recebida da API (GET loja): logotipos em todos os [data-marca], ícone da aba,
+ * cor do navegador no celular e, se configurado, esconde o nome ao lado do logotipo.
+ */
+Loja.aplicarMarca = (l) => {
+  Loja.identidade = { nome: l.nome, marca: l.marca || {}, cores: l.cores || null, empresa: l.empresa || null };
+  const m = Loja.identidade.marca;
+  document.querySelectorAll('[data-marca]').forEach((el) => {
+    const escuro = !!el.closest('.logo-claro, .hero, .lateral');
+    el.innerHTML = Loja.marca(el.dataset.marca || 'marca', escuro);
+  });
+  document.body.classList.toggle('marca-sem-nome', !!m.logo && m.mostrar_nome === false);
+  let icone = document.querySelector('link[rel="icon"]');
+  if (!icone) {
+    icone = document.createElement('link');
+    icone.rel = 'icon';
+    document.head.appendChild(icone);
+  }
+  if (m.icone) {
+    icone.type = 'image/png';
+    icone.href = Loja.RAIZ + m.icone;
+  } else if (l.cores) {
+    icone.type = 'image/svg+xml';
+    icone.href = Loja.iconeMonograma(l.nome, l.cores);
+  }
+  const tema = document.querySelector('meta[name="theme-color"]');
+  if (tema && l.cores) tema.content = l.cores.principal;
+};
+
+/** Linha legal do rodapé: razão social, CPF/CNPJ e endereço (Decreto 7.962/2013). Vazia se nada foi preenchido. */
+Loja.linhaLegal = (l) => {
+  const e = l.empresa || {};
+  return [e.razao_social, e.documento ? `${e.rotulo_documento} ${e.documento}` : '', e.endereco].filter(Boolean).join(' · ');
+};
+
+/** Crédito discreto do sistema (rodapé da loja e painel). */
+Loja.credito = () => 'Desenvolvido por <a href="https://www.odinfocus.com.br" target="_blank" rel="noopener">Odin Focus</a>';
+
+/** Preenche o rodapé-base comum a todas as páginas: nome, linha legal e crédito. */
+Loja.aplicarRodape = (l) => {
+  const copia = document.getElementById('rodapeCopy');
+  if (copia) copia.textContent = l.nome;
+  const legal = document.getElementById('rodapeLegal');
+  if (legal) {
+    const texto = Loja.linhaLegal(l);
+    legal.textContent = texto;
+    legal.hidden = !texto;
+  }
+  const credito = document.getElementById('rodapeCredito');
+  if (credito) credito.innerHTML = Loja.credito();
+};
+
+/** Nome da loja ao lado do logotipo: primeira palavra forte e o restante na cor de realce (ex.: MINHA LOJA). */
 Loja.nomeLogo = (el, nome) => {
   if (!el) return;
   const [primeira = '', ...resto] = String(nome || '').toUpperCase().trim().split(/\s+/);

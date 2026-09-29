@@ -1,5 +1,13 @@
 # Loja Odin Focus
 
+# Páginas, JS e CSS: o navegador sempre confere se há versão nova (responde rápido quando não mudou).
+# Sem isso, depois de enviar arquivos novos o navegador pode continuar mostrando os antigos.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
 # Esconde pastas do git (.git) caso sejam enviadas por engano para a hospedagem.
 RedirectMatch 404 /\.git
 

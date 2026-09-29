@@ -61,7 +61,7 @@
   </header>
 
   <main id="inicio">
-    <section class="hero">
+    <section class="hero" data-tela="inicio">
       <div class="container hero-in">
         <div class="hero-texto">
           <p class="sobretitulo" id="heroSobretitulo"></p>
@@ -79,7 +79,7 @@
       </div>
     </section>
 
-    <section class="beneficios" aria-label="Vantagens">
+    <section class="beneficios" aria-label="Vantagens" data-tela="inicio">
       <div class="container beneficios-in">
         <div class="beneficio"><span data-icone="escudo"></span><p><strong>Compra segura</strong>Pagamento pelo Mercado Pago</p></div>
         <div class="beneficio"><span data-icone="cartao"></span><p><strong id="benParcelas">Parcele em até 12x</strong>no cartão de crédito</p></div>
@@ -88,7 +88,7 @@
       </div>
     </section>
 
-    <section class="secao" id="categorias" hidden>
+    <section class="secao" id="categorias" data-tela="inicio" hidden>
       <div class="container">
         <div class="secao-cabeca">
           <h2>Compre por categoria</h2>
@@ -97,7 +97,7 @@
       </div>
     </section>
 
-    <section class="secao" id="produtos">
+    <section class="secao tela-catalogo" id="produtos" data-tela="produtos">
       <div class="container">
         <div class="secao-cabeca">
           <div>
@@ -114,25 +114,31 @@
           </label>
         </div>
         <div class="chips" id="chips" role="toolbar" aria-label="Filtrar por categoria"></div>
-        <div class="grade" id="gradeProdutos" aria-live="polite">
-          <div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div>
-        </div>
+        <div class="tabela-loja-caixa" id="gradeProdutos" aria-live="polite"><p class="carregando">Carregando produtos…</p></div>
       </div>
     </section>
 
-    <section class="secao secao-bege" id="servicos">
+    <section class="secao tela-catalogo" id="servicos" data-tela="servicos">
       <div class="container">
         <div class="secao-cabeca">
           <div>
-            <h2>Serviços</h2>
-            <p class="secao-sub">Atendimento especializado, avulso ou por assinatura</p>
+            <h2 id="tituloServicos">Serviços</h2>
+            <p class="secao-sub" id="subServicos">Atendimento especializado, avulso ou por assinatura</p>
           </div>
+          <label class="ordem">Ordenar
+            <select id="ordemServicos">
+              <option value="padrao">Destaques</option>
+              <option value="menor">Menor preço</option>
+              <option value="maior">Maior preço</option>
+              <option value="nome">Nome (A-Z)</option>
+            </select>
+          </label>
         </div>
-        <div class="grade-servicos" id="gradeServicos"></div>
+        <div class="tabela-loja-caixa" id="gradeServicos" aria-live="polite"><p class="carregando">Carregando serviços…</p></div>
       </div>
     </section>
 
-    <section class="secao" id="como-funciona">
+    <section class="secao" id="como-funciona" data-tela="inicio">
       <div class="container">
         <div class="secao-cabeca secao-cabeca-centro">
           <h2>Como funciona</h2>
@@ -147,7 +153,7 @@
       </div>
     </section>
 
-    <section class="secao secao-azul" id="sobre">
+    <section class="secao secao-azul" id="sobre" data-tela="inicio">
       <div class="container sobre-in">
         <div>
           <p class="sobretitulo">Sobre nós</p>

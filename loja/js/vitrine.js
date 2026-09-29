@@ -13,6 +13,7 @@
     subcategoria: '',
     busca: '',
     ordem: 'padrao',
+    ordemServicos: 'padrao',
     carrinho: Loja.guardar.ler('loja.carrinho', []),
     pedido: null,
     carrinhoDoPedido: ''
@@ -66,6 +67,7 @@
     renderProdutos();
     renderServicos();
     renderCarrinho();
+    mostrarTela(); // abas desabilitadas no painel podem ter sumido: confere a tela do endereço de novo
   }
 
   function aplicarLoja() {
@@ -180,13 +182,20 @@
     return r;
   }
 
-  function ordenar(itens) {
+  function ordenar(itens, ordem = estado.ordem) {
     const r = [...itens];
-    if (estado.ordem === 'menor') r.sort((a, b) => a.preco - b.preco);
-    if (estado.ordem === 'maior') r.sort((a, b) => b.preco - a.preco);
-    if (estado.ordem === 'nome') r.sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
+    if (ordem === 'menor') r.sort((a, b) => a.preco - b.preco);
+    if (ordem === 'maior') r.sort((a, b) => b.preco - a.preco);
+    if (ordem === 'nome') r.sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
     return r;
   }
+
+  /** Tabela do catálogo (Produtos ou Serviços). No celular, cada linha vira um cartão (ver .tabela-loja no CSS). */
+  const tabelaLoja = (colunas, linhas) => `
+    <table class="tabela-loja">
+      <thead><tr>${colunas.map(([t, c]) => `<th class="${c || ''}">${t}</th>`).join('')}</tr></thead>
+      <tbody>${linhas.join('')}</tbody>
+    </table>`;
 
   function renderProdutos() {
     let itens = filtrar(estado.produtos);
@@ -201,51 +210,52 @@
       $('#gradeProdutos').innerHTML = `<p class="vazio">${estado.produtos.length ? 'Nenhum produto encontrado. Tente outra busca ou categoria.' : 'Novos produtos em breve.'}</p>`;
       return;
     }
-    $('#gradeProdutos').innerHTML = itens.map((p) => {
-      const esgotado = p.estoque <= 0;
-      const k = `produto|${esc(p.codigo)}`;
-      return `
-        <article class="card">
-          <button type="button" class="card-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}">
-            ${imagem(p.fotos[0], p.titulo)}
-            ${esgotado ? '<span class="selo selo-esgotado">Esgotado</span>' : p.estoque <= 3 ? `<span class="selo">Últimas ${p.estoque}</span>` : ''}
-          </button>
-          <div class="card-corpo">
-            <p class="card-cat">${esc(p.subcategoria || p.categoria)}</p>
-            <h3 class="card-titulo"><a href="#produtos" data-abrir="${k}">${esc(p.titulo)}</a></h3>
-            <p class="card-preco">${precoHtml(p)}</p>
-            ${parcelasHtml()}
-            <button type="button" class="btn btn-card" data-add="${k}" ${esgotado ? 'disabled' : ''}>${esgotado ? 'Esgotado' : 'Adicionar ao carrinho'}</button>
-          </div>
-        </article>`;
-    }).join('');
+    const n = estado.loja ? estado.loja.max_parcelas : 12;
+    $('#gradeProdutos').innerHTML = tabelaLoja(
+      [['', 'col-foto'], ['Produto'], ['Categoria', 'col-cat'], ['Disponibilidade', 'col-disp'], ['Preço', 'col-preco'], ['', 'col-acao']],
+      itens.map((p) => {
+        const esgotado = p.estoque <= 0;
+        const k = `produto|${esc(p.codigo)}`;
+        const disp = esgotado ? '<span class="disp disp-esgotado">Esgotado</span>'
+          : p.estoque <= 3 ? `<span class="disp disp-poucos">Últimas ${p.estoque}</span>` : '<span class="disp">Em estoque</span>';
+        return `
+          <tr${esgotado ? ' class="linha-esgotada"' : ''}>
+            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(p.titulo)}">${imagem(p.fotos[0], p.titulo)}</button></td>
+            <td class="col-item"><a href="#produtos" data-abrir="${k}" class="tabela-titulo">${esc(p.titulo)}</a>${p.detalhes ? `<span class="tabela-detalhe">${esc(p.detalhes)}</span>` : ''}</td>
+            <td class="col-cat">${esc(p.categoria)}${p.subcategoria ? `<span class="tabela-detalhe">${esc(p.subcategoria)}</span>` : ''}</td>
+            <td class="col-disp">${disp}</td>
+            <td class="col-preco"><strong>${precoHtml(p)}</strong>${n > 1 ? `<span class="tabela-detalhe">até ${n}x no cartão</span>` : ''}</td>
+            <td class="col-acao"><button type="button" class="btn btn-pequeno" data-add="${k}" ${esgotado ? 'disabled' : ''}>${esgotado ? 'Esgotado' : 'Adicionar'}</button></td>
+          </tr>`;
+      })
+    );
   }
 
   function renderServicos() {
-    const itens = ordenar(filtrar(estado.servicos));
+    const itens = ordenar(filtrar(estado.servicos), estado.ordemServicos);
+    $('#tituloServicos').textContent = estado.busca ? `Serviços para “${estado.busca}”` : 'Serviços';
+    $('#subServicos').textContent = estado.servicos.length
+      ? `${itens.length} ${itens.length === 1 ? 'serviço' : 'serviços'} · avulsos ou por assinatura`
+      : 'Atendimento especializado, avulso ou por assinatura';
     if (!itens.length) {
       $('#gradeServicos').innerHTML = `<p class="vazio">${estado.servicos.length ? 'Nenhum serviço encontrado para essa busca.' : 'Novos serviços em breve.'}</p>`;
       return;
     }
-    $('#gradeServicos').innerHTML = itens.map((s) => {
-      const k = `servico|${esc(s.codigo)}`;
-      return `
-        <article class="card-servico">
-          <button type="button" class="servico-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}">${imagem(s.foto, s.titulo)}</button>
-          <div class="servico-corpo">
-            <p class="card-cat">${esc(s.subcategoria || s.categoria)}</p>
-            <h3 class="card-titulo"><a href="#servicos" data-abrir="${k}">${esc(s.titulo)}</a></h3>
-            ${s.detalhes ? `<p class="servico-detalhes">${esc(s.detalhes)}</p>` : ''}
-            <div class="servico-rodape">
-              <div>
-                <span class="selo-renovacao${s.recorrente ? ' recorrente' : ''}">${s.recorrente ? `Assinatura ${esc(s.renovacao_texto.toLowerCase())}` : 'Pagamento único'}</span>
-                <p class="card-preco">${precoHtml(s)}</p>
-              </div>
-              <button type="button" class="btn" data-add="${k}">${s.recorrente ? 'Assinar' : 'Contratar'}</button>
-            </div>
-          </div>
-        </article>`;
-    }).join('');
+    $('#gradeServicos').innerHTML = tabelaLoja(
+      [['', 'col-foto'], ['Serviço'], ['Categoria', 'col-cat'], ['Tipo', 'col-disp'], ['Preço', 'col-preco'], ['', 'col-acao']],
+      itens.map((s) => {
+        const k = `servico|${esc(s.codigo)}`;
+        return `
+          <tr>
+            <td class="col-foto"><button type="button" class="tabela-foto" data-abrir="${k}" aria-label="Ver detalhes de ${esc(s.titulo)}">${imagem(s.foto, s.titulo)}</button></td>
+            <td class="col-item"><a href="#servicos" data-abrir="${k}" class="tabela-titulo">${esc(s.titulo)}</a>${s.detalhes ? `<span class="tabela-detalhe">${esc(s.detalhes)}</span>` : ''}</td>
+            <td class="col-cat">${esc(s.categoria)}${s.subcategoria ? `<span class="tabela-detalhe">${esc(s.subcategoria)}</span>` : ''}</td>
+            <td class="col-disp"><span class="selo-renovacao${s.recorrente ? ' recorrente' : ''}">${s.recorrente ? `Assinatura ${esc(s.renovacao_texto.toLowerCase())}` : 'Pagamento único'}</span></td>
+            <td class="col-preco"><strong>${precoHtml(s)}</strong></td>
+            <td class="col-acao"><button type="button" class="btn btn-pequeno" data-add="${k}">${s.recorrente ? 'Assinar' : 'Contratar'}</button></td>
+          </tr>`;
+      })
+    );
   }
 
   // ---------------- Detalhe do item ----------------
@@ -716,6 +726,41 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // ---------------- Telas: Início, Produtos e Serviços ----------------
+  // Cada uma é uma tela própria, escolhida pelo endereço (#produtos, #servicos; o resto é o Início).
+  // Assim o menu, os links, o botão Voltar do navegador e o compartilhamento do endereço funcionam.
+
+  const disponivel = (id) => { const s = document.getElementById(id); return !!s && !s.hidden; };
+
+  function telaAtual() {
+    const h = location.hash.slice(1);
+    return (h === 'produtos' || h === 'servicos') && disponivel(h) ? h : 'inicio';
+  }
+
+  function mostrarTela() {
+    const tela = telaAtual();
+    document.body.dataset.tela = tela;
+    $$('main [data-tela]').forEach((s) => s.classList.toggle('fora-da-tela', s.dataset.tela !== tela));
+    $$('#menu a').forEach((a) => {
+      const href = a.getAttribute('href');
+      const ativo = href === `#${tela}` || (tela === 'inicio' && href === '#inicio');
+      a.classList.toggle('ativo', ativo && !a.dataset.cat);
+      if (ativo && !a.dataset.cat) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    const alvo = location.hash.slice(1);
+    // Âncoras do Início (Como funciona, Sobre nós) rolam até a seção; as telas abrem no topo.
+    if (tela === 'inicio' && alvo && alvo !== 'inicio' && disponivel(alvo)) irPara(alvo);
+    else window.scrollTo({ top: 0 });
+  }
+
+  function irParaTela(tela) {
+    if (location.hash !== `#${tela}`) location.hash = `#${tela}`;
+    else mostrarTela();
+  }
+
+  window.addEventListener('hashchange', mostrarTela);
+  mostrarTela();
+
   document.addEventListener('click', (e) => {
     const abrir = e.target.closest('[data-abrir]');
     if (abrir) {
@@ -735,7 +780,7 @@
       estado.subcategoria = '';
       renderChips();
       renderProdutos();
-      irPara('produtos');
+      irParaTela('produtos');
       return;
     }
     const chip = e.target.closest('[data-chip-cat]');
@@ -771,11 +816,17 @@
     renderChips();
     renderProdutos();
     renderServicos();
-    irPara(filtrar(estado.produtos).length || !estado.servicos.length ? 'produtos' : 'servicos');
+    // Mostra a tela com resultados (produtos primeiro); se a tela não estiver na loja, fica na outra.
+    const temProdutos = disponivel('produtos') && filtrar(estado.produtos).length;
+    irParaTela(temProdutos || !disponivel('servicos') ? 'produtos' : 'servicos');
   });
   $('#ordem').addEventListener('change', (e) => {
     estado.ordem = e.target.value;
     renderProdutos();
+  });
+  $('#ordemServicos').addEventListener('change', (e) => {
+    estado.ordemServicos = e.target.value;
+    renderServicos();
   });
 
   iniciar();

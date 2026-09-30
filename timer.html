@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Regressivo</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --fg: #f4f4f5;
+    --muted: #8b8f98;
+    --accent: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --btn: #1f232b;
+    --btn-hover: #2a2f3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4vh;
+    padding: 16px;
+    transition: background .3s;
+  }
+  body.done { animation: flash 1s steps(2) infinite; }
+  @keyframes flash { 50% { background: #3b0d0d; } }
+
+  #display {
+    font-family: "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: clamp(64px, 20vw, 360px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    transition: color .3s;
+    user-select: none;
+  }
+  #display.warn { color: var(--warn); }
+  #display.danger { color: var(--danger); }
+
+  .inputs { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; justify-content: center; }
+  .inputs label { display: flex; flex-direction: column; font-size: 14px; color: var(--muted); gap: 6px; text-align: center; }
+  .inputs input {
+    width: 90px; padding: 10px; font-size: 28px; text-align: center;
+    background: var(--btn); color: var(--fg); border: 1px solid #333844; border-radius: 10px;
+  }
+  .inputs input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  button {
+    padding: 14px 28px; font-size: 20px; font-weight: 600; cursor: pointer;
+    background: var(--btn); color: var(--fg); border: 1px solid #333844; border-radius: 12px;
+    transition: background .15s;
+  }
+  button:hover { background: var(--btn-hover); }
+  button.primary { background: var(--accent); color: #062b12; border-color: transparent; }
+  button.primary:hover { filter: brightness(1.1); }
+
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .presets button { padding: 8px 16px; font-size: 16px; }
+
+  .hint { color: var(--muted); font-size: 13px; }
+  body.running .setup { visibility: hidden; }
+</style>
+</head>
+<body>
+  <div id="display">05:00</div>
+
+  <div class="setup inputs">
+    <label>Horas<input id="h" type="number" min="0" max="99" value="0"></label>
+    <label>Minutos<input id="m" type="number" min="0" max="59" value="5"></label>
+    <label>Segundos<input id="s" type="number" min="0" max="59" value="0"></label>
+  </div>
+
+  <div class="setup presets">
+    <button data-sec="60">1 min</button>
+    <button data-sec="300">5 min</button>
+    <button data-sec="600">10 min</button>
+    <button data-sec="900">15 min</button>
+    <button data-sec="1800">30 min</button>
+    <button data-sec="3600">1 h</button>
+  </div>
+
+  <div class="controls">
+    <button id="start" class="primary">Iniciar</button>
+    <button id="reset">Zerar</button>
+    <button id="fs">Tela cheia</button>
+  </div>
+
+  <p class="hint">Atalhos: Espaço = iniciar/pausar · R = zerar · F = tela cheia</p>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const display = $('display'), startBtn = $('start');
+  let total = 300, remaining = 300, endAt = 0, tick = null;
+
+  const pad = n => String(n).padStart(2, '0');
+  function fmt(sec) {
+    const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+    return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }
+  function render() {
+    display.textContent = fmt(remaining);
+    document.title = (tick ? '⏱ ' : '') + fmt(remaining);
+    const ratio = total ? remaining / total : 0;
+    display.classList.toggle('danger', remaining <= 10 && total > 0);
+    display.classList.toggle('warn', remaining > 10 && ratio <= 0.25);
+  }
+  function readInputs() {
+    const v = id => Math.max(0, parseInt($(id).value, 10) || 0);
+    return v('h') * 3600 + v('m') * 60 + v('s');
+  }
+  function setInputs(sec) {
+    $('h').value = Math.floor(sec / 3600);
+    $('m').value = Math.floor(sec % 3600 / 60);
+    $('s').value = sec % 60;
+  }
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.4, 0.8].forEach(t => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.3, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3);
+      });
+    } catch (e) {}
+  }
+  function stop() {
+    clearInterval(tick); tick = null;
+    document.body.classList.remove('running');
+    startBtn.textContent = remaining > 0 && remaining < total ? 'Continuar' : 'Iniciar';
+  }
+  function start() {
+    if (remaining <= 0) { total = remaining = readInputs(); }
+    if (remaining <= 0) return;
+    document.body.classList.remove('done');
+    document.body.classList.add('running');
+    endAt = Date.now() + remaining * 1000;
+    startBtn.textContent = 'Pausar';
+    tick = setInterval(() => {
+      remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      render();
+      if (remaining === 0) { stop(); document.body.classList.add('done'); beep(); }
+    }, 200);
+    render();
+  }
+  function reset() {
+    stop();
+    document.body.classList.remove('done');
+    total = remaining = readInputs();
+    startBtn.textContent = 'Iniciar';
+    render();
+  }
+
+  startBtn.onclick = () => tick ? stop() : start();
+  $('reset').onclick = reset;
+  $('fs').onclick = () => document.fullscreenElement
+    ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  ['h', 'm', 's'].forEach(id => $(id).addEventListener('input', () => { if (!tick) reset(); }));
+  document.querySelectorAll('.presets button').forEach(b =>
+    b.onclick = () => { setInputs(+b.dataset.sec); reset(); });
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); startBtn.click(); }
+    else if (e.key.toLowerCase() === 'r') reset();
+    else if (e.key.toLowerCase() === 'f') $('fs').click();
+  });
+
+  render();
+</script>
+</body>
+</html>

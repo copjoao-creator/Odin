@@ -443,7 +443,9 @@ final class Plataforma
       return (bool)file_put_contents($arquivo, "Para: {$para}\nAssunto: {$assunto}\n{$html}\n\n", FILE_APPEND);
     }
     // Com SMTP configurado (config.php › "smtp"), envia autenticado pela caixa do domínio (chega na caixa de entrada).
-    if (Smtp::configurado()) return Smtp::enviar($para, $assunto, $html, 'Odin Focus');
+    // Se o SMTP falhar (senha errada, porta bloqueada pela hospedagem...), tenta pelo mail() do servidor
+    // (pode cair no spam, mas não fica sem enviar). O motivo da falha fica no error_log ("SMTP: ...").
+    if (Smtp::configurado() && Smtp::enviar($para, $assunto, $html, 'Odin Focus')) return true;
     $host = preg_replace('/^www\./', '', (string)parse_url(self::urlBase(), PHP_URL_HOST)) ?: 'odinfocus.com.br';
     $de = "nao-responda@{$host}";
     $cab = implode("\r\n", [

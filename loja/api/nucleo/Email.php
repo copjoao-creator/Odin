@@ -24,7 +24,8 @@ final class Email
     if ($arquivo !== '') return (bool)file_put_contents($arquivo, "Para: {$para}\nAssunto: {$assunto}\n" . self::modelo($assunto, $html) . "\n\n", FILE_APPEND);
     // Com SMTP configurado (config.php › "smtp"), sai autenticado pela caixa da plataforma com o nome
     // da loja; o e-mail da loja vai em "Responder para", então a resposta do cliente chega à loja.
-    if (Smtp::configurado()) return Smtp::enviar($para, $assunto, self::modelo($assunto, $html), $loja, $remetente);
+    // Se o SMTP falhar, tenta pelo mail() do servidor (o motivo fica no error_log: "SMTP: ...").
+    if (Smtp::configurado() && Smtp::enviar($para, $assunto, self::modelo($assunto, $html), $loja, $remetente)) return true;
     $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', self::modelo($assunto, $html), $cabecalhos, '-f' . $remetente);
     if (!$ok) error_log("Falha ao enviar e-mail para {$para}: {$assunto}");
     return $ok;

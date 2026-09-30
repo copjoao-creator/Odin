@@ -1,14 +1,12 @@
-# Plataforma Odin Focus — endereços das lojas (public_html/.htaccess)
+# .htaccess da raiz do site (public_html/.htaccess) — Plataforma Odin Focus
 #
-# Cada loja fica em odinfocus.com.br/{endereço}/ e usa os arquivos da pasta loja/ (o mesmo sistema
-# para todas). O sistema descobre a loja pelo endereço. A loja original continua em /loja/.
-#
-# ATENÇÃO: se o public_html já tiver um .htaccess (por exemplo, com a regra de forçar HTTPS),
-# NÃO substitua: copie só o bloco abaixo para o fim do arquivo que já existe.
+# Este arquivo pode SUBSTITUIR o public_html/.htaccess do servidor.
+# Única exceção: se o arquivo do servidor tiver um bloco "# php -- BEGIN cPanel-generated handler"
+# (escolha da versão do PHP feita pelo cPanel), copie esse bloco para o fim deste arquivo antes de enviar.
 
-# ---------- início do bloco da plataforma Odin Focus ----------
-# Páginas da raiz (index.html): o navegador sempre confere se há versão nova. Sem isso, quem já
-# tinha aberto o site continua vendo a página antiga (que ia direto para a loja).
+# ---------- Cache ----------
+# Páginas, estilos e scripts: o navegador sempre confere se há versão nova (responde rápido quando
+# não mudou). Sem isso, quem já tinha aberto o site continua vendo as páginas antigas.
 <IfModule mod_headers.c>
   <FilesMatch "\.(html|js|css)$">
     Header set Cache-Control "no-cache"
@@ -17,6 +15,22 @@
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # ---------- Endereço único: https://www.odinfocus.com.br ----------
+  # Um endereço só evita carrinho e login "sumindo" ao trocar entre com e sem www, e o HTTPS é
+  # exigido pelo Mercado Pago. A pasta .well-known fica de fora (renovação do certificado).
+  RewriteCond %{REQUEST_URI} !^/\.well-known/
+  RewriteCond %{HTTP_HOST} ^odinfocus\.com\.br$ [NC]
+  RewriteRule ^(.*)$ https://www.odinfocus.com.br/$1 [R=301,L]
+
+  RewriteCond %{REQUEST_URI} !^/\.well-known/
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # ---------- Plataforma: endereços das lojas ----------
+  # Cada loja fica em odinfocus.com.br/{endereço}/ e usa os arquivos da pasta loja/ (o mesmo sistema
+  # para todas). O sistema descobre a loja pelo endereço. A loja original continua em /loja/.
 
   # "Entrar" (login único da plataforma).
   RewriteRule ^entrar/?$ /loja/entrar.html [R=302,L]
@@ -36,4 +50,3 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^([a-z0-9][a-z0-9-]{1,38}[a-z0-9])/(.*)$ loja/$2 [L,QSA]
 </IfModule>
-# ---------- fim do bloco da plataforma Odin Focus ----------

@@ -61,7 +61,6 @@
     }
     aplicarLoja();
     validarCarrinho();
-    renderMenu();
     renderCategorias();
     renderChips();
     renderProdutos();
@@ -126,22 +125,10 @@
     return [...mapa.values()];
   }
 
-  function renderMenu() {
-    const cats = categoriasDeProdutos().slice(0, 6);
-    const ancora = $('#menu a[data-fixo="produtos"]');
-    $$('#menu a[data-cat]').forEach((a) => a.remove());
-    cats.reverse().forEach((c) => {
-      const a = document.createElement('a');
-      a.href = '#produtos';
-      a.dataset.cat = c.nome;
-      a.textContent = c.nome;
-      ancora.after(a);
-    });
-  }
-
+  // As categorias não viram abas do menu: aparecem em "Compre por categoria" (Início) e nos filtros da tela Produtos.
   function renderCategorias() {
     const cats = categoriasDeProdutos();
-    if (cats.length < 2) return;
+    if (cats.length < 2 || $('#produtos').hidden) return; // aba Produtos desabilitada: sem categorias no Início
     $('#categorias').hidden = false;
     $('#gradeCategorias').innerHTML = cats.map((c) => `
       <a class="categoria" href="#produtos" data-cat="${esc(c.nome)}">
@@ -761,8 +748,8 @@
     $$('#menu a').forEach((a) => {
       const href = a.getAttribute('href');
       const ativo = href === `#${tela}` || (tela === 'inicio' && href === '#inicio');
-      a.classList.toggle('ativo', ativo && !a.dataset.cat);
-      if (ativo && !a.dataset.cat) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      a.classList.toggle('ativo', ativo);
+      if (ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     const alvo = location.hash.slice(1);
     // Âncoras do Início (Como funciona, Sobre nós) rolam até a seção; as telas abrem no topo.

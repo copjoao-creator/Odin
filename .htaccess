@@ -7,6 +7,14 @@
 # NÃO substitua: copie só o bloco abaixo para o fim do arquivo que já existe.
 
 # ---------- início do bloco da plataforma Odin Focus ----------
+# Páginas da raiz (index.html): o navegador sempre confere se há versão nova. Sem isso, quem já
+# tinha aberto o site continua vendo a página antiga (que ia direto para a loja).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
 

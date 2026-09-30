@@ -154,7 +154,7 @@ final class Pedidos
         ]
       );
       $id = Banco::ultimoId();
-      $st = Banco::pdo()->prepare(
+      $st = Banco::preparar(
         'INSERT INTO pedido_itens (pedido_id, tipo, codigo, descricao, quantidade, preco_unitario, custo_unitario, renovacao, referencia)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       );

@@ -68,10 +68,7 @@ final class Http
   {
     $url = trim(Config::get('loja_url'));
     if ($url !== '') return rtrim($url, '/') . '/';
-    if (empty($_SERVER['HTTP_HOST'])) return '';
-    // /loja/api/index.php ou /loja/instalar.php -> /loja
-    $pasta = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-    $pasta = rtrim((string)preg_replace('#/api$#', '', $pasta), '/');
-    return (self::https() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $pasta . '/';
+    // Plataforma: https://www.odinfocus.com.br/{endereço da loja}/
+    return LojaAtual::url();
   }
 }

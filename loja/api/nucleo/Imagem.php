@@ -23,7 +23,7 @@ final class Imagem
     }
     [$larg, $alt, $tipo] = $info;
     $ext = $tipo === IMAGETYPE_PNG ? 'png' : 'jpg';
-    $destinoPasta = LOJA_RAIZ . '/uploads/' . $pasta;
+    $destinoPasta = LojaAtual::uploads() . '/' . $pasta;
     if (!is_dir($destinoPasta) && !mkdir($destinoPasta, 0755, true)) throw new ErroApi('Não foi possível criar a pasta de imagens.', 500);
     $nome = bin2hex(random_bytes(12)) . '.' . $ext;
     $destino = $destinoPasta . '/' . $nome;
@@ -62,7 +62,7 @@ final class Imagem
   public static function icone(string $pasta, string $arquivo, int $lado = 180): ?string
   {
     if (!function_exists('imagecreatetruecolor')) return null;
-    $caminho = LOJA_RAIZ . '/uploads/' . $pasta . '/' . $arquivo;
+    $caminho = LojaAtual::uploads() . '/' . $pasta . '/' . $arquivo;
     $info = @getimagesize($caminho);
     if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true)) return null;
     $origem = $info[2] === IMAGETYPE_PNG ? @imagecreatefrompng($caminho) : @imagecreatefromjpeg($caminho);
@@ -78,7 +78,7 @@ final class Imagem
     imagealphablending($final, true);
     imagecopyresampled($final, $origem, intdiv($lado - $novaL, 2), intdiv($lado - $novaA, 2), 0, 0, $novaL, $novaA, $larg, $alt);
     $nome = bin2hex(random_bytes(12)) . '.png';
-    $ok = imagepng($final, LOJA_RAIZ . '/uploads/' . $pasta . '/' . $nome, 6);
+    $ok = imagepng($final, LojaAtual::uploads() . '/' . $pasta . '/' . $nome, 6);
     imagedestroy($origem);
     imagedestroy($final);
     return $ok ? $nome : null;
@@ -87,7 +87,7 @@ final class Imagem
   public static function apagar(?string $pasta, ?string $arquivo): void
   {
     if (!$pasta || !$arquivo || !preg_match('/^[a-f0-9]{24}\.(png|jpg)$/', $arquivo)) return;
-    $caminho = LOJA_RAIZ . '/uploads/' . $pasta . '/' . $arquivo;
+    $caminho = LojaAtual::uploads() . '/' . $pasta . '/' . $arquivo;
     if (is_file($caminho)) @unlink($caminho);
   }
 

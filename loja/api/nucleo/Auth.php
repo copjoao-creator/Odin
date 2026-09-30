@@ -22,15 +22,23 @@ final class Auth
   public static function admin(): ?array
   {
     self::iniciarSessao();
-    $id = $_SESSION['admin_id'] ?? null;
-    if (!$id) return null;
+    // Plataforma: a mesma sessão guarda um acesso por loja ($_SESSION['lojas'][id da loja]) e,
+    // se houver, o do administrador master, que entra no painel de qualquer loja como "tecnico".
+    $id = $_SESSION['lojas'][LojaAtual::id()] ?? null;
+    $master = $_SESSION['master_id'] ?? null;
+    if (!$id && !$master) return null;
     // Sessões expiram após 8 horas sem uso.
     if (time() - ($_SESSION['ultimo_uso'] ?? 0) > 8 * 3600) {
       self::sair();
       return null;
     }
     $_SESSION['ultimo_uso'] = time();
-    return Banco::um('SELECT id, nome, email, perfil FROM administradores WHERE id = ?', [$id]);
+    if ($id) {
+      $a = Banco::um('SELECT id, nome, email, perfil FROM administradores WHERE id = ?', [$id]);
+      if ($a) return $a;
+    }
+    $m = $master ? Plataforma::master() : null;
+    return $m ? ['id' => 0, 'nome' => $m['nome'], 'email' => $m['email'], 'perfil' => 'tecnico', 'master' => true] : null;
   }
 
   public static function exigirAdmin(): array
@@ -92,10 +100,19 @@ final class Auth
     Banco::executar('DELETE FROM login_tentativas WHERE ip = ?', [$ip]);
     Banco::executar('UPDATE administradores SET ultimo_acesso = NOW() WHERE id = ?', [$a['id']]);
 
+    self::entrarNaLoja(LojaAtual::id(), (int)$a['id']);
+    return ['id' => (int)$a['id'], 'nome' => $a['nome'], 'email' => $a['email'], 'perfil' => $a['perfil'] ?? 'administrador', 'csrf' => self::csrf()];
+  }
+
+  /** Abre a sessão do painel de uma loja (sem derrubar os acessos às outras lojas nem o do master). */
+  public static function entrarNaLoja(int $lojaId, int $adminId): void
+  {
     self::iniciarSessao();
     session_regenerate_id(true);
-    $_SESSION = ['admin_id' => (int)$a['id'], 'ultimo_uso' => time()];
-    return ['id' => (int)$a['id'], 'nome' => $a['nome'], 'email' => $a['email'], 'perfil' => $a['perfil'] ?? 'administrador', 'csrf' => self::csrf()];
+    $_SESSION['lojas'] = ($_SESSION['lojas'] ?? []);
+    $_SESSION['lojas'][$lojaId] = $adminId;
+    $_SESSION['ultimo_uso'] = time();
+    unset($_SESSION['admin_id']); // sessão antiga (antes da plataforma)
   }
 
   public static function sair(): void

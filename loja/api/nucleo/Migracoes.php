@@ -35,7 +35,7 @@ final class Migracoes
     if (self::tabela('assinaturas')) {
       self::coluna('assinaturas', 'data_final', 'DATE NULL AFTER proxima_cobranca');
       $tipo = (string)Banco::valor(
-        "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'assinaturas' AND COLUMN_NAME = 'status'"
+        "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'status'", [Banco::t('assinaturas')]
       );
       if (strpos($tipo, 'encerrada') === false) {
         Banco::executar("ALTER TABLE assinaturas MODIFY COLUMN status ENUM('ativa','atrasada','cancelada','encerrada') NOT NULL DEFAULT 'ativa'");
@@ -65,7 +65,7 @@ final class Migracoes
   {
     return (bool)Banco::valor(
       'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
-      [$tabela]
+      [Banco::t($tabela)]
     );
   }
 
@@ -73,7 +73,7 @@ final class Migracoes
   {
     return (bool)Banco::valor(
       'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-      [$tabela, $coluna]
+      [Banco::t($tabela), $coluna]
     );
   }
 
@@ -86,7 +86,7 @@ final class Migracoes
   {
     return (bool)Banco::valor(
       'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?',
-      [$tabela, $indice]
+      [Banco::t($tabela), $indice]
     );
   }
 }

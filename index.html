@@ -3,13 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Odin Focus</title>
-  <!-- A página principal do site é a loja. -->
-  <meta http-equiv="refresh" content="0; url=loja/">
-  <link rel="canonical" href="https://www.odinfocus.com.br/loja/">
-  <script>location.replace('loja/' + location.search + location.hash);</script>
+  <title>Odin Focus · Lojas online com pagamento integrado</title>
+  <meta name="description" content="Odin Focus: plataforma de lojas online com vitrine, painel próprio, personalização e pagamento por Pix, boleto, cartão e assinaturas.">
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="img/odin-focus-simbolo.svg" type="image/svg+xml">
+  <style>
+    :root { --azul: #1B2D42; --creme: #F7F6F2; --bege: #E5DECF; --realce: #1FA8DD; --texto: #333; --suave: #6B6760; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font: 16px/1.6 'Helvetica Neue', Helvetica, Arial, sans-serif; color: var(--texto); background: var(--creme); }
+    a { color: inherit; }
+    .container { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+    .topo { background: var(--creme); border-bottom: 1px solid #E9E4D9; position: sticky; top: 0; z-index: 10; }
+    .topo-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; }
+    .topo img { width: 200px; height: auto; display: block; }
+    .btn { display: inline-block; background: var(--azul); color: var(--creme); text-decoration: none; padding: 12px 26px; border-radius: 2px; letter-spacing: 1.5px; text-transform: uppercase; font-size: .82rem; border: 1px solid var(--azul); }
+    .btn:hover { opacity: .9; }
+    .btn-claro { background: transparent; color: var(--creme); border-color: rgba(247, 246, 242, .6); }
+    .hero { background: var(--azul); color: var(--creme); padding: 88px 0 96px; }
+    .hero h1 { font-size: clamp(1.9rem, 4.5vw, 3rem); line-height: 1.15; font-weight: 400; letter-spacing: 1px; max-width: 18ch; }
+    .hero h1 strong { color: var(--realce); font-weight: 600; }
+    .hero p { margin: 18px 0 30px; max-width: 58ch; opacity: .85; font-size: 1.05rem; }
+    .hero .acoes { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero .btn:not(.btn-claro) { background: var(--realce); border-color: var(--realce); color: var(--azul); font-weight: 600; }
+    .recursos { padding: 72px 0; }
+    .recursos h2 { text-align: center; color: var(--azul); font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 400; margin-bottom: 36px; }
+    .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .card { background: #fff; border-radius: 8px; padding: 26px 22px; box-shadow: 0 4px 12px rgba(0, 0, 0, .05); }
+    .card h3 { color: var(--azul); font-size: 1rem; margin-bottom: 6px; }
+    .card p { color: var(--suave); font-size: .92rem; }
+    .rodape { background: var(--azul); color: var(--creme); padding: 28px 0; font-size: .85rem; }
+    .rodape-in { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; opacity: .8; }
+    @media (max-width: 560px) { .topo img { width: 150px; } .btn { padding: 11px 18px; } .hero { padding: 60px 0; } }
+  </style>
 </head>
 <body>
-  <p>Abrindo a loja… Se não abrir, <a href="loja/">clique aqui</a>.</p>
+  <header class="topo">
+    <div class="topo-in container">
+      <a href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo.svg" alt="Odin Focus" width="200" height="55"></a>
+      <a class="btn" href="loja/entrar.html">Entrar</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Sua loja online com <strong>pagamento integrado</strong> e a sua cara.</h1>
+        <p>Vitrine de produtos e serviços, painel próprio, personalização de cores e logotipo, e pagamento por Pix, boleto, cartão e assinaturas recorrentes.</p>
+        <div class="acoes">
+          <a class="btn" href="loja/entrar.html">Entrar</a>
+          <a class="btn btn-claro" href="loja/">Conheça a loja Odin Focus</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="recursos">
+      <div class="container">
+        <h2>Cada loja, independente</h2>
+        <div class="grade">
+          <div class="card"><h3>Endereço próprio</h3><p>Cada loja tem seu endereço, sua vitrine e seu painel de administração.</p></div>
+          <div class="card"><h3>Personalização</h3><p>Logotipo, cores e dados da empresa definidos pelo próprio lojista.</p></div>
+          <div class="card"><h3>Pagamentos</h3><p>Pix, boleto e cartão pelo Mercado Pago, e assinaturas cobradas automaticamente no cartão.</p></div>
+          <div class="card"><h3>Gestão completa</h3><p>Pedidos, clientes, estoque, assinaturas e painel financeiro em um só lugar.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container rodape-in">
+      <span>© <span id="ano">2026</span> Odin Focus</span>
+      <a href="loja/entrar.html">Área do lojista</a>
+    </div>
+  </footer>
+  <script>document.getElementById('ano').textContent = new Date().getFullYear();</script>
 </body>
 </html>

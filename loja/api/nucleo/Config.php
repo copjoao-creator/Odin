@@ -95,6 +95,12 @@ final class Config
   private static ?array $arquivo = null;
   private static ?array $valores = null;
 
+  /** Esquece as configurações lidas (ao trocar de loja na mesma execução, ex.: rotina diária). */
+  public static function limparCache(): void
+  {
+    self::$valores = null;
+  }
+
   public static function instalado(): bool
   {
     return is_file(ARQUIVO_CONFIG);
@@ -126,7 +132,7 @@ final class Config
 
   public static function salvar(array $valores): void
   {
-    $st = Banco::pdo()->prepare('INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)');
+    $st = Banco::preparar('INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)');
     foreach ($valores as $chave => $valor) $st->execute([$chave, (string)$valor]);
     self::$valores = null;
   }

@@ -30,9 +30,61 @@ final class Banco
     self::$pdo = $pdo;
   }
 
+  /**
+   * Plataforma com várias lojas no mesmo banco: cada loja tem as próprias tabelas com um prefixo
+   * (ex.: "l2_pedidos"). A loja 1 (a original) não tem prefixo. O SQL do sistema continua escrito com
+   * os nomes simples ("FROM pedidos") e é ajustado aqui, antes de ir para o banco.
+   */
+  public const TABELAS_DA_LOJA = [
+    'configuracoes', 'administradores', 'login_tentativas', 'clientes', 'pedidos', 'pedido_itens',
+    'pagamentos', 'produtos', 'produto_fotos', 'servicos', 'assinaturas',
+  ];
+
+  private static string $prefixo = '';
+
+  public static function usarPrefixo(string $prefixo): void
+  {
+    if ($prefixo !== '' && !preg_match('/^l[0-9]{1,6}_$/', $prefixo)) throw new RuntimeException('Prefixo de loja inválido.');
+    self::$prefixo = $prefixo;
+  }
+
+  public static function prefixo(): string
+  {
+    return self::$prefixo;
+  }
+
+  /** Nome real da tabela da loja atual (para consultas ao information_schema). */
+  public static function t(string $tabela): string
+  {
+    return in_array($tabela, self::TABELAS_DA_LOJA, true) ? self::$prefixo . $tabela : $tabela;
+  }
+
+  /**
+   * Põe o prefixo da loja nos nomes de tabela depois de FROM, JOIN, INTO, UPDATE, TABLE, EXISTS e
+   * REFERENCES, e nos nomes das chaves estrangeiras (únicos no banco inteiro). Nomes que já têm
+   * prefixo não mudam, então aplicar duas vezes não estraga nada.
+   */
+  public static function sql(string $sql): string
+  {
+    if (self::$prefixo === '') return $sql;
+    $p = self::$prefixo;
+    $sql = preg_replace_callback(
+      '/\b(FROM|JOIN|INTO|UPDATE|TABLE|EXISTS|REFERENCES)(\s+)(`?)(' . implode('|', self::TABELAS_DA_LOJA) . ')\b/i',
+      fn($m) => $m[1] . $m[2] . $m[3] . $p . $m[4],
+      $sql
+    );
+    return preg_replace('/\bCONSTRAINT(\s+)(fk_)/i', 'CONSTRAINT$1' . $p . '$2', $sql);
+  }
+
+  /** prepare() já com o prefixo da loja (use no lugar de Banco::pdo()->prepare). */
+  public static function preparar(string $sql): PDOStatement
+  {
+    return self::pdo()->prepare(self::sql($sql));
+  }
+
   public static function um(string $sql, array $params = []): ?array
   {
-    $st = self::pdo()->prepare($sql);
+    $st = self::preparar($sql);
     $st->execute($params);
     $linha = $st->fetch();
     return $linha === false ? null : $linha;
@@ -40,14 +92,14 @@ final class Banco
 
   public static function todos(string $sql, array $params = []): array
   {
-    $st = self::pdo()->prepare($sql);
+    $st = self::preparar($sql);
     $st->execute($params);
     return $st->fetchAll();
   }
 
   public static function valor(string $sql, array $params = [])
   {
-    $st = self::pdo()->prepare($sql);
+    $st = self::preparar($sql);
     $st->execute($params);
     $v = $st->fetchColumn();
     return $v === false ? null : $v;
@@ -56,7 +108,7 @@ final class Banco
   /** Executa e devolve quantas linhas foram afetadas. */
   public static function executar(string $sql, array $params = []): int
   {
-    $st = self::pdo()->prepare($sql);
+    $st = self::preparar($sql);
     $st->execute($params);
     return $st->rowCount();
   }
@@ -99,7 +151,7 @@ final class Banco
   {
     $sql = preg_replace('/^\s*--.*$/m', '', (string)file_get_contents($arquivo));
     foreach (preg_split('/;\s*(\r?\n|$)/', $sql) as $comando) {
-      if (trim($comando) !== '') $pdo->exec($comando);
+      if (trim($comando) !== '') $pdo->exec(self::sql($comando));
     }
   }
 }

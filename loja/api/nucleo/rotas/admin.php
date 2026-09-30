@@ -140,6 +140,7 @@ return function (Roteador $r) {
 
   $r->admin('PUT', 'admin/senha', function () {
     $a = Auth::exigirAdmin();
+    if (!empty($a['master'])) throw new ErroApi('A senha do administrador master é alterada no painel da plataforma (Entrar › Minha conta).', 422);
     $d = Http::entrada();
     $hash = Banco::valor('SELECT senha_hash FROM administradores WHERE id = ?', [$a['id']]);
     if (!password_verify((string)($d['senha_atual'] ?? ''), (string)$hash)) throw new ErroApi('Senha atual incorreta.', 422, ['campo' => 'senha_atual']);

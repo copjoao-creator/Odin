@@ -79,6 +79,14 @@
     $('#telaLogin').hidden = true;
     $('#app').hidden = false;
     $('#nomeAdmin').textContent = admin.nome;
+    // Administrador master dentro do painel de uma loja: faixa de aviso e atalho para todas as lojas.
+    if (admin.master && !$('#avisoMaster')) {
+      const faixa = document.createElement('div');
+      faixa.id = 'avisoMaster';
+      faixa.className = 'aviso-master';
+      faixa.innerHTML = `<span>Você está no painel de <strong>${esc(A.loja.nome)}</strong> como administrador master.</span><a href="/loja/master/">← Todas as lojas</a>`;
+      $('.principal').prepend(faixa);
+    }
     ir();
   }
 

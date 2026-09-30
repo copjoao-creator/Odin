@@ -237,6 +237,43 @@ envia até 200 mensagens por mês.
 
 ---
 
+## Plataforma: várias lojas
+
+O mesmo sistema atende **várias lojas independentes**. Cada uma fica em `odinfocus.com.br/{endereço}/`,
+com vitrine, painel, configurações, personalização, pagamentos, clientes e pedidos **só dela**.
+A loja original continua em `odinfocus.com.br/loja/` (é a loja 1).
+
+| Endereço | Para quê |
+|---|---|
+| `odinfocus.com.br/` | Página da Odin Focus, com o botão **Entrar** |
+| `odinfocus.com.br/entrar` | Login único: o sistema descobre se é o master ou o lojista de qual loja |
+| `odinfocus.com.br/loja/master/` | Painel do **administrador master** (todas as lojas) |
+| `odinfocus.com.br/{loja}/` e `/{loja}/admin/` | Vitrine e painel de cada loja |
+
+**Instalar a plataforma** (uma vez):
+
+1. Envie a pasta `loja` atualizada (sem `config.php`, sem `uploads/`) e o `index.html` da raiz.
+2. **Regras de endereço:** no `public_html`, abra o `.htaccess` que já existe (arquivo oculto) e
+   **acrescente no fim** o bloco entre "início do bloco da plataforma" e "fim do bloco" do arquivo
+   `.htaccess` da raiz do projeto. Não apague o que já existe (por exemplo, a regra de forçar HTTPS).
+3. Abra o site uma vez: as tabelas da plataforma são criadas sozinhas e a loja atual vira a loja 1,
+   sem mudar nada nos dados dela.
+
+**Administrador master** (`admin@odinfocus.com.br`): acesso total a todas as lojas. O e-mail de
+verificação é `copjoao@gmail.com`. No primeiro acesso, em **Entrar**, clique em
+**Criar ou recuperar a senha**: o código de 6 dígitos vai para o e-mail de verificação. O mesmo vale
+para esquecer a senha, e trocar a senha (Painel master › Minha conta) também pede o código.
+
+**Cadastrar uma loja** (só o master): Painel master › **Nova loja** › nome, endereço (não pode ser
+mudado depois) e o primeiro acesso do lojista (perfil *Administrador*). A loja já nasce no ar, vazia.
+Em seguida, pelo **Abrir painel**, configure as chaves de pagamento (Mercado Pago/Asaas) da loja.
+
+- **Acessos:** cria outro acesso ou **redefine a senha** de um lojista que esqueceu.
+- **Suspender:** a loja sai do ar para clientes e lojista; os avisos de pagamento continuam chegando.
+- **Rotina diária:** o mesmo comando do cron atende todas as lojas ativas.
+
+---
+
 ## Como usar o painel
 
 Endereço: **`https://www.odinfocus.com.br/loja/admin/`**
@@ -342,6 +379,11 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
   `&app=servicos` recebe `subscription_preapproval` e `subscription_authorized_payment`, e o módulo de serviços
   decide se a cobrança é do pedido de origem ou de um pedido de renovação.
 - Mudanças no banco de lojas já instaladas ficam em `api/nucleo/Migracoes.php` e rodam sozinhas na primeira chamada à API.
+- Plataforma (`Plataforma.php`, `LojaAtual.php`, `plataforma.sql`, `rotas_plataforma.php`): a loja vem do primeiro
+  trecho do endereço; cada loja tem prefixo de tabelas (`l{id}_`) aplicado em `Banco::sql()` — o SQL continua com os
+  nomes simples. Imagens em `uploads/lojas/{endereço}/` (a loja 1 usa `uploads/`). Sessão: `$_SESSION['lojas'][id]`
+  por loja e `$_SESSION['master_id']` para o master. Testes locais: `config.php` aceita `email_arquivo` (grava os
+  e-mails num arquivo) e `url_base`.
 - Checkout pelo CPF (`clientes/identificar`): quem já tem cadastro vê só um resumo mascarado e o pedido usa os
   dados do banco (`pedidos.dados_protegidos`), sem devolvê-los ao navegador. Consultas limitadas a 10 por IP a cada
   15 minutos (tabela `login_tentativas`, chave `cpf:IP`).

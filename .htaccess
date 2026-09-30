@@ -1,0 +1,31 @@
+# Plataforma Odin Focus — endereços das lojas (public_html/.htaccess)
+#
+# Cada loja fica em odinfocus.com.br/{endereço}/ e usa os arquivos da pasta loja/ (o mesmo sistema
+# para todas). O sistema descobre a loja pelo endereço. A loja original continua em /loja/.
+#
+# ATENÇÃO: se o public_html já tiver um .htaccess (por exemplo, com a regra de forçar HTTPS),
+# NÃO substitua: copie só o bloco abaixo para o fim do arquivo que já existe.
+
+# ---------- início do bloco da plataforma Odin Focus ----------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # "Entrar" (login único da plataforma).
+  RewriteRule ^entrar/?$ /loja/entrar.html [R=302,L]
+
+  # /{loja} sem barra no fim -> /{loja}/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^([a-z0-9][a-z0-9-]{1,38}[a-z0-9])$ /$1/ [R=301,L]
+
+  # Imagens enviadas no painel de cada loja: loja/uploads/lojas/{loja}/...
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^([a-z0-9][a-z0-9-]{1,38}[a-z0-9])/uploads/(.*)$ loja/uploads/lojas/$1/$2 [L]
+
+  # Páginas, estilos, scripts e API de cada loja: os arquivos da pasta loja/.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^([a-z0-9][a-z0-9-]{1,38}[a-z0-9])/(.*)$ loja/$2 [L,QSA]
+</IfModule>
+# ---------- fim do bloco da plataforma Odin Focus ----------

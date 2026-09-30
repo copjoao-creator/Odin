@@ -213,3 +213,26 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .previa-cores .pc-realce { color: var(--pc-realce); font-weight: 600; }
 .previa-cores .pc-botao { background: var(--pc-principal); color: var(--pc-fundo); padding: 6px 14px; font-size: .8rem; letter-spacing: 1px; text-transform: uppercase; }
 .previa-cores .pc-etiqueta { background: var(--pc-secundaria); color: var(--pc-principal); padding: 3px 10px; font-size: .75rem; }
+
+/* ---------- Plataforma: Entrar e painel master ---------- */
+.entrar-logo { width: 220px; height: auto; justify-self: center; margin-bottom: 4px; }
+.login-caixa form { display: grid; gap: 14px; }
+.entrar-nota { font-size: .85rem; color: var(--suave); background: var(--creme); padding: 10px 12px; border-radius: 6px; text-align: left; }
+.entrar-lojas { display: grid; gap: 10px; }
+.form-erro.aviso-info { background: #E4EDF6; border-left-color: #1F4E79; }
+.master-logo { display: grid; gap: 4px; }
+.master-logo img { width: 170px; height: auto; display: block; }
+.master-logo small { font-size: .62rem; letter-spacing: 3px; text-transform: uppercase; color: color-mix(in srgb, var(--creme) 70%, transparent); }
+.acoes-loja { white-space: nowrap; }
+.acoes-loja a, .acoes-loja .link { display: block; margin: 2px 0; font-size: .85rem; }
+.endereco-loja { display: flex; align-items: center; gap: 6px; }
+.endereco-loja input { flex: 1; min-width: 0; }
+.titulo-form { font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--azul); margin-top: 8px; }
+.resumo-loja { display: grid; gap: 8px; margin: 12px 0; }
+.resumo-loja div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }
+.resumo-loja dt { color: var(--suave); font-size: .85rem; }
+.resumo-loja dd { margin: 0; word-break: break-all; }
+.lista-acessos { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 4px; }
+.aviso-master { background: var(--realce); color: var(--azul); font-size: .8rem; padding: 8px 16px; display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.aviso-master a { color: inherit; font-weight: 600; }
+@media (max-width: 600px) { .resumo-loja div { grid-template-columns: 1fr; gap: 2px; } }

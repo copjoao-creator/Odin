@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Plataforma · Odin Focus</title>
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="/img/odin-focus-simbolo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/loja.css">
+  <link rel="stylesheet" href="../admin/admin.css">
+</head>
+<body class="painel">
+  <!-- Painel do administrador master: cadastro e acompanhamento de todas as lojas. -->
+  <div class="app" id="app" hidden>
+    <aside class="lateral" id="lateral">
+      <a class="logo logo-claro master-logo" href="#lojas"><img src="/img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="180" height="50"><small>Plataforma</small></a>
+      <nav class="nav" id="nav" aria-label="Seções da plataforma">
+        <a href="#lojas" data-tela="lojas"><span data-icone="carrinho"></span>Lojas</a>
+        <a href="#conta" data-tela="conta"><span data-icone="escudo"></span>Minha conta</a>
+      </nav>
+      <div class="lateral-rodape">
+        <p id="nomeAdmin"></p>
+        <a href="/" target="_blank" rel="noopener">Ver o site ↗</a>
+        <button type="button" class="link" id="btnSair">Sair</button>
+      </div>
+    </aside>
+
+    <div class="principal">
+      <header class="topo-painel">
+        <button type="button" class="btn-icone so-celular" id="btnMenu" aria-label="Abrir menu" data-icone="menu"></button>
+        <h1 id="tituloTela">Lojas</h1>
+        <div class="topo-painel-acoes" id="acoesTela"></div>
+      </header>
+      <div class="conteudo" id="conteudo"></div>
+    </div>
+  </div>
+
+  <dialog class="dlg dlg-painel" id="dlg"></dialog>
+
+  <script src="../js/comum.js" data-api="../api/"></script>
+  <script src="master.js"></script>
+</body>
+</html>

@@ -19,6 +19,9 @@ final class Email
       "From: {$nome} <{$remetente}>",
       "Reply-To: {$remetente}",
     ]);
+    // Testes locais: grava o e-mail num arquivo em vez de enviar (config.php › "email_arquivo").
+    $arquivo = (string)(Config::arquivo()['email_arquivo'] ?? '');
+    if ($arquivo !== '') return (bool)file_put_contents($arquivo, "Para: {$para}\nAssunto: {$assunto}\n" . self::modelo($assunto, $html) . "\n\n", FILE_APPEND);
     $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', self::modelo($assunto, $html), $cabecalhos);
     if (!$ok) error_log("Falha ao enviar e-mail para {$para}: {$assunto}");
     return $ok;

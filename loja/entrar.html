@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Entrar · Odin Focus</title>
+  <meta name="theme-color" content="#1B2D42">
+  <link rel="icon" href="/img/odin-focus-simbolo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/loja.css">
+  <link rel="stylesheet" href="admin/admin.css">
+</head>
+<body class="painel">
+  <!-- Login único da plataforma: o sistema descobre se é o administrador master ou o de qual loja. -->
+  <main class="login">
+    <div class="login-caixa">
+      <img class="entrar-logo" src="/img/odin-focus-logo.svg" alt="Odin Focus" width="220" height="60">
+
+      <form id="fEntrar" novalidate>
+        <h1>Entrar</h1>
+        <p class="muted">Administrador da plataforma ou da sua loja.</p>
+        <div class="campos">
+          <label class="c-12">E-mail <input name="email" type="email" autocomplete="username" required></label>
+          <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+        </div>
+        <p class="form-erro" data-erro hidden></p>
+        <button class="btn btn-largo" type="submit">Entrar</button>
+        <button type="button" class="link link-centro" data-ir="recuperar">Criar ou recuperar a senha</button>
+      </form>
+
+      <form id="fRecuperar" novalidate hidden>
+        <h1>Criar ou recuperar a senha</h1>
+        <p class="muted">Enviaremos um código de 6 dígitos para o e-mail de verificação do administrador da plataforma.</p>
+        <div class="campos">
+          <label class="c-12">E-mail de login <input name="email" type="email" autocomplete="username" required></label>
+        </div>
+        <p class="form-erro" data-erro hidden></p>
+        <button class="btn btn-largo" type="submit">Enviar código</button>
+        <p class="fraco entrar-nota">Administrador de loja? Peça a redefinição da senha à Odin Focus.</p>
+        <button type="button" class="link link-centro" data-ir="entrar">← Voltar</button>
+      </form>
+
+      <form id="fCodigo" novalidate hidden>
+        <h1>Nova senha</h1>
+        <p class="muted" id="msgCodigo"></p>
+        <div class="campos">
+          <label class="c-12">Código recebido por e-mail <input name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+          <label class="c-12">Nova senha (mín. 8) <input name="senha" type="password" minlength="8" autocomplete="new-password" required></label>
+          <label class="c-12">Repita a nova senha <input name="senha2" type="password" minlength="8" autocomplete="new-password" required></label>
+        </div>
+        <p class="form-erro" data-erro hidden></p>
+        <button class="btn btn-largo" type="submit">Salvar senha e entrar</button>
+        <button type="button" class="link link-centro" data-ir="recuperar">Não recebi o código</button>
+      </form>
+
+      <div id="vEscolher" hidden>
+        <h1>Escolha a loja</h1>
+        <p class="muted">Você administra mais de uma loja.</p>
+        <div class="entrar-lojas" id="listaLojas"></div>
+      </div>
+
+      <a class="link link-centro" href="/">Voltar ao site</a>
+    </div>
+  </main>
+
+  <script src="js/comum.js" data-api="api/"></script>
+  <script src="js/entrar.js"></script>
+</body>
+</html>

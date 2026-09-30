@@ -442,13 +442,16 @@ final class Plataforma
     if ($arquivo !== '') {
       return (bool)file_put_contents($arquivo, "Para: {$para}\nAssunto: {$assunto}\n{$html}\n\n", FILE_APPEND);
     }
+    // Com SMTP configurado (config.php › "smtp"), envia autenticado pela caixa do domínio (chega na caixa de entrada).
+    if (Smtp::configurado()) return Smtp::enviar($para, $assunto, $html, 'Odin Focus');
     $host = preg_replace('/^www\./', '', (string)parse_url(self::urlBase(), PHP_URL_HOST)) ?: 'odinfocus.com.br';
+    $de = "nao-responda@{$host}";
     $cab = implode("\r\n", [
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=UTF-8',
-      'From: =?UTF-8?B?' . base64_encode('Odin Focus') . "?= <nao-responda@{$host}>",
+      'From: =?UTF-8?B?' . base64_encode('Odin Focus') . "?= <{$de}>",
     ]);
-    $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', $html, $cab);
+    $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', $html, $cab, '-f' . $de);
     if (!$ok) error_log("Falha ao enviar e-mail da plataforma para {$para}: {$assunto}");
     return $ok;
   }

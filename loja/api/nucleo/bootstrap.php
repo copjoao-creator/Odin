@@ -25,6 +25,7 @@ require __DIR__ . '/Imagem.php';
 require __DIR__ . '/Marca.php';
 require __DIR__ . '/MercadoPago.php';
 require __DIR__ . '/Asaas.php';
+require __DIR__ . '/Smtp.php';
 require __DIR__ . '/Email.php';
 require __DIR__ . '/Modulos.php';
 require __DIR__ . '/Clientes.php';

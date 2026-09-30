@@ -203,6 +203,10 @@ Para que cheguem sem cair no spam:
 1. No cPanel, abra **Contas de e-mail** e crie, por exemplo, `contato@odinfocus.com.br`.
 2. No painel da loja, em **Configurações › Loja › E-mail de contato**, informe esse mesmo e-mail.
    Ele será o remetente e também recebe o aviso de *novo pedido pago*.
+3. **E-mail no Titan (HostGator):** só os servidores do Titan podem enviar em nome do domínio. Para os
+   e-mails (inclusive o código do master) chegarem na caixa de entrada, acrescente no `loja/config.php`
+   do servidor, antes do `];` final:
+   `'smtp' => ['host' => 'smtp.titan.email', 'porta' => 465, 'usuario' => 'contato@odinfocus.com.br', 'senha' => 'SENHA DA CAIXA'],`
 
 ---
 

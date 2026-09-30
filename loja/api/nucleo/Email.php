@@ -1,5 +1,5 @@
 <?php
-/** E-mails para o cliente (confirmação de pedido, pagamento aprovado, cobrança de renovação), via mail() da hospedagem. */
+/** E-mails para o cliente (confirmação de pedido, pagamento aprovado, cobrança de renovação), por SMTP (Smtp.php) ou mail() da hospedagem. */
 final class Email
 {
   public static function enviar(string $para, string $assunto, string $html): bool
@@ -22,7 +22,10 @@ final class Email
     // Testes locais: grava o e-mail num arquivo em vez de enviar (config.php › "email_arquivo").
     $arquivo = (string)(Config::arquivo()['email_arquivo'] ?? '');
     if ($arquivo !== '') return (bool)file_put_contents($arquivo, "Para: {$para}\nAssunto: {$assunto}\n" . self::modelo($assunto, $html) . "\n\n", FILE_APPEND);
-    $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', self::modelo($assunto, $html), $cabecalhos);
+    // Com SMTP configurado (config.php › "smtp"), sai autenticado pela caixa da plataforma com o nome
+    // da loja; o e-mail da loja vai em "Responder para", então a resposta do cliente chega à loja.
+    if (Smtp::configurado()) return Smtp::enviar($para, $assunto, self::modelo($assunto, $html), $loja, $remetente);
+    $ok = @mail($para, '=?UTF-8?B?' . base64_encode($assunto) . '?=', self::modelo($assunto, $html), $cabecalhos, '-f' . $remetente);
     if (!$ok) error_log("Falha ao enviar e-mail para {$para}: {$assunto}");
     return $ok;
   }

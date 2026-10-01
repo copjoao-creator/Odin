@@ -283,6 +283,37 @@ body.marca-sem-nome .logo-texto { display: none; }
 .rodape-legal { flex: 1 1 100%; }
 .credito { opacity: .8; }
 .credito a { text-decoration: underline; text-underline-offset: 2px; }
+.credito a.selo-clubes { text-decoration: none; opacity: 1; }
+
+/* ---------- Selo do Tênis de Mesa para Todos (Módulo Financeiro de Clubes · Odin Focus) ---------- */
+/* Herda a cor do texto de onde está: claro nas áreas escuras, escuro nas claras. */
+.selo-clubes { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; line-height: 1.25; }
+.selo-clubes img { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.selo-clubes-texto { display: flex; flex-direction: column; text-align: left; }
+.selo-clubes-texto small { font-size: .62rem; letter-spacing: 1.5px; text-transform: uppercase; opacity: .75; }
+.selo-clubes-texto strong { font-size: .92rem; font-weight: 700; }
+.selo-clubes-texto span { font-size: .72rem; opacity: .75; }
+.selo-clubes:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+/* Numa linha só, no tamanho do texto em volta: "Módulo Financeiro de Clubes · Tênis de Mesa para Todos · Odin Focus" */
+.selo-clubes-linha { gap: 8px; }
+.selo-clubes-linha img { width: 24px; height: 24px; }
+.selo-clubes-linha .selo-clubes-texto { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+.selo-clubes-linha .selo-clubes-texto > * { font-size: inherit; letter-spacing: inherit; text-transform: inherit; }
+.selo-clubes-linha .selo-clubes-texto > * + *::before { content: "·"; margin-right: 6px; opacity: .6; font-weight: 400; }
+
+.credito .selo-clubes-linha img { width: 28px; height: 28px; }
+
+/* Faixa do topo com o selo à esquerda e os avisos da loja à direita */
+.faixa-com-selo { justify-content: space-between; align-items: center; padding-top: 6px; padding-bottom: 6px; }
+.faixa-com-selo .selo-clubes-linha img { width: 30px; height: 30px; }
+.faixa-avisos { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; }
+/* Celular: o selo em duas linhas (sem os pontos separadores) e a faixa centralizada */
+@media (max-width: 760px) {
+  .selo-clubes-linha .selo-clubes-texto { flex-direction: column; align-items: flex-start; }
+  .selo-clubes-linha .selo-clubes-texto > * + *::before { content: none; }
+  .faixa-com-selo { justify-content: center; gap: 4px 28px; }
+  .faixa-com-selo .selo-clubes-texto > span { display: none; }
+}
 
 .zap-flutuante {
   position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 56px; height: 56px; border-radius: 50%;

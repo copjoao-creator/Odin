@@ -270,8 +270,21 @@ Loja.linhaLegal = (l) => {
   return [e.razao_social, e.documento ? `${e.rotulo_documento} ${e.documento}` : '', e.endereco].filter(Boolean).join(' · ');
 };
 
-/** Crédito discreto do sistema (rodapé da loja e painel). */
-Loja.credito = () => 'Desenvolvido por <a href="https://www.odinfocus.com.br" target="_blank" rel="noopener">Odin Focus</a>';
+/**
+ * Selo do Tênis de Mesa para Todos: o Odin Focus é o Módulo Financeiro de Clubes da plataforma.
+ * formato "bloco": logotipo e três linhas (login, painéis); "linha": tudo numa linha (faixa do topo, rodapé).
+ * Herda a cor do texto de onde é colocado (claro nas áreas escuras, escuro nas claras).
+ */
+Loja.CLUBES = { nome: 'Tênis de Mesa para Todos', modulo: 'Módulo Financeiro de Clubes', site: 'https://www.tenisdemesasp.com.br' };
+Loja.seloClubes = (formato = 'bloco') => {
+  const c = Loja.CLUBES;
+  return `<a class="selo-clubes selo-clubes-${formato}" href="${c.site}" target="_blank" rel="noopener" title="${c.nome}">`
+    + `<img src="${Loja.RAIZ}img/tenis-de-mesa-para-todos.png" alt="" width="40" height="40">`
+    + `<span class="selo-clubes-texto"><small>${c.modulo}</small><strong>${c.nome}</strong><span>Odin Focus</span></span></a>`;
+};
+
+/** Crédito do sistema no rodapé da loja: o selo do Módulo Financeiro de Clubes. */
+Loja.credito = () => Loja.seloClubes('linha');
 
 /** Preenche o rodapé-base comum a todas as páginas: nome, linha legal e crédito. */
 Loja.aplicarRodape = (l) => {
@@ -318,3 +331,6 @@ Loja.aviso = (texto, tipo = 'info') => {
   setTimeout(() => el.classList.add('saindo'), tempo);
   setTimeout(() => el.remove(), tempo + 500);
 };
+
+// Selo do Tênis de Mesa para Todos em todas as telas: o HTML só marca o lugar com [data-selo-clubes].
+document.querySelectorAll('[data-selo-clubes]').forEach((el) => { el.innerHTML = Loja.seloClubes(el.dataset.seloClubes || 'bloco'); });

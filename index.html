@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Odin Focus · Lojas online com pagamento integrado</title>
-  <meta name="description" content="Odin Focus: plataforma de lojas online com vitrine, painel próprio, personalização e pagamento por Pix, boleto, cartão e assinaturas.">
+  <title>Odin Focus · Módulo Financeiro de Clubes · Tênis de Mesa para Todos</title>
+  <meta name="description" content="Odin Focus, o Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, painel próprio, personalização e pagamento por Pix, boleto, cartão e assinaturas.">
   <meta name="theme-color" content="#1B2D42">
   <link rel="icon" href="img/odin-focus-simbolo.svg" type="image/svg+xml">
   <style>
@@ -33,13 +33,29 @@
     .card p { color: var(--suave); font-size: .92rem; }
     .rodape { background: var(--azul); color: var(--creme); padding: 28px 0; font-size: .85rem; }
     .rodape-in { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; opacity: .8; }
+    /* Selo do Tênis de Mesa para Todos: o Odin Focus é o Módulo Financeiro de Clubes */
+    .topo-marcas { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .selo-clubes { display: inline-flex; align-items: center; gap: 10px; color: var(--azul); text-decoration: none; line-height: 1.25; padding-left: 18px; border-left: 1px solid #E0D9CB; }
+    .topo .selo-clubes img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+    .selo-clubes span { display: flex; flex-direction: column; }
+    .selo-clubes small { font-size: .62rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--suave); }
+    .selo-clubes strong { font-size: .95rem; }
+    .selo-clubes:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+    .hero .sobretitulo { font-size: .78rem; letter-spacing: 3px; text-transform: uppercase; opacity: .8; margin: 0 0 18px; max-width: none; }
+    @media (max-width: 760px) { .selo-clubes span { display: none; } .selo-clubes { padding-left: 12px; } .topo-marcas { gap: 12px; } }
     @media (max-width: 560px) { .topo img { width: 150px; } .btn { padding: 11px 18px; } .hero { padding: 60px 0; } }
   </style>
 </head>
 <body>
   <header class="topo">
     <div class="topo-in container">
-      <a href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo.svg" alt="Odin Focus" width="200" height="55"></a>
+      <div class="topo-marcas">
+        <a href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo.svg" alt="Odin Focus" width="200" height="55"></a>
+        <a class="selo-clubes" href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener" aria-label="Módulo Financeiro de Clubes · Tênis de Mesa para Todos">
+          <img src="loja/img/tenis-de-mesa-para-todos.png" alt="" width="44" height="44">
+          <span><small>Módulo Financeiro de Clubes</small><strong>Tênis de Mesa para Todos</strong></span>
+        </a>
+      </div>
       <a class="btn" href="loja/entrar.html">Entrar</a>
     </div>
   </header>
@@ -47,6 +63,7 @@
   <main>
     <section class="hero">
       <div class="container">
+        <p class="sobretitulo">Módulo Financeiro de Clubes · Tênis de Mesa para Todos</p>
         <h1>Sua loja online com <strong>pagamento integrado</strong> e a sua cara.</h1>
         <p>Vitrine de produtos e serviços, painel próprio, personalização de cores e logotipo, e pagamento por Pix, boleto, cartão e assinaturas recorrentes.</p>
         <div class="acoes">
@@ -71,7 +88,7 @@
 
   <footer class="rodape">
     <div class="container rodape-in">
-      <span>© <span id="ano">2026</span> Odin Focus</span>
+      <span>© <span id="ano">2026</span> Odin Focus · Módulo Financeiro de Clubes do Tênis de Mesa para Todos</span>
       <a href="loja/entrar.html">Área do lojista</a>
     </div>
   </footer>

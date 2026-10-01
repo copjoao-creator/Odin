@@ -29,6 +29,20 @@
 .lateral-rodape .link { color: color-mix(in srgb, var(--creme) 75%, transparent); justify-self: start; }
 .lateral-rodape p { opacity: .7; }
 
+/* Selo do Tênis de Mesa para Todos (Módulo Financeiro de Clubes · Odin Focus) nas telas do painel */
+.login-selo, .entrar-selo { justify-self: center; color: var(--azul); }
+.login-selo { border-top: 1px solid var(--linha); padding-top: 16px; margin-top: 4px; width: 100%; }
+.entrar-selo { margin-bottom: 6px; }
+.entrar-selo .selo-clubes img { width: 48px; height: 48px; }
+.lateral-selo { margin-top: 8px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--creme) 15%, transparent); }
+.lateral-rodape .lateral-selo a { color: var(--creme); }
+/* Barra lateral estreita: selo compacto para caber sem quebrar as linhas */
+.lateral-selo .selo-clubes { gap: 8px; }
+.lateral-selo .selo-clubes img { width: 32px; height: 32px; }
+.lateral-selo .selo-clubes-texto small { font-size: .54rem; letter-spacing: .4px; }
+.lateral-selo .selo-clubes-texto strong { font-size: .78rem; }
+.lateral-selo .selo-clubes-texto span { font-size: .68rem; }
+
 .principal { min-width: 0; display: flex; flex-direction: column; }
 .topo-painel { display: flex; align-items: center; gap: 14px; padding: 18px 28px; background: var(--branco); border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 20; flex-wrap: wrap; }
 .topo-painel h1 { font-size: 1.15rem; letter-spacing: 2px; text-transform: uppercase; color: var(--azul); margin-right: auto; }

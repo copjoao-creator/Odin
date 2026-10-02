@@ -31,6 +31,14 @@ final class Config
     'cor_secundaria' => '#E5DECF',
     'cor_texto' => '#333333',
     'cor_realce' => '#1FA8DD',
+    // Cores por área (fundo e texto). Vazio = a área segue as cores básicas acima (ver Config::AREAS_COR).
+    'cor_faixa_fundo' => '', 'cor_faixa_texto' => '',
+    'cor_cabecalho_fundo' => '', 'cor_cabecalho_texto' => '',
+    'cor_menu_fundo' => '', 'cor_menu_texto' => '',
+    'cor_botao_fundo' => '', 'cor_botao_texto' => '',
+    'cor_destaque_fundo' => '', 'cor_destaque_texto' => '',
+    'cor_sobre_fundo' => '', 'cor_sobre_texto' => '',
+    'cor_rodape_fundo' => '', 'cor_rodape_texto' => '',
     // Dados da empresa (aparecem no rodapé da loja e nos e-mails; exigidos pelo Decreto 7.962/2013).
     'empresa_tipo' => 'pj',
     'empresa_documento' => '',
@@ -72,6 +80,33 @@ final class Config
 
   /** Chaves do Mercado Pago, usado até a troca para o Asaas (a migração v6 apaga do banco). */
   public const ANTIGAS = ['mp_public_key', 'mp_access_token', 'mp_webhook_secret', 'mp_serv_public_key', 'mp_serv_access_token', 'mp_serv_webhook_secret'];
+
+  /**
+   * Áreas da loja com cor própria de fundo e de texto: área => [rótulo, cor básica do fundo, cor básica do texto].
+   * Sem cor própria, a área usa as cores básicas indicadas (principal, fundo ou secundária).
+   */
+  public const AREAS_COR = [
+    'faixa' => ['Faixa do topo (avisos)', 'principal', 'fundo'],
+    'cabecalho' => ['Cabeçalho (logotipo, busca e carrinho)', 'fundo', 'principal'],
+    'menu' => ['Menu (Início, Produtos, Serviços…)', 'secundaria', 'principal'],
+    'botao' => ['Botões (comprar, adicionar, assinar…)', 'principal', 'fundo'],
+    'destaque' => ['Destaque da página inicial', 'principal', 'fundo'],
+    'sobre' => ['Seção "Sobre nós"', 'principal', 'fundo'],
+    'rodape' => ['Rodapé', 'principal', 'fundo'],
+  ];
+
+  /** Cores próprias de cada área (só as definidas): ['faixa' => ['fundo' => '#...', 'texto' => '#...'], ...]. */
+  public static function coresAreas(): array
+  {
+    $r = [];
+    foreach (array_keys(self::AREAS_COR) as $area) {
+      foreach (['fundo', 'texto'] as $parte) {
+        $v = self::get("cor_{$area}_{$parte}");
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $v)) $r[$area][$parte] = strtoupper($v);
+      }
+    }
+    return $r;
+  }
 
   /** Cores do tema (loja, painel e e-mails), já validadas. */
   public static function cores(): array

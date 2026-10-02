@@ -21,6 +21,7 @@ final class Marca
         'mostrar_nome' => $c['marca_mostrar_nome'] !== '0',
       ],
       'cores' => Config::cores(),
+      'areas' => (object)Config::coresAreas(), // cores próprias por área (escolhe o logotipo claro/escuro de cada fundo)
       'empresa' => self::empresa(),
     ];
   }
@@ -79,7 +80,17 @@ final class Marca
   public static function temaCss(): string
   {
     $c = Config::cores();
-    return ":root{--azul:{$c['principal']};--creme:{$c['fundo']};--bege:{$c['secundaria']};--texto:{$c['texto']};--realce:{$c['realce']};}\n";
+    // Cores por área: --a-{área}-fundo e --a-{área}-texto, só as definidas (as outras seguem as básicas no CSS).
+    $areas = '';
+    $proprias = Config::coresAreas();
+    foreach ($proprias as $area => $cores) {
+      foreach ($cores as $parte => $hex) $areas .= "--a-{$area}-{$parte}:{$hex};";
+    }
+    // Textos pequenos do cabeçalho ("Loja oficial", "Atendimento"): a cor do texto da área, mais apagada.
+    if (isset($proprias['cabecalho']['texto'])) {
+      $areas .= "--a-cabecalho-suave:color-mix(in srgb,{$proprias['cabecalho']['texto']} 72%,var(--a-cabecalho-fundo,var(--creme)));";
+    }
+    return ":root{--azul:{$c['principal']};--creme:{$c['fundo']};--bege:{$c['secundaria']};--texto:{$c['texto']};--realce:{$c['realce']};{$areas}}\n";
   }
 
   /**

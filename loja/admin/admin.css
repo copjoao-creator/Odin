@@ -232,6 +232,52 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .previa-cores .pc-botao { background: var(--pc-principal); color: var(--pc-fundo); padding: 6px 14px; font-size: .8rem; letter-spacing: 1px; text-transform: uppercase; }
 .previa-cores .pc-etiqueta { background: var(--pc-secundaria); color: var(--pc-principal); padding: 3px 10px; font-size: .75rem; }
 
+/* Cores por área (fundo e texto de cada parte da loja) */
+/* Elas valem só para a loja: no painel, botões e demais áreas seguem as cores básicas. */
+body.painel {
+  --a-faixa-fundo: initial; --a-faixa-texto: initial; --a-cabecalho-fundo: initial; --a-cabecalho-texto: initial; --a-cabecalho-suave: initial;
+  --a-menu-fundo: initial; --a-menu-texto: initial; --a-botao-fundo: initial; --a-botao-texto: initial; --a-destaque-fundo: initial;
+  --a-destaque-texto: initial; --a-sobre-fundo: initial; --a-sobre-texto: initial; --a-rodape-fundo: initial; --a-rodape-texto: initial;
+}
+.areas-cor-grade { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; margin-bottom: 10px; }
+.areas-cor { gap: 10px; }
+.area-cor { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; align-items: end; padding: 12px 14px; border: 1px solid var(--linha); border-radius: var(--raio); }
+.area-titulo { display: grid; gap: 6px; align-self: center; justify-items: start; }
+.area-titulo strong { font-size: .88rem; color: var(--azul); }
+.area-amostra { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--linha); font-size: .8rem; }
+.area-campo input[name^="cor_"] { padding: 10px; font-size: .9rem; }
+.area-campo input[name^="cor_"]::placeholder { text-transform: none; font-family: var(--fonte); }
+.area-limpar { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--creme); color: var(--suave); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.area-limpar:hover { background: var(--bege); color: var(--texto); }
+.area-limpar[hidden] { display: none; }
+.area-contraste { grid-column: 1 / -1; margin: 0; font-size: .78rem; }
+.area-contraste.ok { color: var(--ok); }
+.area-contraste.baixo { color: var(--erro); font-weight: 600; }
+.area-contraste.baixo::before { content: "⚠ "; }
+.previa-loja { position: sticky; top: 16px; border: 1px solid var(--linha); border-radius: var(--raio); overflow: hidden; font-size: .72rem; box-shadow: var(--sombra); }
+.previa-loja > div { padding: 8px 12px; }
+.pl-faixa { text-align: center; letter-spacing: 1px; text-transform: uppercase; font-size: .62rem; padding: 5px 12px !important; }
+.pl-cabecalho { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--linha); }
+.pl-cabecalho strong { letter-spacing: 2px; text-transform: uppercase; font-size: .7rem; }
+.pl-logo { width: 18px; height: 18px; border-radius: 50%; background: currentColor; flex: none; }
+.pl-carrinho { margin-left: auto; opacity: .8; }
+.pl-menu { display: flex; gap: 12px; text-transform: uppercase; letter-spacing: 1px; font-size: .6rem; }
+.pl-destaque { display: grid; gap: 10px; justify-items: start; padding: 18px 12px !important; }
+.pl-destaque strong { font-size: .95rem; font-weight: 300; line-height: 1.2; }
+.pl-btn { padding: 5px 10px; text-transform: uppercase; letter-spacing: 1px; font-size: .6rem; }
+.pl-corpo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pl-corpo small { opacity: .75; }
+.pl-sobre { display: grid; gap: 4px; padding: 14px 12px !important; }
+.pl-sobre strong { text-transform: uppercase; letter-spacing: 1px; }
+.pl-rodape { font-size: .62rem; }
+@media (max-width: 1100px) {
+  .areas-cor-grade { grid-template-columns: 1fr; }
+  .previa-loja { position: static; max-width: 360px; }
+}
+@media (max-width: 640px) {
+  .area-cor { grid-template-columns: 1fr; }
+}
+
 /* ---------- Plataforma: Entrar e painel master ---------- */
 .entrar-logo { width: 220px; height: auto; justify-self: center; margin-bottom: 4px; }
 .login-caixa form { display: grid; gap: 14px; }

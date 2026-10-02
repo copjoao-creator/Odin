@@ -1199,8 +1199,8 @@
 
   /** Cores do tema: [chave, rótulo, onde aparece]. Os padrões são os mesmos do servidor (Config::PADROES). */
   const CORES = [
-    ['principal', 'Cor principal', 'Botões, faixa do topo, destaque da página inicial e rodapé.'],
-    ['fundo', 'Cor de fundo', 'Fundo das páginas.'],
+    ['principal', 'Cor principal', 'Botões, faixa do topo, destaque da página inicial e rodapé (sem cor própria em Cores por área).'],
+    ['fundo', 'Cor de fundo', 'Fundo das páginas e do cabeçalho.'],
     ['secundaria', 'Cor secundária', 'Menu, etiquetas e áreas de apoio.'],
     ['texto', 'Cor do texto', 'Textos corridos.'],
     ['realce', 'Cor de realce', 'Detalhes e parte do nome da loja.']
@@ -1286,6 +1286,102 @@
     pintar();
   }
 
+  /** Bloco "Cores por área": cada área com fundo e texto (em branco = automático, segue as cores básicas). */
+  function blocoCoresAreas(c, areas) {
+    const campoCor = (area, parte) => {
+      const nome = `cor_${area}_${parte}`;
+      return `
+        <label class="cor-campo area-campo">${parte === 'fundo' ? 'Fundo' : 'Texto'}
+          <span class="cor-linha">
+            <input type="color" data-cor-area="${nome}" aria-label="${parte === 'fundo' ? 'Cor do fundo' : 'Cor do texto'}">
+            <input name="${nome}" value="${esc(c[nome] || '')}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="Automático">
+            <button type="button" class="area-limpar" data-limpar="${nome}" title="Voltar ao automático" aria-label="Voltar ao automático">×</button>
+          </span>
+        </label>`;
+    };
+    return `
+      <section class="bloco">
+        <h2>Personalização · Cores por área</h2>
+        <p class="bloco-sub">Escolha o fundo e o texto de cada parte da loja. Em branco (automático), a área usa as cores básicas acima. Se o texto ficar difícil de ler sobre o fundo, aparece um aviso.</p>
+        <div class="areas-cor-grade">
+          <div class="campos areas-cor">
+            ${Object.entries(areas).map(([area, [rotulo]]) => `
+              <div class="area-cor" data-area="${area}">
+                <div class="area-titulo"><strong>${esc(rotulo)}</strong><span class="area-amostra">Texto de exemplo</span></div>
+                ${campoCor(area, 'fundo')}
+                ${campoCor(area, 'texto')}
+                <p class="area-contraste" role="status"></p>
+              </div>`).join('')}
+          </div>
+          <div class="previa-loja" id="previaLoja" aria-hidden="true">
+            <div class="pl-faixa" data-p="faixa">${esc(c.aviso_topo || 'Pagamento seguro')}</div>
+            <div class="pl-cabecalho" data-p="cabecalho"><span class="pl-logo"></span><strong>${esc(c.loja_nome || 'Minha Loja')}</strong><span class="pl-carrinho">Carrinho</span></div>
+            <div class="pl-menu" data-p="menu"><span>Início</span><span>Produtos</span><span>Serviços</span><span>Contato</span></div>
+            <div class="pl-destaque" data-p="destaque"><strong>${esc(c.loja_titulo || 'Bem-vindo à nossa loja')}</strong><span class="pl-btn" data-p-inv="destaque">Ver produtos</span></div>
+            <div class="pl-corpo"><span>Produto de exemplo<br><small>R$ 99,90</small></span><span class="pl-btn" data-p="botao">Adicionar</span></div>
+            <div class="pl-sobre" data-p="sobre"><strong>Sobre nós</strong><span>Conte aqui a história da loja.</span></div>
+            <div class="pl-rodape" data-p="rodape">© ${esc(c.loja_nome || 'Minha Loja')} · Todos os direitos reservados</div>
+          </div>
+        </div>
+        <button type="button" class="link" id="btnAreasAuto">Deixar todas as áreas no automático</button>
+      </section>`;
+  }
+
+  /** Cores por área: quadrado e código sincronizados, cor automática à mostra, aviso de contraste e prévia da loja. */
+  function ligarCoresAreas(f, areas) {
+    const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : '');
+    const basica = (k) => hex(f.elements[`cor_${k}`].value) || PADRAO_CORES[k];
+    // Cor que a área terá de fato: a própria ou a básica que ela segue (Config::AREAS_COR: [rótulo, fundo, texto]).
+    const efetiva = (area, parte) => hex(f.elements[`cor_${area}_${parte}`].value) || basica(areas[area][parte === 'fundo' ? 1 : 2]);
+    const previa = $('#previaLoja');
+    const pintar = () => {
+      Object.keys(areas).forEach((area) => {
+        const linha = $(`[data-area="${area}"]`, f);
+        const cor = { fundo: efetiva(area, 'fundo'), texto: efetiva(area, 'texto') };
+        ['fundo', 'texto'].forEach((parte) => {
+          const nome = `cor_${area}_${parte}`;
+          const campo = f.elements[nome];
+          $(`[data-cor-area="${nome}"]`, linha).value = cor[parte];
+          campo.title = campo.value.trim() === '' ? `Automático: ${cor[parte]}` : '';
+          $(`[data-limpar="${nome}"]`, linha).hidden = campo.value.trim() === '';
+        });
+        const amostra = $('.area-amostra', linha);
+        amostra.style.background = cor.fundo;
+        amostra.style.color = cor.texto;
+        const razao = Loja.contraste(cor.fundo, cor.texto);
+        const n = razao.toFixed(1).replace('.', ',');
+        const aviso = $('.area-contraste', linha);
+        aviso.className = `area-contraste ${razao >= 4.5 ? 'ok' : 'baixo'}`;
+        aviso.textContent = razao >= 4.5
+          ? `Leitura boa · contraste ${n}:1`
+          : `Contraste baixo (${n}:1): o texto pode ficar difícil de ler. Escolha um texto bem mais claro ou bem mais escuro que o fundo.`;
+        $$(`[data-p="${area}"]`, previa).forEach((el) => { el.style.background = cor.fundo; el.style.color = cor.texto; });
+        // O botão cheio do destaque usa as cores do destaque invertidas, como na loja.
+        $$(`[data-p-inv="${area}"]`, previa).forEach((el) => { el.style.background = cor.texto; el.style.color = cor.fundo; });
+      });
+      const corpo = $('.pl-corpo', previa);
+      corpo.style.background = basica('fundo');
+      corpo.style.color = basica('texto');
+    };
+    $$('[data-cor-area]', f).forEach((seletor) => seletor.addEventListener('input', () => {
+      f.elements[seletor.dataset.corArea].value = seletor.value.toUpperCase();
+      pintar();
+    }));
+    // Qualquer cor digitada (básica ou da área) ou escolhida nos quadrados das cores básicas.
+    f.addEventListener('input', (e) => { if (e.target.matches('[name^="cor_"], [data-cor]')) pintar(); });
+    $$('[data-limpar]', f).forEach((b) => b.addEventListener('click', () => {
+      f.elements[b.dataset.limpar].value = '';
+      pintar();
+    }));
+    $('#btnAreasAuto').addEventListener('click', () => {
+      Object.keys(areas).forEach((area) => ['fundo', 'texto'].forEach((parte) => { f.elements[`cor_${area}_${parte}`].value = ''; }));
+      pintar();
+      Loja.aviso('Todas as áreas voltaram ao automático na prévia. Clique em Salvar configurações para confirmar.', 'info');
+    });
+    $('#btnCoresPadrao').addEventListener('click', pintar);
+    pintar();
+  }
+
   /** Dados da empresa: rótulo CPF/CNPJ e endereço pelo CEP. */
   function ligarEmpresa(f) {
     f.elements.empresa_tipo.addEventListener('change', () => {
@@ -1357,6 +1453,8 @@
           </div>
           <button type="button" class="link" id="btnCoresPadrao">Voltar às cores padrão</button>
         </section>
+
+        ${blocoCoresAreas(c, r.areas_cor || {})}
 
         <section class="bloco">
           <h2>Dados da empresa</h2>
@@ -1494,6 +1592,7 @@
     }));
     desenharMarca($('#marcaGrade'), r.identidade.marca);
     ligarCores($('#fConfig'));
+    ligarCoresAreas($('#fConfig'), r.areas_cor || {});
     ligarEmpresa($('#fConfig'));
 
     $('#fConfig').addEventListener('submit', async (e) => {

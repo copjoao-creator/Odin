@@ -3,6 +3,9 @@
  * que é carregado depois deste arquivo e substitui as cinco primeiras variáveis:
  *   --azul = cor principal · --creme = fundo · --bege = secundária · --texto = texto · --realce = realce
  * (os nomes ficaram da paleta original; os valores abaixo são só o padrão). As demais cores derivam delas.
+ * Cores por área (Configurações › Cores por área): o tema.css define --a-{área}-fundo e --a-{área}-texto
+ * só das áreas com cor própria (faixa, cabecalho, menu, botao, destaque, sobre, rodape); sem elas, vale a cor básica
+ * escrita como reserva em var(--a-..., reserva).
  */
 :root {
   --creme: #F7F6F2;
@@ -55,8 +58,8 @@ p { margin: 0; }
 /* ---------- Botões ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--azul); color: var(--creme);
-  border: 1px solid var(--azul); border-radius: 2px;
+  background: var(--a-botao-fundo, var(--azul)); color: var(--a-botao-texto, var(--creme));
+  border: 1px solid var(--a-botao-fundo, var(--azul)); border-radius: 2px;
   padding: 14px 28px; font-size: .9rem; text-transform: uppercase; letter-spacing: 1px;
   text-decoration: none; cursor: pointer; transition: opacity .3s ease, background .3s ease, color .3s ease;
 }
@@ -74,11 +77,11 @@ p { margin: 0; }
 .link-centro { display: block; margin: 10px auto 0; }
 
 /* ---------- Topo ---------- */
-.faixa-topo { background: var(--azul); color: var(--creme); font-size: .75rem; letter-spacing: 1.5px; text-transform: uppercase; }
+.faixa-topo { background: var(--a-faixa-fundo, var(--azul)); color: var(--a-faixa-texto, var(--creme)); font-size: .75rem; letter-spacing: 1.5px; text-transform: uppercase; }
 .faixa-topo-in { display: flex; justify-content: center; gap: 28px; padding-top: 8px; padding-bottom: 8px; text-align: center; flex-wrap: wrap; }
 .faixa-extra::before { content: "·"; margin-right: 28px; opacity: .6; }
 
-.cabecalho { position: sticky; top: 0; z-index: 50; background: var(--creme); border-bottom: 1px solid var(--linha); }
+.cabecalho { position: sticky; top: 0; z-index: 50; background: var(--a-cabecalho-fundo, var(--creme)); border-bottom: 1px solid var(--linha); }
 .cabecalho-in { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; padding-top: 16px; padding-bottom: 16px; }
 
 .logo { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: var(--azul); }
@@ -101,39 +104,49 @@ body.marca-sem-nome .logo-texto { display: none; }
 .logo-texto small { font-size: .62rem; letter-spacing: 3px; text-transform: uppercase; color: var(--suave); margin-top: 4px; }
 .logo-claro { color: var(--creme); }
 .logo-claro .logo-texto small { color: color-mix(in srgb, var(--creme) 60%, transparent); }
+/* Cabeçalho: logotipo, "Atendimento" e carrinho na cor de texto da área (o --a-cabecalho-suave vem do tema.css). */
+.cabecalho .logo { color: var(--a-cabecalho-texto, var(--azul)); }
+.cabecalho .logo-texto small { color: var(--a-cabecalho-suave, var(--suave)); }
+/* Rodapé: o logotipo segue o texto do rodapé. */
+.rodape .logo-claro { color: inherit; }
+.rodape .logo-claro .logo-texto small { color: inherit; opacity: .6; }
 
 .busca { display: flex; max-width: 560px; width: 100%; justify-self: center; border: 1px solid var(--bege-escuro); background: var(--branco); border-radius: 2px; }
 .busca input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 16px; outline: none; }
 .busca:focus-within { border-color: var(--azul); }
-.busca button { border: 0; background: var(--azul); color: var(--creme); width: 52px; cursor: pointer; display: grid; place-items: center; }
+.busca button { border: 0; background: var(--a-botao-fundo, var(--azul)); color: var(--a-botao-texto, var(--creme)); width: 52px; cursor: pointer; display: grid; place-items: center; }
 
 .cabecalho-acoes { display: flex; align-items: center; gap: 22px; }
-.acao { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; color: var(--azul); text-align: left; }
+.acao { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; color: var(--a-cabecalho-texto, var(--azul)); text-align: left; }
 .acao .ico { width: 26px; height: 26px; }
 .acao-texto { display: flex; flex-direction: column; line-height: 1.2; font-size: .9rem; }
-.acao-texto small { font-size: .7rem; color: var(--suave); text-transform: uppercase; letter-spacing: 1px; }
+.acao-texto small { font-size: .7rem; color: var(--a-cabecalho-suave, var(--suave)); text-transform: uppercase; letter-spacing: 1px; }
 .acao-icone { position: relative; display: inline-grid; }
 .contador {
   position: absolute; top: -7px; right: -9px; min-width: 19px; height: 19px; padding: 0 5px;
-  background: var(--azul); color: var(--creme); border: 2px solid var(--creme);
+  background: var(--a-cabecalho-texto, var(--azul)); color: var(--a-cabecalho-fundo, var(--creme)); border: 2px solid var(--a-cabecalho-fundo, var(--creme));
   border-radius: 10px; font-size: .68rem; font-weight: 700; display: grid; place-items: center; line-height: 1;
 }
 .contador.zerado { background: var(--bege-escuro); color: var(--azul); }
 
-.menu { background: var(--bege); }
+.menu { background: var(--a-menu-fundo, var(--bege)); }
 .menu-in { display: flex; gap: 30px; overflow-x: auto; scrollbar-width: none; }
 .menu-in::-webkit-scrollbar { display: none; }
 .menu a {
-  flex: none; padding: 13px 0; text-decoration: none; color: var(--azul);
+  flex: none; padding: 13px 0; text-decoration: none; color: var(--a-menu-texto, var(--azul));
   font-size: .78rem; letter-spacing: 1.8px; text-transform: uppercase; border-bottom: 2px solid transparent;
 }
-.menu a:hover { border-bottom-color: var(--azul); }
+.menu a:hover { border-bottom-color: currentColor; }
 
 /* ---------- Hero ---------- */
 .hero {
-  background: radial-gradient(900px 500px at 85% 20%, color-mix(in srgb, var(--creme) 7%, transparent), transparent 60%), var(--azul);
-  color: var(--creme); overflow: hidden;
+  background: radial-gradient(900px 500px at 85% 20%, color-mix(in srgb, var(--a-destaque-texto, var(--creme)) 7%, transparent), transparent 60%), var(--a-destaque-fundo, var(--azul));
+  color: var(--a-destaque-texto, var(--creme)); overflow: hidden;
 }
+/* Botões do destaque: o cheio usa as cores do destaque invertidas; o de contorno, a cor do texto. */
+.hero .btn-creme { background: var(--a-destaque-texto, var(--creme)); color: var(--a-destaque-fundo, var(--azul)); border-color: var(--a-destaque-texto, var(--creme)); }
+.hero .btn-contorno { color: inherit; border-color: color-mix(in srgb, currentColor 60%, transparent); }
+.hero .btn-contorno:hover { background: var(--a-destaque-texto, var(--creme)); color: var(--a-destaque-fundo, var(--azul)); }
 .hero-in { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 40px; padding-top: 88px; padding-bottom: 88px; }
 .sobretitulo { display: inline-flex; align-items: center; gap: 14px; font-size: .78rem; letter-spacing: 4px; text-transform: uppercase; opacity: .8; }
 .sobretitulo::before { content: ""; width: 36px; height: 1px; background: currentColor; }
@@ -141,10 +154,10 @@ body.marca-sem-nome .logo-texto { display: none; }
 .hero-sub { font-size: 1.1rem; line-height: 1.7; max-width: 52ch; opacity: .85; }
 .hero-acoes { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; }
 .hero-arte { position: relative; aspect-ratio: 1; max-width: 400px; width: 100%; justify-self: center; display: grid; place-items: center; }
-.anel { position: absolute; border: 1px solid color-mix(in srgb, var(--creme) 16%, transparent); border-radius: 50%; }
+.anel { position: absolute; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 50%; }
 .anel-1 { inset: 0; }
-.anel-2 { inset: 12%; border-color: color-mix(in srgb, var(--creme) 24%, transparent); }
-.anel-3 { inset: 24%; background: color-mix(in srgb, var(--creme) 4%, transparent); border-color: color-mix(in srgb, var(--bege) 40%, transparent); }
+.anel-2 { inset: 12%; border-color: color-mix(in srgb, currentColor 24%, transparent); }
+.anel-3 { inset: 24%; background: color-mix(in srgb, currentColor 4%, transparent); border-color: color-mix(in srgb, var(--bege) 40%, transparent); }
 .hero-marca { position: relative; color: var(--bege); }
 .hero-marca svg { width: 150px; height: 150px; display: block; }
 .hero-marca .marca-img { max-width: 220px; max-height: 150px; width: auto; height: auto; display: block; }
@@ -161,11 +174,11 @@ body.marca-sem-nome .logo-texto { display: none; }
 /* ---------- Seções ---------- */
 .secao { padding: 76px 0; }
 .secao-bege { background: var(--bege); }
-.secao-azul { background: var(--azul); color: var(--creme); }
+.secao-azul { background: var(--a-sobre-fundo, var(--azul)); color: var(--a-sobre-texto, var(--creme)); }
 .secao-cabeca { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
 .secao-cabeca-centro { flex-direction: column; align-items: center; text-align: center; }
 .secao h2 { color: var(--azul); font-size: 1.65rem; letter-spacing: 2px; text-transform: uppercase; }
-.secao-azul h2 { color: var(--creme); }
+.secao-azul h2 { color: inherit; }
 .secao-sub { color: var(--suave); margin-top: 6px; }
 .ordem { display: inline-flex; align-items: center; gap: 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: 1px; color: var(--suave); }
 .ordem select { border: 1px solid var(--bege-escuro); background: var(--branco); padding: 9px 12px; border-radius: 2px; text-transform: none; letter-spacing: 0; color: var(--texto); }
@@ -263,7 +276,7 @@ body.marca-sem-nome .logo-texto { display: none; }
 .rodape-simples .rodape-base { border-top: 0; }
 
 /* ---------- Rodapé ---------- */
-.rodape { background: var(--azul); color: var(--creme); }
+.rodape { background: var(--a-rodape-fundo, var(--azul)); color: var(--a-rodape-texto, var(--creme)); }
 .rodape-in { display: grid; grid-template-columns: 1.6fr 1fr 1.2fr 1.2fr; gap: 40px; padding-top: 56px; padding-bottom: 44px; }
 .rodape h3 { font-size: .78rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; opacity: .75; }
 .rodape ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: .9rem; }
@@ -271,11 +284,11 @@ body.marca-sem-nome .logo-texto { display: none; }
 .rodape a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 .rodape-marca p { margin-top: 16px; font-size: .9rem; line-height: 1.7; opacity: .7; max-width: 38ch; }
 .selos { grid-template-columns: repeat(2, auto); justify-content: start; }
-.selos li { display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--creme) 25%, transparent); padding: 6px 10px; font-size: .8rem; }
+.selos li { display: inline-flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding: 6px 10px; font-size: .8rem; }
 .selos .ico { width: 18px; height: 18px; }
 .rodape-seguro { display: flex; gap: 8px; align-items: center; margin-top: 16px; font-size: .8rem; opacity: .75; }
 .rodape-seguro .ico { width: 18px; height: 18px; }
-.rodape-base { border-top: 1px solid color-mix(in srgb, var(--creme) 12%, transparent); font-size: .78rem; opacity: .65; }
+.rodape-base { border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); font-size: .78rem; opacity: .65; }
 .rodape-base p { padding: 18px 0; }
 /* Linha legal (razão social, CPF/CNPJ e endereço) e crédito do sistema */
 .rodape-base-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding-top: 14px; padding-bottom: 14px; }
@@ -317,7 +330,7 @@ body.marca-sem-nome .logo-texto { display: none; }
 
 .zap-flutuante {
   position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 56px; height: 56px; border-radius: 50%;
-  background: var(--azul); color: var(--creme); display: grid; place-items: center; box-shadow: var(--sombra-forte);
+  background: var(--a-botao-fundo, var(--azul)); color: var(--a-botao-texto, var(--creme)); display: grid; place-items: center; box-shadow: var(--sombra-forte);
   border: 2px solid var(--creme); transition: transform .3s ease;
 }
 .zap-flutuante:hover { transform: scale(1.06); }
@@ -563,7 +576,7 @@ body.marca-sem-nome .logo-texto { display: none; }
 
 /* ---------- Telas: Início, Produtos e Serviços (vitrine.js › mostrarTela) ---------- */
 .fora-da-tela { display: none !important; }
-.menu a.ativo { border-bottom-color: var(--azul); font-weight: 600; }
+.menu a.ativo { border-bottom-color: currentColor; font-weight: 600; }
 .tela-catalogo { min-height: 60vh; padding-top: 44px; }
 
 /* Tabela do catálogo */

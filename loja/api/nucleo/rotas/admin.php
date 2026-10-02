@@ -35,6 +35,7 @@ return function (Roteador $r) {
       'modulos' => $modulos,
       'tecnico' => $tecnico,
       'identidade' => Marca::publica(),
+      'areas_cor' => Config::AREAS_COR,
       'pagamentos_configurados' => Asaas::configurado(),
       'webhook_url_asaas' => $tecnico ? Http::urlLoja() . 'api/?r=webhook/asaas' : null,
       'comando_cron' => $cron,
@@ -86,6 +87,16 @@ return function (Roteador $r) {
       $hex = strtoupper(trim((string)$d[$k]));
       if (!preg_match('/^#[0-9A-F]{6}$/', $hex)) throw new ErroApi('Cor inválida: use o formato #RRGGBB.', 422, ['campo' => $k]);
       $v[$k] = $hex;
+    }
+    // Cores por área: #RRGGBB ou vazio (a área volta a seguir as cores básicas).
+    foreach (array_keys(Config::AREAS_COR) as $area) {
+      foreach (['fundo', 'texto'] as $parte) {
+        $k = "cor_{$area}_{$parte}";
+        if (!array_key_exists($k, $d)) continue;
+        $hex = strtoupper(trim((string)$d[$k]));
+        if ($hex !== '' && !preg_match('/^#[0-9A-F]{6}$/', $hex)) throw new ErroApi('Cor inválida: use o formato #RRGGBB ou deixe em branco (automático).', 422, ['campo' => $k]);
+        $v[$k] = $hex;
+      }
     }
     if (array_key_exists('marca_mostrar_nome', $d)) $v['marca_mostrar_nome'] = Validacao::booleano($d['marca_mostrar_nome']) ? '1' : '0';
     if (array_key_exists('loja_sobre', $d)) $v['loja_sobre'] = Validacao::textoLongo($d, 'loja_sobre', 'Sobre a loja', 2000, false);

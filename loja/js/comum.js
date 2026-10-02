@@ -242,8 +242,12 @@ Loja.iconeMonograma = (nome, cores) => {
 Loja.aplicarMarca = (l) => {
   Loja.identidade = { nome: l.nome, marca: l.marca || {}, cores: l.cores || null, empresa: l.empresa || null };
   const m = Loja.identidade.marca;
+  const areas = l.areas || {};
   document.querySelectorAll('[data-marca]').forEach((el) => {
-    const escuro = !!el.closest('.logo-claro, .hero, .lateral');
+    // Área com fundo próprio (Configurações › Cores por área): o logotipo segue a claridade desse fundo.
+    const area = el.closest('.cabecalho') ? 'cabecalho' : el.closest('.hero') ? 'destaque' : el.closest('.rodape') ? 'rodape' : '';
+    const fundo = area && areas[area] && areas[area].fundo;
+    const escuro = fundo ? Loja.corEscura(fundo) : !!el.closest('.logo-claro, .hero, .lateral');
     el.innerHTML = Loja.marca(el.dataset.marca || 'marca', escuro);
   });
   document.body.classList.toggle('marca-sem-nome', !!m.logo && m.mostrar_nome === false);
@@ -261,8 +265,27 @@ Loja.aplicarMarca = (l) => {
     icone.href = Loja.iconeMonograma(l.nome, l.cores);
   }
   const tema = document.querySelector('meta[name="theme-color"]');
-  if (tema && l.cores) tema.content = l.cores.principal;
+  if (tema && l.cores) tema.content = (areas.faixa && areas.faixa.fundo) || l.cores.principal;
 };
+
+/** Luminância relativa (WCAG) de uma cor #RRGGBB: 0 = preto, 1 = branco. */
+Loja.luminancia = (hex) => {
+  const c = String(hex).replace('#', '');
+  const canal = (i) => {
+    const v = parseInt(c.substr(i, 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(0) + 0.7152 * canal(2) + 0.0722 * canal(4);
+};
+
+/** Contraste entre duas cores, de 1 a 21 (WCAG). Para texto comum, o recomendado é 4,5 ou mais. */
+Loja.contraste = (a, b) => {
+  const [claro, escuro] = [Loja.luminancia(a), Loja.luminancia(b)].sort((x, y) => y - x);
+  return (claro + 0.05) / (escuro + 0.05);
+};
+
+/** Fundo escuro: texto branco se lê melhor nele do que texto preto. */
+Loja.corEscura = (hex) => Loja.contraste(hex, '#FFFFFF') > Loja.contraste(hex, '#000000');
 
 /** Linha legal do rodapé: razão social, CPF/CNPJ e endereço (Decreto 7.962/2013). Vazia se nada foi preenchido. */
 Loja.linhaLegal = (l) => {

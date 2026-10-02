@@ -146,6 +146,36 @@ return function (Roteador $r) {
     return ['pedido' => $completo($p), 'email_enviado' => $enviado];
   });
 
+  // Venda já recebida (balcão, dinheiro, maquininha de outra empresa, Pix em outra conta...): cria o
+  // pedido com os produtos/serviços e registra o recebimento de uma vez. Valor em branco = total do pedido.
+  // Se o recebimento for recusado (ex.: valor maior que o total), o pedido criado é cancelado.
+  $r->admin('POST', 'pedidos/venda-recebida', function () use ($completo) {
+    $admin = Auth::exigirAdmin();
+    $d = Http::entrada();
+    $c = Clientes::buscar(Validacao::cpf($d['cpf'] ?? ''));
+    if (!$c) throw new ErroApi('Cliente não encontrado. Cadastre o cliente primeiro.', 404, ['campo' => 'cpf']);
+    $receb = is_array($d['recebimento'] ?? null) ? $d['recebimento'] : [];
+    if (!isset(Pedidos::FORMAS_MANUAIS[(string)($receb['forma'] ?? '')])) throw new ErroApi('Escolha a forma do recebimento.', 422, ['campo' => 'forma']);
+    $itens = Pedidos::itensDoCarrinho($d['itens'] ?? []);
+    $dataFinal = Pedidos::validarDataFinal($d['data_final'] ?? null);
+    $p = Pedidos::criar($c, $itens, 'admin');
+    if ($dataFinal && Pedidos::itemAssinatura($p)) {
+      Banco::executar('UPDATE pedidos SET assinatura_data_final = ? WHERE id = ?', [$dataFinal, $p['id']]);
+    }
+    if (trim((string)($receb['valor'] ?? '')) === '') $receb['valor'] = number_format((float)$p['total'], 2, ',', '');
+    try {
+      $p = Pedidos::registrarRecebimento((int)$p['id'], $receb, $admin);
+    } catch (Throwable $e) {
+      try {
+        Pedidos::cancelar((int)$p['id'], 'recebimento não registrado na venda pelo painel');
+      } catch (Throwable $ignorado) {
+        // Já não está aguardando pagamento: fica como está.
+      }
+      throw $e;
+    }
+    return ['pedido' => $completo($p)];
+  });
+
   // Recebimento feito fora da loja: dinheiro, maquininha de cartão de outra empresa, Pix em outra conta...
   $r->admin('POST', 'pedidos/{id}/recebimentos', function ($id) use ($completo) {
     return ['pedido' => $completo(Pedidos::registrarRecebimento((int)$id, Http::entrada(), Auth::exigirAdmin()))];

@@ -410,8 +410,10 @@
   // ---------------- Pedidos ----------------
 
   async function telaPedidos(el, acoes) {
-    acoes.innerHTML = '<button type="button" class="btn btn-pequeno" id="btnNovoPedido">Novo link de pagamento</button>';
-    $('#btnNovoPedido').addEventListener('click', novoPedido);
+    acoes.innerHTML = '<button type="button" class="btn btn-pequeno btn-linha" id="btnRecebimento">Registrar recebimento</button>'
+      + '<button type="button" class="btn btn-pequeno" id="btnNovoPedido">Novo link de pagamento</button>';
+    $('#btnNovoPedido').addEventListener('click', () => novoPedido('link'));
+    $('#btnRecebimento').addEventListener('click', () => novoPedido('recebimento'));
     const f = A.filtroPedidos || (A.filtroPedidos = { busca: '', status: '', de: '', ate: '' });
     el.innerHTML = `
       <div class="bloco filtros">
@@ -644,8 +646,14 @@
     }
   }
 
-  /** Venda fora do site: escolhe o cliente e os itens e gera o link de pagamento. */
-  async function novoPedido() {
+  /**
+   * Venda fora do site: escolhe o cliente e os itens e
+   * - modo "link": gera o link de pagamento (o cliente paga pela loja);
+   * - modo "recebimento": registra na hora um pagamento já recebido (dinheiro, maquininha de outra
+   *   empresa, Pix em outra conta...). O pedido nasce pago (ou aguardando o restante, se for parcial).
+   */
+  async function novoPedido(modo = 'link') {
+    const receber = modo === 'recebimento';
     let catalogo = [];
     try {
       const [p, s] = await Promise.all([
@@ -661,7 +669,8 @@
     }
     let cliente = null;
     const itens = [];
-    dialogo('Novo link de pagamento', `
+    dialogo(receber ? 'Registrar recebimento' : 'Novo link de pagamento', `
+      ${receber ? '<p class="fraco" style="margin-bottom:12px">Venda já paga fora da loja: em dinheiro, na maquininha de cartão de outra empresa, por Pix em outra conta etc. O pedido é criado já com o pagamento, entra no financeiro e baixa o estoque.</p>' : ''}
       <div class="secao-dlg">
         <h3>1. Cliente</h3>
         <div class="campos"><label class="c-12">Buscar cliente <input type="search" id="buscaCliente" placeholder="Nome, CPF ou e-mail"></label></div>
@@ -682,8 +691,18 @@
           <p class="c-12 fraco">A assinatura é encerrada nesse dia. Em branco, ela continua até ser cancelada.</p>
         </div>
       </div>
-      <div class="campos"><label class="c-12 marcar"><input type="checkbox" id="enviarEmail" checked> Enviar o link de pagamento por e-mail ao cliente</label></div>`,
-    '<button type="button" class="btn btn-pequeno btn-linha" data-fechar>Cancelar</button><button type="button" class="btn btn-pequeno" id="btnCriarPedido">Gerar link de pagamento</button>');
+      ${receber ? `
+      <div class="secao-dlg">
+        <h3>3. Recebimento</h3>
+        <form class="campos" id="fReceb" novalidate>
+          <label class="c-4">Forma <select name="forma" required><option value="">Escolha…</option>${Object.entries(FORMAS_MANUAIS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+          <label class="c-4">Valor recebido (R$) <input name="valor" inputmode="decimal" placeholder="Total do pedido"><span class="dica">Em branco = o total (com frete, se houver). Parcial: o pedido fica aguardando o restante.</span></label>
+          <label class="c-4">Data <input name="data" type="date" value="${iso(new Date())}" max="${iso(new Date())}" required></label>
+          <label class="c-4">Taxas descontadas (R$) <input name="taxa" inputmode="decimal" placeholder="0,00"><span class="dica">Opcional. Ex.: taxa da maquininha.</span></label>
+          <label class="c-8">Observação <input name="observacao" maxlength="200" placeholder="Ex.: maquininha Stone, NSU 123456"></label>
+        </form>
+      </div>` : '<div class="campos"><label class="c-12 marcar"><input type="checkbox" id="enviarEmail" checked> Enviar o link de pagamento por e-mail ao cliente</label></div>'}`,
+    `<button type="button" class="btn btn-pequeno btn-linha" data-fechar>Cancelar</button><button type="button" class="btn btn-pequeno" id="btnCriarPedido">${receber ? 'Registrar recebimento' : 'Gerar link de pagamento'}</button>`);
 
     const desenharItens = () => {
       const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
@@ -725,6 +744,29 @@
     $('#btnCriarPedido').addEventListener('click', async (e) => {
       if (!cliente) return Loja.aviso('Escolha o cliente.', 'erro');
       if (!itens.length) return Loja.aviso('Adicione pelo menos um item.', 'erro');
+      if (receber) {
+        const f = $('#fReceb');
+        if (!f.elements.forma.value) return erroDeForm(f, { message: 'Escolha a forma do recebimento.', campo: 'forma' });
+        e.target.disabled = true;
+        try {
+          const r = await api('pedidos/venda-recebida', {
+            metodo: 'POST',
+            dados: {
+              cpf: cliente.cpf,
+              itens: itens.map((i) => ({ tipo: i.tipo, codigo: i.codigo, quantidade: i.quantidade })),
+              data_final: itens.some((i) => i.recorrente) ? $('#dataFinal').value : '',
+              recebimento: Object.fromEntries(new FormData(f))
+            }
+          });
+          Loja.aviso(r.pedido.status === 'pago' ? 'Recebimento registrado: pedido pago.' : 'Recebimento parcial registrado: o pedido aguarda o restante.', 'ok');
+          await abrirPedido(r.pedido.id);
+          if (A.tela === 'pedidos' || A.tela === 'painel') recarregarTela();
+        } catch (err) {
+          erroDeForm(f, err);
+          e.target.disabled = false;
+        }
+        return;
+      }
       e.target.disabled = true;
       try {
         const r = await api('pedidos/manual', {

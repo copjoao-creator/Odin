@@ -384,9 +384,9 @@ final class Plataforma
     $acao = $finalidade === 'alterar' ? 'alterar a senha' : ($m['senha_hash'] === null ? 'criar a senha' : 'recuperar a senha');
     $html = '<p>Olá!</p><p>Use o código abaixo para <strong>' . $acao . '</strong> do administrador master da plataforma Odin Focus ('
       . htmlspecialchars($m['email']) . '):</p>'
-      . '<p style="font-size:30px;letter-spacing:8px;font-weight:700;color:#1B2D42;margin:18px 0">' . $codigo . '</p>'
+      . '<p style="font-size:30px;letter-spacing:8px;color:#F45900;margin:18px 0">' . $codigo . '</p>'
       . '<p>O código vale ' . self::CODIGO_MINUTOS . ' minutos. Se não foi você que pediu, ignore este e-mail: a senha continua a mesma.</p>'
-      . '<p style="color:#777;font-size:12px">Pedido feito do IP ' . htmlspecialchars(Http::ip()) . ' em ' . date('d/m/Y H:i') . '.</p>';
+      . '<p style="color:#8FBFD3;font-size:12px">Pedido feito do IP ' . htmlspecialchars(Http::ip()) . ' em ' . date('d/m/Y H:i') . '.</p>';
     if (!self::email($m['email_verificacao'], 'Odin Focus: código para ' . $acao, $html)) {
       throw new ErroApi('Não foi possível enviar o e-mail com o código agora. Tente de novo em alguns minutos.', 502);
     }
@@ -433,9 +433,10 @@ final class Plataforma
   /** E-mail da plataforma (remetente nao-responda@ do domínio do site). */
   public static function email(string $para, string $assunto, string $corpo): bool
   {
-    $html = '<!DOCTYPE html><html lang="pt-BR"><body style="margin:0;background:#F7F6F2;font-family:Helvetica,Arial,sans-serif;color:#333">'
-      . '<div style="max-width:520px;margin:24px auto;background:#fff;border-radius:8px;overflow:hidden">'
-      . '<div style="background:#1B2D42;color:#F7F6F2;padding:18px 24px;letter-spacing:3px">ODIN FOCUS</div>'
+    // Padrão visual do Tênis de Mesa para Todos: fundo azul-marinho, quadro com borda ciano, textos celeste.
+    $html = '<!DOCTYPE html><html lang="pt-BR"><body style="margin:0;background:#172C46;font-family:\'Source Sans 3\',\'Segoe UI\',Arial,sans-serif;color:#B4ECFC;letter-spacing:.05em">'
+      . '<div style="max-width:520px;margin:24px auto;background:#172C46;border:1px solid #80FFFF;border-radius:16px;overflow:hidden">'
+      . '<div style="color:#FFFAFA;padding:18px 24px;font-size:18px;border-bottom:1px solid #2F5A6F">Odin <span style="color:#F45900">Focus</span></div>'
       . '<div style="padding:24px;font-size:15px;line-height:1.6">' . $corpo . '</div></div></body></html>';
     // Testes locais: grava o e-mail num arquivo em vez de enviar (config.php › "email_arquivo").
     $arquivo = (string)(Config::arquivo()['email_arquivo'] ?? '');

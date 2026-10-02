@@ -5,91 +5,165 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Odin Focus · Módulo Financeiro de Clubes · Tênis de Mesa para Todos</title>
   <meta name="description" content="Odin Focus, o Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, painel próprio, personalização e pagamento por Pix, boleto, cartão e assinaturas.">
-  <meta name="theme-color" content="#1B2D42">
+  <meta name="theme-color" content="#172C46">
   <link rel="icon" href="img/odin-focus-simbolo.svg" type="image/svg+xml">
+  <!-- Fonte do Tênis de Mesa para Todos: Source Sans 3 (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap" rel="stylesheet">
   <style>
-    :root { --azul: #1B2D42; --creme: #F7F6F2; --bege: #E5DECF; --realce: #1FA8DD; --texto: #333; --suave: #6B6760; }
-    * { box-sizing: border-box; margin: 0; }
-    body { font: 16px/1.6 'Helvetica Neue', Helvetica, Arial, sans-serif; color: var(--texto); background: var(--creme); }
+    /* Padrão visual do Tênis de Mesa para Todos (tenisdemesasp.com.br): fundo azul-marinho, textos celeste,
+       quadros só com borda ciano, botões verdes, ícones laranja, Source Sans 3 sem negrito. */
+    :root { --marinho: #172C46; --celeste: #B4ECFC; --borda: #80FFFF; --verde: #00592D; --laranja: #F45900; --neve: #FFFAFA; color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; font-weight: 400; }
+    body { font: 16px/1.6 'Source Sans 3', 'Segoe UI', Arial, sans-serif; letter-spacing: .05em; color: var(--celeste); background: var(--marinho); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
     a { color: inherit; }
-    .container { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-    .topo { background: var(--creme); border-bottom: 1px solid #E9E4D9; position: sticky; top: 0; z-index: 10; }
-    .topo-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; }
-    .topo img { width: 200px; height: auto; display: block; }
-    .btn { display: inline-block; background: var(--azul); color: var(--creme); text-decoration: none; padding: 12px 26px; border-radius: 2px; letter-spacing: 1.5px; text-transform: uppercase; font-size: .82rem; border: 1px solid var(--azul); }
-    .btn:hover { opacity: .9; }
-    .btn-claro { background: transparent; color: var(--creme); border-color: rgba(247, 246, 242, .6); }
-    .hero { background: var(--azul); color: var(--creme); padding: 88px 0 96px; }
-    .hero h1 { font-size: clamp(1.9rem, 4.5vw, 3rem); line-height: 1.15; font-weight: 400; letter-spacing: 1px; max-width: 18ch; text-wrap: balance; }
-    .hero h1 strong { color: var(--realce); font-weight: 600; }
-    .hero p { margin: 18px 0 30px; max-width: 58ch; opacity: .85; font-size: 1.05rem; }
-    .hero .acoes { display: flex; gap: 12px; flex-wrap: wrap; }
-    .hero .btn:not(.btn-claro) { background: var(--realce); border-color: var(--realce); color: var(--azul); font-weight: 600; }
-    .recursos { padding: 72px 0; }
-    .recursos h2 { text-align: center; color: var(--azul); font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 400; margin-bottom: 36px; }
-    .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
-    .card { background: #fff; border-radius: 8px; padding: 26px 22px; box-shadow: 0 4px 12px rgba(0, 0, 0, .05); }
-    .card h3 { color: var(--azul); font-size: 1rem; margin-bottom: 6px; }
-    .card p { color: var(--suave); font-size: .92rem; }
-    .rodape { background: var(--azul); color: var(--creme); padding: 28px 0; font-size: .85rem; }
-    .rodape-in { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; opacity: .8; }
-    /* Selo do Tênis de Mesa para Todos: o Odin Focus é o Módulo Financeiro de Clubes */
-    .topo-marcas { display: flex; align-items: center; gap: 18px; min-width: 0; }
-    .selo-clubes { display: inline-flex; align-items: center; gap: 10px; color: var(--azul); text-decoration: none; line-height: 1.25; padding-left: 18px; border-left: 1px solid #E0D9CB; }
-    .topo .selo-clubes img { width: 44px; height: 44px; object-fit: contain; flex: none; }
-    .selo-clubes span { display: flex; flex-direction: column; }
-    .selo-clubes small { font-size: .62rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--suave); }
-    .selo-clubes strong { font-size: .95rem; }
-    .selo-clubes:hover strong { text-decoration: underline; text-underline-offset: 3px; }
-    .hero .sobretitulo { font-size: .78rem; letter-spacing: 3px; text-transform: uppercase; opacity: .8; margin: 0 0 18px; max-width: none; }
-    @media (max-width: 760px) { .selo-clubes span { display: none; } .selo-clubes { padding-left: 12px; } .topo-marcas { gap: 12px; } }
-    @media (max-width: 560px) { .topo img { width: 150px; } .btn { padding: 11px 18px; } .hero { padding: 60px 0; } }
+    .ico { width: 1em; height: 1em; flex: none; }
+    .container { width: 100%; max-width: 1152px; margin: 0 auto; padding: 0 16px; }
+
+    /* Barra fina no topo */
+    .topo { position: sticky; top: 0; z-index: 10; background: var(--marinho); font-size: .8rem; }
+    .topo-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; flex-wrap: wrap; max-width: 1280px; margin: 0 auto; }
+    .topo-marcas { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .topo-logo img { width: 150px; height: auto; display: block; }
+    .selo-clubes { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--laranja); padding-left: 14px; border-left: 1px solid rgba(128, 255, 255, .3); }
+    .selo-clubes img { width: 28px; height: 28px; object-fit: contain; background: #fff; border-radius: 6px; padding: 2px; }
+    .selo-clubes:hover span { text-decoration: underline; text-underline-offset: 3px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--verde); color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-size: 1rem; transition: filter .2s ease; }
+    .btn:hover { filter: brightness(1.15); }
+    .btn-topo { padding: 8px 16px; font-size: .875rem; border-radius: 10px; }
+
+    main { flex: 1; padding: 40px 0 24px; }
+    /* Quadro de apresentação */
+    .hero { border: 1px solid var(--borda); border-radius: 24px; padding: 32px 24px; text-align: center; }
+    .hero h1 { color: var(--neve); font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.2; }
+    .hero h1 span { color: var(--laranja); }
+    .hero p { margin-top: 6px; }
+    /* Três quadros com lista de recursos */
+    .cartoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
+    .cartao { border: 1px solid var(--borda); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; }
+    .cartao h2 { display: flex; align-items: center; gap: 10px; color: var(--neve); font-size: 1.1rem; margin-bottom: 14px; }
+    .cartao h2 .ico { color: var(--laranja); width: 20px; height: 20px; }
+    .cartao ul { list-style: none; padding: 0; display: grid; gap: 8px; font-size: .875rem; flex: 1; }
+    .cartao li { display: flex; align-items: flex-start; gap: 8px; }
+    .cartao li .ico { color: var(--laranja); margin-top: 4px; width: 14px; height: 14px; }
+    .cartao .btn { margin-top: 20px; width: 100%; }
+    /* Selos com ícone laranja */
+    .selos { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; margin-top: 24px; font-size: .78rem; }
+    .selos span { display: inline-flex; align-items: center; gap: 6px; }
+    .selos .ico { color: var(--laranja); width: 14px; height: 14px; }
+
+    /* Rodapé em colunas */
+    .rodape { padding: 36px 0 20px; font-size: .85rem; }
+    .rodape-in { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px; }
+    .rodape h3 { color: var(--neve); font-size: .8rem; text-transform: uppercase; margin-bottom: 12px; }
+    .rodape ul { list-style: none; padding: 0; display: grid; gap: 6px; }
+    .rodape a { text-decoration: none; }
+    .rodape a:hover { color: var(--laranja); }
+    .rodape-marca img { width: 140px; height: auto; display: block; margin-bottom: 10px; }
+    .rodape .contato a { color: var(--laranja); display: inline-flex; align-items: center; gap: 6px; }
+    .rodape-base { text-align: center; font-size: .75rem; margin-top: 28px; }
+    @media (max-width: 860px) { .cartoes { grid-template-columns: 1fr; } .rodape-in { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .topo-logo img { width: 120px; } .selo-clubes span { display: none; } .hero { padding: 24px 16px; } .rodape-in { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header class="topo">
-    <div class="topo-in container">
+    <div class="topo-in">
       <div class="topo-marcas">
-        <a href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo.svg" alt="Odin Focus" width="200" height="55"></a>
-        <a class="selo-clubes" href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener" aria-label="Módulo Financeiro de Clubes · Tênis de Mesa para Todos">
-          <img src="loja/img/tenis-de-mesa-para-todos.png" alt="" width="44" height="44">
-          <span><small>Módulo Financeiro de Clubes</small><strong>Tênis de Mesa para Todos</strong></span>
+        <a class="topo-logo" href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="150" height="42"></a>
+        <a class="selo-clubes" href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener" title="Tênis de Mesa para Todos">
+          <img src="loja/img/tenis-de-mesa-para-todos.png" alt="" width="28" height="28">
+          <span>Módulo Financeiro de Clubes</span>
         </a>
       </div>
-      <a class="btn" href="loja/entrar.html">Entrar</a>
+      <a class="btn btn-topo" href="loja/entrar.html">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        Entrar
+      </a>
     </div>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="container">
-        <p class="sobretitulo">Módulo Financeiro de Clubes · Tênis de Mesa para Todos</p>
-        <h1>Sua loja online com <strong>pagamento integrado</strong> e a sua cara.</h1>
-        <p>Vitrine de produtos e serviços, painel próprio, personalização de cores e logotipo, e pagamento por Pix, boleto, cartão e assinaturas recorrentes.</p>
-        <div class="acoes">
-          <a class="btn" href="loja/entrar.html">Entrar</a>
-          <a class="btn btn-claro" href="loja/">Conheça a loja Odin Focus</a>
-        </div>
-      </div>
-    </section>
+    <div class="container">
+      <section class="hero">
+        <h1>Odin <span>Focus</span></h1>
+        <p>Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja online com pagamento integrado.</p>
+      </section>
 
-    <section class="recursos">
-      <div class="container">
-        <h2>Cada loja, independente</h2>
-        <div class="grade">
-          <div class="card"><h3>Endereço próprio</h3><p>Cada loja tem seu endereço, sua vitrine e seu painel de administração.</p></div>
-          <div class="card"><h3>Personalização</h3><p>Logotipo, cores e dados da empresa definidos pelo próprio lojista.</p></div>
-          <div class="card"><h3>Pagamentos</h3><p>Pix, boleto e cartão de crédito parcelado sem juros pelo Asaas, e assinaturas cobradas automaticamente no cartão.</p></div>
-          <div class="card"><h3>Gestão completa</h3><p>Pedidos, clientes, estoque, assinaturas e painel financeiro em um só lugar.</p></div>
-        </div>
+      <div class="cartoes">
+        <section class="cartao">
+          <h2><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6"/></svg>Loja do clube</h2>
+          <ul>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Vitrine de produtos e serviços</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Endereço próprio para cada loja</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Logotipo e cores do clube</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Compra rápida pelo CPF</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Fale conosco e WhatsApp</li>
+          </ul>
+          <a class="btn" href="loja/">Conheça <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </section>
+
+        <section class="cartao">
+          <h2><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>Pagamentos</h2>
+          <ul>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pix com confirmação na hora</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Boleto bancário</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Cartão parcelado sem juros</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Assinaturas cobradas no cartão</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Recebimentos em dinheiro ou maquininha</li>
+          </ul>
+          <a class="btn" href="loja/entrar.html">Entrar <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </section>
+
+        <section class="cartao">
+          <h2><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>Gestão financeira</h2>
+          <ul>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Painel financeiro do clube</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pedidos e clientes</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Controle de estoque</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Assinaturas e renovações</li>
+            <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Painel próprio para cada loja</li>
+          </ul>
+          <a class="btn" href="loja/entrar.html">Acessar o painel <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </section>
       </div>
-    </section>
+
+      <div class="selos">
+        <span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4.2-4.2 1.4-1.4 2.8 2.8 5.8-5.8 1.4 1.4z"/></svg>Pagamentos pelo Asaas</span>
+        <span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4.2-4.2 1.4-1.4 2.8 2.8 5.8-5.8 1.4 1.4z"/></svg>Feito para clubes de tênis de mesa</span>
+        <span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4.2-4.2 1.4-1.4 2.8 2.8 5.8-5.8 1.4 1.4z"/></svg>Integrado ao Tênis de Mesa para Todos</span>
+        <span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4.2-4.2 1.4-1.4 2.8 2.8 5.8-5.8 1.4 1.4z"/></svg>Cada loja independente</span>
+      </div>
+    </div>
   </main>
 
   <footer class="rodape">
-    <div class="container rodape-in">
-      <span>© <span id="ano">2026</span> Odin Focus · Módulo Financeiro de Clubes do Tênis de Mesa para Todos</span>
-      <a href="loja/entrar.html">Área do lojista</a>
+    <div class="container">
+      <div class="rodape-in">
+        <div class="rodape-marca">
+          <img src="img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="140" height="39">
+          <p>Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, pagamentos e gestão financeira em um só lugar.</p>
+        </div>
+        <div>
+          <h3>Links rápidos</h3>
+          <ul>
+            <li><a href="loja/entrar.html">Entrar</a></li>
+            <li><a href="loja/">Conheça a loja Odin Focus</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Plataforma</h3>
+          <ul>
+            <li><a href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener">Tênis de Mesa para Todos</a></li>
+          </ul>
+        </div>
+        <div class="contato">
+          <h3>Contato</h3>
+          <a href="mailto:contato@odinfocus.com.br"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 5h20v14H2zm2 2v.5l8 5 8-5V7z"/></svg>contato@odinfocus.com.br</a>
+        </div>
+      </div>
+      <p class="rodape-base">© <span id="ano">2026</span> Odin Focus · Módulo Financeiro de Clubes do Tênis de Mesa para Todos. Todos os direitos reservados.</p>
     </div>
   </footer>
   <script>document.getElementById('ano').textContent = new Date().getFullYear();</script>

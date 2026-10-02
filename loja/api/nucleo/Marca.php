@@ -74,8 +74,9 @@ final class Marca
   }
 
   /**
-   * CSS do tema: as cores do painel substituem as variáveis-base de loja.css
-   * (--azul = principal, --creme = fundo, --bege = secundária). As demais são derivadas delas no próprio CSS.
+   * CSS do tema: as cores do painel substituem as variáveis-base de loja.css (--principal, --fundo, --secundaria,
+   * --texto, --realce) e as derivadas que o CSS não sabe calcular sozinho (--titulo e --sobre-principal, que dependem
+   * da claridade das cores, e o color-scheme dos campos nativos). As demais saem delas no próprio CSS.
    */
   public static function temaCss(): string
   {
@@ -88,9 +89,11 @@ final class Marca
     }
     // Textos pequenos do cabeçalho ("Loja oficial", "Atendimento"): a cor do texto da área, mais apagada.
     if (isset($proprias['cabecalho']['texto'])) {
-      $areas .= "--a-cabecalho-suave:color-mix(in srgb,{$proprias['cabecalho']['texto']} 72%,var(--a-cabecalho-fundo,var(--creme)));";
+      $areas .= "--a-cabecalho-suave:color-mix(in srgb,{$proprias['cabecalho']['texto']} 72%,var(--a-cabecalho-fundo,var(--fundo)));";
     }
-    return ":root{--azul:{$c['principal']};--creme:{$c['fundo']};--bege:{$c['secundaria']};--texto:{$c['texto']};--realce:{$c['realce']};{$areas}}\n";
+    $esquema = $c['escuro'] ? 'dark' : 'light';
+    return ":root{--principal:{$c['principal']};--fundo:{$c['fundo']};--secundaria:{$c['secundaria']};--texto:{$c['texto']};--realce:{$c['realce']};"
+      . "--titulo:{$c['titulo']};--sobre-principal:{$c['sobre_principal']};color-scheme:{$esquema};{$areas}}\n";
   }
 
   /**

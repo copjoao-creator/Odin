@@ -54,8 +54,6 @@
     TELAS[tela][1](el, $('#acoesTela')).catch((e) => { el.innerHTML = `<p class="pg-alerta">${esc(e.message)}</p>`; });
   }
   window.addEventListener('hashchange', ir);
-  $('#btnMenu').addEventListener('click', () => $('#lateral').classList.toggle('aberta'));
-  $('#nav').addEventListener('click', () => $('#lateral').classList.remove('aberta'));
   $('#btnSair').addEventListener('click', async () => {
     try { await api('plataforma/sair', { metodo: 'POST' }); } catch { /* já saiu */ }
     location.href = '../entrar.html';

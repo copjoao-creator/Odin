@@ -5,60 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Painel · Odin Focus</title>
-  <meta name="theme-color" content="#1B2D42">
+  <meta name="theme-color" content="#172C46">
+  <!-- Fonte do Tênis de Mesa para Todos: Source Sans 3 (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap" rel="stylesheet">
   <link rel="icon" href="../img/icone.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/loja.css">
   <link rel="stylesheet" href="../api/?r=tema.css" id="temaCss">
   <link rel="stylesheet" href="admin.css">
 </head>
 <body class="painel">
-  <!-- Login -->
+  <!-- Login (no padrão da janela "Acesso Restrito / Login" do Tênis de Mesa para Todos) -->
   <main class="login" id="telaLogin" hidden>
     <form class="login-caixa" id="formLogin">
       <span class="login-marca" data-marca></span>
-      <h1>Painel da loja</h1>
+      <h1><span data-icone="escudo"></span>Painel da loja</h1>
       <p class="muted">Entre com o e-mail e a senha do painel desta loja.</p>
       <div class="campos">
-        <label class="c-12">E-mail <input name="email" type="email" autocomplete="username" required></label>
-        <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+        <label class="c-12">E-mail <input name="email" type="email" autocomplete="username" required placeholder="email@email.com.br"></label>
+        <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
       </div>
       <p class="form-erro" id="erroLogin" hidden></p>
       <button class="btn btn-largo" type="submit">Entrar</button>
-      <a class="link link-centro" href="/entrar">Esqueci a senha / administrador da plataforma</a>
-      <a class="link link-centro" href="../">Ir para a loja</a>
+      <div class="login-links">
+        <a class="link" href="/entrar">Esqueci a senha / administrador da plataforma</a>
+        <a class="link" href="../">Ir para a loja</a>
+      </div>
       <div class="login-selo" data-selo-clubes></div>
     </form>
   </main>
 
-  <!-- Aplicação -->
+  <!-- Aplicação: barra fina no topo, quadro com borda e abas (layout do Painel do Administrador do Tênis de Mesa para Todos) -->
   <div class="app" id="app" hidden>
-    <aside class="lateral" id="lateral">
-      <a class="logo logo-claro" href="#painel"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="nomeLoja">ODIN <span class="realce">FOCUS</span></strong><small>Painel</small></span></a>
-      <nav class="nav" id="nav" aria-label="Seções do painel">
-        <a href="#painel" data-tela="painel"><span data-icone="estrela"></span>Painel financeiro</a>
-        <a href="#pedidos" data-tela="pedidos"><span data-icone="pacote"></span>Pedidos</a>
-        <a href="#clientes" data-tela="clientes"><span data-icone="conversa"></span>Clientes</a>
-        <a href="#produtos" data-tela="produtos" data-modulo="produto"><span data-icone="carrinho"></span>Produtos</a>
-        <a href="#servicos" data-tela="servicos" data-modulo="servico"><span data-icone="cartao"></span>Serviços</a>
-        <a href="#assinaturas" data-tela="assinaturas" data-modulo="servico"><span data-icone="relogio"></span>Assinaturas</a>
-        <a href="#configuracoes" data-tela="configuracoes"><span data-icone="escudo"></span>Configurações</a>
-      </nav>
-      <div class="lateral-rodape">
-        <p id="nomeAdmin"></p>
-        <a href="../" target="_blank" rel="noopener">Ver a loja ↗</a>
-        <button type="button" class="link" id="btnSair">Sair</button>
-        <div class="lateral-selo" data-selo-clubes></div>
+    <header class="barra-painel">
+      <div class="barra-painel-in">
+        <a class="logo" href="#painel"><span class="logo-marca" data-marca></span><span class="logo-texto"><strong id="nomeLoja">Odin <span class="realce">Focus</span></strong><small>Painel da loja</small></span></a>
+        <div class="barra-painel-acoes">
+          <span class="fraco" id="nomeAdmin"></span>
+          <a class="link" href="../" target="_blank" rel="noopener">Ver a loja ↗</a>
+          <button type="button" class="btn btn-pequeno btn-sair" id="btnSair">Sair</button>
+        </div>
       </div>
-    </aside>
+    </header>
 
-    <div class="principal">
-      <header class="topo-painel">
-        <button type="button" class="btn-icone so-celular" id="btnMenu" aria-label="Abrir menu" data-icone="menu"></button>
-        <h1 id="tituloTela">Painel</h1>
-        <div class="topo-painel-acoes" id="acoesTela"></div>
-      </header>
-      <div class="conteudo" id="conteudo"></div>
-    </div>
+    <main class="principal">
+      <section class="quadro-painel">
+        <div class="quadro-cab">
+          <h1 class="titulo-tela"><span data-icone="escudo"></span><span id="tituloTela">Painel</span></h1>
+          <div class="topo-painel-acoes" id="acoesTela"></div>
+        </div>
+        <nav class="abas" id="nav" aria-label="Seções do painel">
+          <a href="#painel" data-tela="painel">Painel financeiro</a>
+          <a href="#pedidos" data-tela="pedidos">Pedidos</a>
+          <a href="#clientes" data-tela="clientes">Clientes</a>
+          <a href="#produtos" data-tela="produtos" data-modulo="produto">Produtos</a>
+          <a href="#servicos" data-tela="servicos" data-modulo="servico">Serviços</a>
+          <a href="#assinaturas" data-tela="assinaturas" data-modulo="servico">Assinaturas</a>
+          <a href="#configuracoes" data-tela="configuracoes">Configurações</a>
+        </nav>
+        <div class="conteudo" id="conteudo"></div>
+      </section>
+      <div class="rodape-painel" data-selo-clubes="linha"></div>
+    </main>
   </div>
 
   <dialog class="dlg dlg-painel" id="dlg"></dialog>

@@ -225,13 +225,13 @@ Loja.marca = (classe = 'marca', escuro = false) => {
     return `<img class="${classe} marca-img${etiqueta}" src="${Loja.esc(Loja.RAIZ + src)}" alt="${Loja.esc(id.nome || '')}">`;
   }
   const inicial = Loja.esc((String(id.nome || '').trim().charAt(0) || '•').toUpperCase());
-  return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="var(--azul)" stroke="var(--creme)" stroke-width="4"/><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="50" font-weight="700" fill="var(--creme)">${inicial}</text></svg>`;
+  return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="var(--principal)" stroke="var(--secundaria)" stroke-width="3"/><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Source Sans 3, Segoe UI, Arial, sans-serif" font-size="50" fill="var(--sobre-principal)">${inicial}</text></svg>`;
 };
 
 /** Monograma como ícone da aba do navegador (quando a loja não enviou logotipo nem ícone). */
 Loja.iconeMonograma = (nome, cores) => {
   const inicial = (String(nome || '').trim().charAt(0) || '•').toUpperCase().replace(/[<>&"']/g, '');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${cores.principal}"/><text x="32" y="32" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="${cores.fundo}">${inicial}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${cores.principal}"/><text x="32" y="32" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="${cores.sobre_principal || cores.fundo}">${inicial}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
 
@@ -243,11 +243,13 @@ Loja.aplicarMarca = (l) => {
   Loja.identidade = { nome: l.nome, marca: l.marca || {}, cores: l.cores || null, empresa: l.empresa || null };
   const m = Loja.identidade.marca;
   const areas = l.areas || {};
+  // Painéis (loja, master, Entrar): sempre no fundo escuro do Tênis de Mesa para Todos.
+  const painel = document.body.classList.contains('painel');
   document.querySelectorAll('[data-marca]').forEach((el) => {
-    // Área com fundo próprio (Configurações › Cores por área): o logotipo segue a claridade desse fundo.
+    // O logotipo segue a claridade do fundo onde está: o da área (Configurações › Cores por área) ou o fundo da loja.
     const area = el.closest('.cabecalho') ? 'cabecalho' : el.closest('.hero') ? 'destaque' : el.closest('.rodape') ? 'rodape' : '';
-    const fundo = area && areas[area] && areas[area].fundo;
-    const escuro = fundo ? Loja.corEscura(fundo) : !!el.closest('.logo-claro, .hero, .lateral');
+    const fundo = (area && areas[area] && areas[area].fundo) || (l.cores && l.cores.fundo);
+    const escuro = painel || (fundo ? Loja.corEscura(fundo) : !!el.closest('.logo-claro, .hero'));
     el.innerHTML = Loja.marca(el.dataset.marca || 'marca', escuro);
   });
   document.body.classList.toggle('marca-sem-nome', !!m.logo && m.mostrar_nome === false);
@@ -265,7 +267,7 @@ Loja.aplicarMarca = (l) => {
     icone.href = Loja.iconeMonograma(l.nome, l.cores);
   }
   const tema = document.querySelector('meta[name="theme-color"]');
-  if (tema && l.cores) tema.content = (areas.faixa && areas.faixa.fundo) || l.cores.principal;
+  if (tema && l.cores) tema.content = painel ? '#172C46' : (areas.faixa && areas.faixa.fundo) || l.cores.fundo;
 };
 
 /** Luminância relativa (WCAG) de uma cor #RRGGBB: 0 = preto, 1 = branco. */
@@ -323,10 +325,10 @@ Loja.aplicarRodape = (l) => {
   if (credito) credito.innerHTML = Loja.credito();
 };
 
-/** Nome da loja ao lado do logotipo: primeira palavra forte e o restante na cor de realce (ex.: MINHA LOJA). */
+/** Nome da loja ao lado do logotipo, como foi escrito: a primeira palavra e o restante na cor de realce (ex.: Minha Loja). */
 Loja.nomeLogo = (el, nome) => {
   if (!el) return;
-  const [primeira = '', ...resto] = String(nome || '').toUpperCase().trim().split(/\s+/);
+  const [primeira = '', ...resto] = String(nome || '').trim().split(/\s+/);
   el.innerHTML = Loja.esc(primeira) + (resto.length ? ` <span class="realce">${Loja.esc(resto.join(' '))}</span>` : '');
 };
 
@@ -357,3 +359,5 @@ Loja.aviso = (texto, tipo = 'info') => {
 
 // Selo do Tênis de Mesa para Todos em todas as telas: o HTML só marca o lugar com [data-selo-clubes].
 document.querySelectorAll('[data-selo-clubes]').forEach((el) => { el.innerHTML = Loja.seloClubes(el.dataset.seloClubes || 'bloco'); });
+// Ícones marcados no HTML com [data-icone] (ex.: o ícone laranja dos títulos), em qualquer tela.
+document.querySelectorAll('[data-icone]:empty').forEach((el) => { el.innerHTML = Loja.icone(el.dataset.icone); });

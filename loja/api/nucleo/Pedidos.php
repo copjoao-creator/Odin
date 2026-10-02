@@ -618,7 +618,7 @@ final class Pedidos
         . '</td><td align="right">' . self::brl((float)$i['preco_unitario'] * (int)$i['quantidade']) . '</td></tr>';
     }
     if ((float)$p['frete'] > 0) $linhas .= '<tr><td style="padding:6px 0">Frete</td><td align="right">' . self::brl((float)$p['frete']) . '</td></tr>';
-    $borda = Config::cores()['secundaria'];
+    $borda = Config::cores()['linha'];
     $linhas .= '<tr><td style="padding:10px 0;border-top:1px solid ' . $borda . '"><strong>Total</strong></td><td align="right" style="border-top:1px solid ' . $borda . '"><strong>'
       . self::brl((float)$p['total']) . '</strong></td></tr>';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">' . $linhas . '</table>';
@@ -648,7 +648,7 @@ final class Pedidos
     $nome = htmlspecialchars(Clientes::nomes($c['nome'])[0]);
     $vence = $pg['expira_em'] ? ' Vencimento: <strong>' . date('d/m/Y', strtotime($pg['expira_em'])) . '</strong>.' : '';
     $linha = $pg['codigo_barras']
-      ? '<p style="margin:16px 0 4px;font-size:13px;color:#555">Linha digitável:</p><p style="font-family:Consolas,monospace;font-size:14px;word-break:break-all;background:' . Config::cores()['fundo'] . ';padding:10px">'
+      ? '<p style="margin:16px 0 4px;font-size:13px;color:' . Config::cores()['suave'] . '">Linha digitável:</p><p style="font-family:Consolas,monospace;font-size:14px;word-break:break-all;background:' . Config::cores()['tom'] . ';padding:10px;border-radius:8px">'
         . htmlspecialchars($pg['codigo_barras']) . '</p>'
       : '';
     $html = "<p>Olá, {$nome}!</p><p>O boleto do seu pedido <strong>#{$p['id']}</strong> no valor de <strong>" . self::brl((float)$pg['valor']) . "</strong> foi gerado.{$vence}</p>"

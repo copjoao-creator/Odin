@@ -26,11 +26,12 @@ final class Config
     'marca_icone' => '',
     'marca_icone_auto' => '1', // "1": o ícone da aba é gerado do logotipo; "0": foi enviado à parte
     'marca_mostrar_nome' => '1',
-    'cor_principal' => '#1B2D42',
-    'cor_fundo' => '#F7F6F2',
-    'cor_secundaria' => '#E5DECF',
-    'cor_texto' => '#333333',
-    'cor_realce' => '#1FA8DD',
+    // Paleta do Tênis de Mesa para Todos: botões verdes, fundo azul-marinho, bordas ciano, textos celeste, destaques laranja.
+    'cor_principal' => '#00592D',
+    'cor_fundo' => '#172C46',
+    'cor_secundaria' => '#80FFFF',
+    'cor_texto' => '#B4ECFC',
+    'cor_realce' => '#F45900',
     // Cores por área (fundo e texto). Vazio = a área segue as cores básicas acima (ver Config::AREAS_COR).
     'cor_faixa_fundo' => '', 'cor_faixa_texto' => '',
     'cor_cabecalho_fundo' => '', 'cor_cabecalho_texto' => '',
@@ -81,18 +82,21 @@ final class Config
   /** Chaves do Mercado Pago, usado até a troca para o Asaas (a migração v6 apaga do banco). */
   public const ANTIGAS = ['mp_public_key', 'mp_access_token', 'mp_webhook_secret', 'mp_serv_public_key', 'mp_serv_access_token', 'mp_serv_webhook_secret'];
 
+  /** Paleta padrão até a v7 (a migração v8 troca pela do Tênis de Mesa para Todos nas lojas que não a mudaram). */
+  public const CORES_ANTIGAS = ['principal' => '#1B2D42', 'fundo' => '#F7F6F2', 'secundaria' => '#E5DECF', 'texto' => '#333333', 'realce' => '#1FA8DD'];
+
   /**
    * Áreas da loja com cor própria de fundo e de texto: área => [rótulo, cor básica do fundo, cor básica do texto].
-   * Sem cor própria, a área usa as cores básicas indicadas (principal, fundo ou secundária).
+   * Sem cor própria, a área usa as cores indicadas de Config::cores() (as básicas ou as derivadas delas).
    */
   public const AREAS_COR = [
-    'faixa' => ['Faixa do topo (avisos)', 'principal', 'fundo'],
-    'cabecalho' => ['Cabeçalho (logotipo, busca e carrinho)', 'fundo', 'principal'],
-    'menu' => ['Menu (Início, Produtos, Serviços…)', 'secundaria', 'principal'],
-    'botao' => ['Botões (comprar, adicionar, assinar…)', 'principal', 'fundo'],
-    'destaque' => ['Destaque da página inicial', 'principal', 'fundo'],
-    'sobre' => ['Seção "Sobre nós"', 'principal', 'fundo'],
-    'rodape' => ['Rodapé', 'principal', 'fundo'],
+    'faixa' => ['Faixa do topo (avisos)', 'fundo', 'texto'],
+    'cabecalho' => ['Cabeçalho (logotipo, busca e carrinho)', 'fundo', 'texto'],
+    'menu' => ['Menu (Início, Produtos, Serviços…)', 'fundo', 'texto'],
+    'botao' => ['Botões (comprar, adicionar, assinar…)', 'principal', 'sobre_principal'],
+    'destaque' => ['Destaque da página inicial', 'fundo', 'texto'],
+    'sobre' => ['Seção "Sobre nós"', 'fundo', 'texto'],
+    'rodape' => ['Rodapé', 'fundo', 'texto'],
   ];
 
   /** Cores próprias de cada área (só as definidas): ['faixa' => ['fundo' => '#...', 'texto' => '#...'], ...]. */
@@ -108,7 +112,12 @@ final class Config
     return $r;
   }
 
-  /** Cores do tema (loja, painel e e-mails), já validadas. */
+  /**
+   * Cores do tema (loja e e-mails), já validadas: as cinco básicas e as derivadas delas
+   * - titulo: títulos (quase branco no fundo escuro; no claro, a principal se for legível, senão o texto)
+   * - sobre_principal: texto dos botões (branco ou quase preto, o que for mais legível sobre a principal)
+   * - suave, linha e tom: texto secundário, linhas e fundos sutis, já misturados (para os e-mails, que não têm color-mix).
+   */
   public static function cores(): array
   {
     $c = [];
@@ -116,7 +125,48 @@ final class Config
       $v = self::get('cor_' . $k);
       $c[$k] = preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? strtoupper($v) : self::PADROES['cor_' . $k];
     }
+    $c['escuro'] = self::corEscura($c['fundo']);
+    $c['titulo'] = $c['escuro'] ? '#FFFAFA' : (self::contraste($c['principal'], $c['fundo']) >= 4.5 ? $c['principal'] : $c['texto']);
+    $c['sobre_principal'] = self::corEscura($c['principal']) ? '#FFFFFF' : '#111111';
+    $c['suave'] = self::misturar($c['texto'], $c['fundo'], .72);
+    $c['linha'] = self::misturar($c['secundaria'], $c['fundo'], .3);
+    $c['tom'] = self::misturar($c['texto'], $c['fundo'], .08);
     return $c;
+  }
+
+  /** Luminância relativa (WCAG) de #RRGGBB: 0 = preto, 1 = branco. */
+  public static function luminancia(string $hex): float
+  {
+    $l = [];
+    foreach (str_split(substr($hex, 1, 6), 2) as $par) {
+      $v = hexdec($par) / 255;
+      $l[] = $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+    }
+    return 0.2126 * $l[0] + 0.7152 * $l[1] + 0.0722 * $l[2];
+  }
+
+  /** Contraste entre duas cores, de 1 a 21 (WCAG). */
+  public static function contraste(string $a, string $b): float
+  {
+    $x = self::luminancia($a);
+    $y = self::luminancia($b);
+    return (max($x, $y) + 0.05) / (min($x, $y) + 0.05);
+  }
+
+  /** Fundo escuro: texto branco se lê melhor nele do que texto preto (mesma regra do Loja.corEscura do comum.js). */
+  public static function corEscura(string $hex): bool
+  {
+    return self::contraste($hex, '#FFFFFF') > self::contraste($hex, '#000000');
+  }
+
+  /** Mistura duas cores #RRGGBB ($peso da primeira, de 0 a 1), como o color-mix do CSS. */
+  public static function misturar(string $a, string $b, float $peso): string
+  {
+    $r = '#';
+    for ($i = 1; $i < 7; $i += 2) {
+      $r .= sprintf('%02X', (int)round(hexdec(substr($a, $i, 2)) * $peso + hexdec(substr($b, $i, 2)) * (1 - $peso)));
+    }
+    return $r;
   }
 
   private static ?array $arquivo = null;

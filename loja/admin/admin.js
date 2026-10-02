@@ -111,8 +111,6 @@
     A.admin = null;
     mostrarLogin();
   });
-  $('#btnMenu').addEventListener('click', () => $('#lateral').classList.toggle('aberta'));
-  $('#nav').addEventListener('click', () => $('#lateral').classList.remove('aberta'));
 
   const TELAS = {
     painel: ['Painel financeiro', telaPainel],
@@ -134,7 +132,6 @@
     $('#tituloTela').textContent = TELAS[t][0];
     $('#acoesTela').innerHTML = '';
     $('#conteudo').innerHTML = '<p class="carregando">Carregando…</p>';
-    $('#lateral').classList.remove('aberta');
     TELAS[t][1]($('#conteudo'), $('#acoesTela')).catch((e) => {
       $('#conteudo').innerHTML = `<div class="alerta">${Loja.icone('alerta')}<p>${esc(e.message)}</p></div>`;
     });
@@ -1199,16 +1196,35 @@
 
   /** Cores do tema: [chave, rótulo, onde aparece]. Os padrões são os mesmos do servidor (Config::PADROES). */
   const CORES = [
-    ['principal', 'Cor principal', 'Botões, faixa do topo, destaque da página inicial e rodapé (sem cor própria em Cores por área).'],
-    ['fundo', 'Cor de fundo', 'Fundo das páginas e do cabeçalho.'],
-    ['secundaria', 'Cor secundária', 'Menu, etiquetas e áreas de apoio.'],
-    ['texto', 'Cor do texto', 'Textos corridos.'],
-    ['realce', 'Cor de realce', 'Detalhes e parte do nome da loja.']
+    ['principal', 'Cor dos botões', 'Botões de comprar, adicionar, pagar e assinar.'],
+    ['fundo', 'Cor de fundo', 'Fundo de todas as telas da loja.'],
+    ['secundaria', 'Cor das bordas', 'Bordas dos quadros, dos campos e das linhas.'],
+    ['texto', 'Cor do texto', 'Textos corridos. Os títulos ficam claros no fundo escuro.'],
+    ['realce', 'Cor de destaque', 'Ícones, links, aba ativa do menu e parte do nome da loja.']
   ];
-  const PADRAO_CORES = { principal: '#1B2D42', fundo: '#F7F6F2', secundaria: '#E5DECF', texto: '#333333', realce: '#1FA8DD' };
+  /** Paleta do Tênis de Mesa para Todos (os mesmos padrões do servidor, Config::PADROES). */
+  const PADRAO_CORES = { principal: '#00592D', fundo: '#172C46', secundaria: '#80FFFF', texto: '#B4ECFC', realce: '#F45900' };
+
+  /** Cores derivadas das básicas, com a mesma regra do Config::cores() do servidor. */
+  function coresDerivadas(b) {
+    return {
+      titulo: Loja.corEscura(b.fundo) ? '#FFFAFA' : (Loja.contraste(b.principal, b.fundo) >= 4.5 ? b.principal : b.texto),
+      sobre_principal: Loja.corEscura(b.principal) ? '#FFFFFF' : '#111111'
+    };
+  }
+
+  /** Cores básicas digitadas no formulário (as inválidas ou incompletas valem o padrão), com as derivadas. */
+  function coresDoForm(f) {
+    const b = {};
+    Object.keys(PADRAO_CORES).forEach((k) => {
+      const v = f.elements[`cor_${k}`].value.trim();
+      b[k] = /^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : PADRAO_CORES[k];
+    });
+    return { ...b, ...coresDerivadas(b) };
+  }
   const IMAGENS_MARCA = [
-    ['logo', 'Logotipo', 'Para fundo claro (topo da loja). Horizontal, até 600 px.', 'logo', false],
-    ['logo-escuro', 'Logotipo para fundo escuro', 'Opcional: rodapé, painel e destaque. Sem ele, o logotipo vai sobre uma etiqueta clara.', 'logo_escuro', true],
+    ['logo', 'Logotipo', 'Para fundo claro (lojas com cores claras). Horizontal, até 600 px.', 'logo', false],
+    ['logo-escuro', 'Logotipo para fundo escuro', 'Recomendado: topo, rodapé e painel no fundo azul-marinho. Sem ele, o logotipo comum vai sobre uma etiqueta branca.', 'logo_escuro', true],
     ['icone', 'Ícone da aba', 'Opcional, quadrado. Sem ele, o ícone é gerado do logotipo.', 'icone', false]
   ];
 
@@ -1261,12 +1277,9 @@
   function ligarCores(f) {
     const previa = $('#previaCores');
     const pintar = () => {
-      const v = (k) => f.elements[`cor_${k}`].value;
-      previa.style.setProperty('--pc-principal', v('principal'));
-      previa.style.setProperty('--pc-fundo', v('fundo'));
-      previa.style.setProperty('--pc-secundaria', v('secundaria'));
-      previa.style.setProperty('--pc-texto', v('texto'));
-      previa.style.setProperty('--pc-realce', v('realce'));
+      const c = coresDoForm(f);
+      ['principal', 'fundo', 'secundaria', 'texto', 'realce', 'titulo'].forEach((k) => previa.style.setProperty(`--pc-${k}`, c[k]));
+      previa.style.setProperty('--pc-sobre-principal', c.sobre_principal);
     };
     $$('[data-cor]', f).forEach((seletor) => {
       const texto = f.elements[seletor.dataset.cor];
@@ -1281,7 +1294,7 @@
         $(`[data-cor="cor_${k}"]`, f).value = cor;
       });
       pintar();
-      Loja.aviso('Cores padrão aplicadas na prévia. Clique em Salvar configurações para confirmar.', 'info');
+      Loja.aviso('Cores do Tênis de Mesa para Todos aplicadas na prévia. Clique em Salvar configurações para confirmar.', 'info');
     });
     pintar();
   }
@@ -1330,7 +1343,8 @@
   /** Cores por área: quadrado e código sincronizados, cor automática à mostra, aviso de contraste e prévia da loja. */
   function ligarCoresAreas(f, areas) {
     const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : '');
-    const basica = (k) => hex(f.elements[`cor_${k}`].value) || PADRAO_CORES[k];
+    // Básicas digitadas e derivadas (o texto dos botões, por exemplo, segue a claridade da cor dos botões).
+    const basica = (k) => coresDoForm(f)[k];
     // Cor que a área terá de fato: a própria ou a básica que ela segue (Config::AREAS_COR: [rótulo, fundo, texto]).
     const efetiva = (area, parte) => hex(f.elements[`cor_${area}_${parte}`].value) || basica(areas[area][parte === 'fundo' ? 1 : 2]);
     const previa = $('#previaLoja');
@@ -1439,7 +1453,7 @@
 
         <section class="bloco">
           <h2>Personalização · Cores</h2>
-          <p class="bloco-sub">A paleta vale para a loja, o painel e os e-mails. Clique no quadrado para escolher a cor ou digite o código (#RRGGBB).</p>
+          <p class="bloco-sub">A paleta vale para a vitrine da loja e para os e-mails (o painel usa sempre as cores do Tênis de Mesa para Todos). Clique no quadrado para escolher a cor ou digite o código (#RRGGBB).</p>
           <div class="campos cores-grade">
             ${CORES.map(([k, rotulo, dica]) => `
               <label class="c-4 cor-campo">${rotulo}
@@ -1449,9 +1463,9 @@
           </div>
           <div class="previa-cores" id="previaCores" aria-hidden="true">
             <div class="pc-topo"><span class="pc-logo"></span><span class="pc-nome">${esc(c.loja_nome || 'Minha Loja')}</span></div>
-            <div class="pc-corpo"><strong>Título da loja</strong><p>Texto de exemplo com um <span class="pc-realce">destaque</span>.</p><span class="pc-botao">Comprar</span><span class="pc-etiqueta">Categoria</span></div>
+            <div class="pc-corpo"><strong>Título da loja</strong><p>Texto de exemplo com um <span class="pc-realce">link de destaque</span>.</p><span class="pc-botao">Comprar</span><span class="pc-etiqueta">Categoria</span></div>
           </div>
-          <button type="button" class="link" id="btnCoresPadrao">Voltar às cores padrão</button>
+          <button type="button" class="link" id="btnCoresPadrao">Voltar às cores do Tênis de Mesa para Todos</button>
         </section>
 
         ${blocoCoresAreas(c, r.areas_cor || {})}

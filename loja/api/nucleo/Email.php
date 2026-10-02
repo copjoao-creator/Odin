@@ -31,31 +31,40 @@ final class Email
     return $ok;
   }
 
-  /** Moldura do e-mail nas cores e com o logotipo da loja (Configurações › Identidade visual). */
+  /**
+   * Moldura do e-mail no padrão visual da loja (o do Tênis de Mesa para Todos, se a loja não mudou as cores):
+   * quadro com borda na cor secundária sobre o fundo, títulos claros, links na cor de realce e botão arredondado.
+   */
   private static function modelo(string $titulo, string $corpo): string
   {
     $c = Config::cores();
     $loja = htmlspecialchars(Config::get('loja_nome'));
     $titulo = htmlspecialchars($titulo);
     $url = Http::urlLoja();
-    $contato = $url === '' ? '' : ' Dúvidas? <a href="' . htmlspecialchars($url . 'contato.html') . '" style="color:' . $c['principal'] . '">Fale conosco</a>.';
-    // Topo: logotipo para fundo escuro (ou o nome da loja, se não houver um).
-    $logo = Marca::logoAbsoluto('marca_logo_escuro');
+    $contato = $url === '' ? '' : ' Dúvidas? <a href="' . htmlspecialchars($url . 'contato.html') . '" style="color:' . $c['realce'] . '">Fale conosco</a>.';
+    // Topo: no fundo escuro, o logotipo para fundo escuro (o comum vai sobre uma etiqueta branca); sem logotipo, o nome da loja.
+    $logo = $c['escuro'] ? Marca::logoAbsoluto('marca_logo_escuro') : null;
+    $etiqueta = '';
+    if (!$logo) {
+      $logo = Marca::logoAbsoluto();
+      if ($logo && $c['escuro']) $etiqueta = 'background:#ffffff;padding:4px 8px;border-radius:8px;';
+    }
     $topo = $logo
-      ? '<img src="' . htmlspecialchars($logo) . '" alt="' . $loja . '" style="max-height:48px;max-width:260px;display:block">'
+      ? '<img src="' . htmlspecialchars($logo) . '" alt="' . $loja . '" style="max-height:48px;max-width:260px;display:block;' . $etiqueta . '">'
       : $loja;
     $legal = htmlspecialchars(Marca::linhaLegal());
     $legal = $legal !== '' ? "<br>{$legal}" : '';
+    $fonte = "'Source Sans 3','Segoe UI',Arial,sans-serif";
     return <<<HTML
-<!DOCTYPE html><html lang="pt-BR"><body style="margin:0;background:{$c['fundo']};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:{$c['texto']}">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
-<tr><td style="background:{$c['principal']};color:{$c['fundo']};padding:20px 28px;font-size:18px;letter-spacing:3px;text-transform:uppercase">{$topo}</td></tr>
-<tr><td style="padding:28px;font-size:15px;line-height:1.6">
-<h1 style="margin:0 0 16px;font-size:20px;font-weight:400;color:{$c['principal']}">{$titulo}</h1>
+<!DOCTYPE html><html lang="pt-BR"><body style="margin:0;background:{$c['fundo']};font-family:{$fonte};color:{$c['texto']};letter-spacing:.05em">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{$c['fundo']}"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:{$c['fundo']};border:1px solid {$c['secundaria']};border-radius:16px">
+<tr><td style="padding:20px 28px;font-size:18px;color:{$c['titulo']};border-bottom:1px solid {$c['linha']}">{$topo}</td></tr>
+<tr><td style="padding:28px;font-size:15px;line-height:1.6;color:{$c['texto']}">
+<h1 style="margin:0 0 16px;font-size:20px;font-weight:400;color:{$c['titulo']}">{$titulo}</h1>
 {$corpo}
 </td></tr>
-<tr><td style="background:{$c['secundaria']};padding:14px 28px;font-size:12px;color:#555">Este é um e-mail automático de {$loja}.{$contato}{$legal}</td></tr>
+<tr><td style="border-top:1px solid {$c['linha']};padding:14px 28px;font-size:12px;color:{$c['suave']}">Este é um e-mail automático de {$loja}.{$contato}{$legal}</td></tr>
 </table></td></tr></table></body></html>
 HTML;
   }
@@ -65,6 +74,6 @@ HTML;
     $c = Config::cores();
     $t = htmlspecialchars($texto);
     $u = htmlspecialchars($url);
-    return "<p style=\"margin:24px 0\"><a href=\"{$u}\" style=\"background:{$c['principal']};color:{$c['fundo']};padding:14px 26px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:14px\">{$t}</a></p>";
+    return "<p style=\"margin:24px 0\"><a href=\"{$u}\" style=\"background:{$c['principal']};color:{$c['sobre_principal']};padding:12px 22px;border-radius:12px;text-decoration:none;font-size:15px;display:inline-block\">{$t}</a></p>";
   }
 }

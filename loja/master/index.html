@@ -5,36 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Plataforma · Odin Focus</title>
-  <meta name="theme-color" content="#1B2D42">
+  <meta name="theme-color" content="#172C46">
+  <!-- Fonte do Tênis de Mesa para Todos: Source Sans 3 (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/odin-focus-simbolo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/loja.css">
   <link rel="stylesheet" href="../admin/admin.css">
 </head>
 <body class="painel">
-  <!-- Painel do administrador master: cadastro e acompanhamento de todas as lojas. -->
+  <!-- Painel do administrador master: cadastro e acompanhamento de todas as lojas.
+       Layout do Painel do Administrador Master do Tênis de Mesa para Todos: barra fina no topo, quadro com borda e abas. -->
   <div class="app" id="app" hidden>
-    <aside class="lateral" id="lateral">
-      <a class="logo logo-claro master-logo" href="#lojas"><img src="/img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="180" height="50"><small>Plataforma</small></a>
-      <nav class="nav" id="nav" aria-label="Seções da plataforma">
-        <a href="#lojas" data-tela="lojas"><span data-icone="carrinho"></span>Lojas</a>
-        <a href="#conta" data-tela="conta"><span data-icone="escudo"></span>Minha conta</a>
-      </nav>
-      <div class="lateral-rodape">
-        <p id="nomeAdmin"></p>
-        <a href="/" target="_blank" rel="noopener">Ver o site ↗</a>
-        <button type="button" class="link" id="btnSair">Sair</button>
-        <div class="lateral-selo" data-selo-clubes></div>
+    <header class="barra-painel">
+      <div class="barra-painel-in">
+        <a class="logo master-logo" href="#lojas"><img src="/img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="150" height="42"><small>Plataforma</small></a>
+        <div class="barra-painel-acoes">
+          <span class="fraco" id="nomeAdmin"></span>
+          <a class="link" href="/" target="_blank" rel="noopener">Ver o site ↗</a>
+          <button type="button" class="btn btn-pequeno btn-sair" id="btnSair">Sair</button>
+        </div>
       </div>
-    </aside>
+    </header>
 
-    <div class="principal">
-      <header class="topo-painel">
-        <button type="button" class="btn-icone so-celular" id="btnMenu" aria-label="Abrir menu" data-icone="menu"></button>
-        <h1 id="tituloTela">Lojas</h1>
-        <div class="topo-painel-acoes" id="acoesTela"></div>
-      </header>
-      <div class="conteudo" id="conteudo"></div>
-    </div>
+    <main class="principal">
+      <section class="quadro-painel">
+        <div class="quadro-cab">
+          <h1 class="titulo-tela"><span data-icone="escudo"></span><span id="tituloTela">Lojas</span></h1>
+          <div class="topo-painel-acoes" id="acoesTela"></div>
+        </div>
+        <nav class="abas" id="nav" aria-label="Seções da plataforma">
+          <a href="#lojas" data-tela="lojas">Lojas</a>
+          <a href="#conta" data-tela="conta">Minha conta</a>
+        </nav>
+        <div class="conteudo" id="conteudo"></div>
+      </section>
+      <div class="rodape-painel" data-selo-clubes="linha"></div>
+    </main>
   </div>
 
   <dialog class="dlg dlg-painel" id="dlg"></dialog>

@@ -6,7 +6,7 @@
  */
 final class Migracoes
 {
-  private const VERSAO = 7;
+  private const VERSAO = 8;
 
   /** Trechos dos textos padrão antigos que citavam o Mercado Pago (v6: todos os pagamentos passam a ser pelo Asaas). */
   private const SEM_MERCADO_PAGO = [' via Mercado Pago' => '', ' pelo Mercado Pago' => ''];
@@ -83,6 +83,21 @@ final class Migracoes
     Banco::executar("ALTER TABLE pedidos MODIFY COLUMN forma_pagamento {$formas} NULL");
     self::coluna('pagamentos', 'observacao', 'VARCHAR(255) NULL AFTER aprovado_em');
     self::coluna('pagamentos', 'registrado_por', 'VARCHAR(100) NULL AFTER observacao');
+
+    // v8: padrão visual do Tênis de Mesa para Todos. A loja que usava a paleta padrão antiga (ou nunca salvou cores)
+    // passa para a nova; a que escolheu cores próprias continua com elas.
+    if ($versao < 8) {
+      $padrao = true;
+      foreach (Config::CORES_ANTIGAS as $k => $hex) {
+        $salva = strtoupper(trim((string)Banco::valor('SELECT valor FROM configuracoes WHERE chave = ?', ['cor_' . $k])));
+        if ($salva !== '' && $salva !== $hex) $padrao = false;
+      }
+      if ($padrao) {
+        $novas = [];
+        foreach (array_keys(Config::CORES_ANTIGAS) as $k) $novas['cor_' . $k] = Config::PADROES['cor_' . $k];
+        Config::salvar($novas);
+      }
+    }
 
     Config::salvar(['versao_banco' => (string)self::VERSAO]);
   }

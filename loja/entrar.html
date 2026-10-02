@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Entrar · Módulo Financeiro de Clubes · Odin Focus</title>
-  <meta name="theme-color" content="#1B2D42">
+  <meta name="theme-color" content="#172C46">
+  <!-- Fonte do Tênis de Mesa para Todos: Source Sans 3 (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3&display=swap" rel="stylesheet">
   <link rel="icon" href="/img/odin-focus-simbolo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/loja.css">
   <link rel="stylesheet" href="admin/admin.css">
@@ -14,15 +18,15 @@
   <!-- Login único da plataforma: o sistema descobre se é o administrador master ou o de qual loja. -->
   <main class="login">
     <div class="login-caixa">
-      <img class="entrar-logo" src="/img/odin-focus-logo.svg" alt="Odin Focus" width="220" height="60">
+      <img class="entrar-logo" src="/img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="200" height="55">
       <div class="entrar-selo" data-selo-clubes></div>
 
       <form id="fEntrar" novalidate>
-        <h1>Entrar</h1>
+        <h1><span data-icone="escudo"></span>Acesso restrito</h1>
         <p class="muted">Administrador da plataforma ou da sua loja.</p>
         <div class="campos">
-          <label class="c-12">E-mail <input name="email" type="email" autocomplete="username" required></label>
-          <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+          <label class="c-12">E-mail de acesso <input name="email" type="email" autocomplete="username" required placeholder="email@email.com.br"></label>
+          <label class="c-12">Senha <input name="senha" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
         </div>
         <p class="form-erro" data-erro hidden></p>
         <button class="btn btn-largo" type="submit">Entrar</button>
@@ -30,7 +34,7 @@
       </form>
 
       <form id="fRecuperar" novalidate hidden>
-        <h1>Criar ou recuperar a senha</h1>
+        <h1><span data-icone="email"></span>Criar ou recuperar a senha</h1>
         <p class="muted">Enviaremos um código de 6 dígitos para o e-mail de verificação do administrador da plataforma.</p>
         <div class="campos">
           <label class="c-12">E-mail de login <input name="email" type="email" autocomplete="username" required></label>
@@ -42,7 +46,7 @@
       </form>
 
       <form id="fCodigo" novalidate hidden>
-        <h1>Nova senha</h1>
+        <h1><span data-icone="escudo"></span>Nova senha</h1>
         <p class="muted" id="msgCodigo"></p>
         <div class="campos">
           <label class="c-12">Código recebido por e-mail <input name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
@@ -55,7 +59,7 @@
       </form>
 
       <div id="vEscolher" hidden>
-        <h1>Escolha a loja</h1>
+        <h1><span data-icone="carrinho"></span>Escolha a loja</h1>
         <p class="muted">Você administra mais de uma loja.</p>
         <div class="entrar-lojas" id="listaLojas"></div>
       </div>

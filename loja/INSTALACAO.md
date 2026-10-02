@@ -258,6 +258,14 @@ Endereço: **`https://www.odinfocus.com.br/loja/admin/`**
   **estornar** (total ou parcial), **cancelar**, copiar o **link de pagamento**, enviar pelo WhatsApp ou por e-mail
   e registrar observações (ex.: código de rastreio).
   O botão **Novo link de pagamento** serve para vendas feitas pelo WhatsApp ou telefone.
+- **Recebimento manual:** no pedido aguardando pagamento, **Registrar recebimento manual** informa um pagamento feito
+  fora da loja: **dinheiro**, **maquininha de cartão** de outra empresa (crédito ou débito), **Pix em outra conta**,
+  transferência/depósito ou outro. Informe a forma, o valor, a data e, se quiser, as **taxas descontadas** (ex.: taxa
+  da maquininha, para o lucro sair certo) e uma observação (ex.: NSU). Pode ser **parcial**: o pedido fica pago
+  quando a soma dos recebimentos chega ao total, e o link de pagamento passa a cobrar só o que falta. Ao registrar,
+  Pix e boleto em aberto no Asaas são cancelados (para o cliente não pagar de novo). Lançou errado? Use **Desfazer**.
+  Devolveu o dinheiro ao cliente? Use **Estornar** (total ou parcial), que só registra a devolução. Não vale para
+  renovações cobradas automaticamente no cartão (assinaturas no Asaas), para o cliente não pagar duas vezes.
 - **Clientes:** cadastro com CPF validado e e-mail únicos, endereço com busca pelo CEP e histórico de compras.
 - **Produtos:** código, categoria, subcategoria, descrição, estoque, preço de custo e de venda, e **até 3 fotos**
   (PNG ou JPG, até 800×800 pixels; fotos maiores são reduzidas automaticamente). O estoque baixa sozinho quando o pedido é pago
@@ -285,7 +293,7 @@ antigas continuam no painel.
 
 | Situação | O que significa |
 |---|---|
-| Aguardando pagamento | Pedido criado; Pix/boleto ainda não pago ou cliente ainda não pagou |
+| Aguardando pagamento | Pedido criado; Pix/boleto ainda não pago, cliente ainda não pagou ou pagou só uma parte (recebimento manual parcial) |
 | Em análise | O Asaas está analisando o cartão (análise de segurança) |
 | Pago | Dinheiro aprovado. Estoque baixado e assinatura criada/renovada |
 | Cancelado | Cancelado por você ou por falta de pagamento no prazo configurado |
@@ -357,7 +365,10 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
   pedido de origem ou de um pedido de renovação.
 - `Asaas::comoPagamento()` converte a cobrança para a tabela `pagamentos` (os status seguem `approved`, `pending`,
   `refunded` etc.). As colunas `mp_id`/`mp_assinatura` guardam os ids do Asaas (o nome ficou do Mercado Pago);
-  `pagamentos.app` = `asaas`, e `loja`/`servicos` marcam pagamentos antigos do Mercado Pago (só histórico).
+  `pagamentos.app` = `asaas`, `manual` (recebimento informado no painel: `mp_id` "man_…", com `observacao` e
+  `registrado_por`) e `loja`/`servicos` marcam pagamentos antigos do Mercado Pago (só histórico).
+- O pedido fica pago quando a **soma** dos pagamentos aprovados cobre o total (`Pedidos::sincronizar`), e a cobrança
+  online é sempre do que falta (`Pedidos::restanteCentavos`).
 - Mudanças no banco de lojas já instaladas ficam em `api/nucleo/Migracoes.php` e rodam sozinhas na primeira chamada à API.
 - Plataforma (`Plataforma.php`, `LojaAtual.php`, `plataforma.sql`, `rotas_plataforma.php`): a loja vem do primeiro
   trecho do endereço; cada loja tem prefixo de tabelas (`l{id}_`) aplicado em `Banco::sql()` — o SQL continua com os

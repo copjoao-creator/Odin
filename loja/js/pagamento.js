@@ -50,6 +50,12 @@
 
   const alertaHtml = (alerta) => (alerta ? `<p class="pg-alerta">${Loja.icone('alerta')} ${Loja.esc(alerta)}</p>` : '');
 
+  /** Valor a pagar online: o total, menos o que a loja já recebeu por fora (ex.: parte em dinheiro). */
+  const aPagar = (pedido) => (pedido.a_pagar ?? pedido.total);
+  const totalHtml = (pedido) => (pedido.recebido > 0
+    ? `<div class="pg-total"><span>Falta pagar · pedido #${pedido.id}<small class="pg-ja-pago">Total ${Loja.brl(pedido.total)} · já pago ${Loja.brl(pedido.recebido)}</small></span><strong>${Loja.brl(aPagar(pedido))}</strong></div>`
+    : `<div class="pg-total"><span>Total do pedido #${pedido.id}</span><strong>${Loja.brl(pedido.total)}</strong></div>`);
+
   /**
    * Escolha da forma de pagamento. Pix e boleto são gerados com os dados do cadastro do cliente
    * (o boleto também vai para o e-mail do cadastro); o cartão abre o formulário da loja.
@@ -61,7 +67,7 @@
     const parcelas = pedido.max_parcelas || 1;
     alvo.innerHTML = `
       ${alertaHtml(alerta)}
-      <div class="pg-total"><span>Total do pedido #${pedido.id}</span><strong>${Loja.brl(pedido.total)}</strong></div>
+      ${totalHtml(pedido)}
       ${c.protegido ? `<p class="pg-assinatura">${Loja.icone('check')}<span>Usaremos os dados do seu cadastro (${Loja.esc(c.nome)}, ${Loja.esc(c.cidade)}/${Loja.esc(c.estado)}).</span></p>` : ''}
       <div class="pg-opcoes">
         <button type="button" class="pg-opcao" data-forma="pix">${Loja.icone('pix')}<span><strong>Pix</strong>Aprovação na hora</span></button>
@@ -91,12 +97,13 @@
   /** Compra no cartão de crédito: à vista ou parcelado sem juros. */
   function formularioCompra(alvo, ctx, alerta = '') {
     const { pedido } = ctx;
+    const valor = aPagar(pedido);
     formularioCartao(alvo, ctx, {
       alerta,
-      topo: `<div class="pg-total"><span>Total do pedido #${pedido.id}</span><strong>${Loja.brl(pedido.total)}</strong></div>`,
-      total: pedido.total,
+      topo: totalHtml(pedido),
+      total: valor,
       parcelas: pedido.max_parcelas || 1,
-      rotulo: (n) => (n > 1 ? `Pagar ${Loja.brl(pedido.total)} em ${n}x` : `Pagar ${Loja.brl(pedido.total)}`),
+      rotulo: (n) => (n > 1 ? `Pagar ${Loja.brl(valor)} em ${n}x` : `Pagar ${Loja.brl(valor)}`),
       enviar: (cartao, parcelas) => pagar(alvo, ctx, { forma: 'cartao', cartao, parcelas }),
       outras: () => formulario(alvo, ctx)
     });

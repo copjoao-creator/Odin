@@ -6,7 +6,7 @@
  */
 final class Migracoes
 {
-  private const VERSAO = 6;
+  private const VERSAO = 7;
 
   /** Trechos dos textos padrão antigos que citavam o Mercado Pago (v6: todos os pagamentos passam a ser pelo Asaas). */
   private const SEM_MERCADO_PAGO = [' via Mercado Pago' => '', ' pelo Mercado Pago' => ''];
@@ -65,15 +65,24 @@ final class Migracoes
     // - O id do parcelamento do Asaas (UUID) tem 36 caracteres.
     // - As chaves do Mercado Pago saem do banco; os pagamentos antigos ficam só no histórico.
     // - Os textos padrão antigos deixam de citar o Mercado Pago.
-    Banco::executar("ALTER TABLE pagamentos MODIFY COLUMN mp_id VARCHAR(60) NOT NULL, MODIFY COLUMN app VARCHAR(12) NOT NULL DEFAULT 'asaas'");
-    Banco::executar('DELETE FROM configuracoes WHERE chave IN (' . implode(', ', array_fill(0, count(Config::ANTIGAS), '?')) . ')', Config::ANTIGAS);
-    $textos = [];
-    foreach (['aviso_topo', 'loja_subtitulo'] as $k) {
-      $atual = (string)Banco::valor('SELECT valor FROM configuracoes WHERE chave = ?', [$k]);
-      $novo = strtr($atual, self::SEM_MERCADO_PAGO);
-      if ($novo !== $atual) $textos[$k] = $novo;
+    if ($versao < 6) {
+      Banco::executar("ALTER TABLE pagamentos MODIFY COLUMN mp_id VARCHAR(60) NOT NULL, MODIFY COLUMN app VARCHAR(12) NOT NULL DEFAULT 'asaas'");
+      Banco::executar('DELETE FROM configuracoes WHERE chave IN (' . implode(', ', array_fill(0, count(Config::ANTIGAS), '?')) . ')', Config::ANTIGAS);
+      $textos = [];
+      foreach (['aviso_topo', 'loja_subtitulo'] as $k) {
+        $atual = (string)Banco::valor('SELECT valor FROM configuracoes WHERE chave = ?', [$k]);
+        $novo = strtr($atual, self::SEM_MERCADO_PAGO);
+        if ($novo !== $atual) $textos[$k] = $novo;
+      }
+      if ($textos) Config::salvar($textos);
     }
-    if ($textos) Config::salvar($textos);
+
+    // v7: recebimentos informados pela loja (dinheiro, maquininha de outra empresa, Pix em outra conta...).
+    $formas = "ENUM('pix','boleto','credito','debito','dinheiro','transferencia','outro')";
+    Banco::executar("ALTER TABLE pagamentos MODIFY COLUMN metodo {$formas} NOT NULL");
+    Banco::executar("ALTER TABLE pedidos MODIFY COLUMN forma_pagamento {$formas} NULL");
+    self::coluna('pagamentos', 'observacao', 'VARCHAR(255) NULL AFTER aprovado_em');
+    self::coluna('pagamentos', 'registrado_por', 'VARCHAR(100) NULL AFTER observacao');
 
     Config::salvar(['versao_banco' => (string)self::VERSAO]);
   }

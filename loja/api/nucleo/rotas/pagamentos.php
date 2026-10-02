@@ -16,7 +16,9 @@ return function (Roteador $r) {
     $forma = (string)($d['forma'] ?? '');
     if (!in_array($forma, ['pix', 'boleto', 'cartao'], true)) throw new ErroApi('Escolha uma forma de pagamento.', 422);
     $c = Clientes::buscar($p['cliente_cpf']);
-    $total = (float)$p['total'];
+    // Cobra o que falta: parte do pedido pode já ter sido recebida por fora (recebimento manual no painel).
+    $total = Pedidos::restanteCentavos($p) / 100;
+    if ($total <= 0) throw new ErroApi('Este pedido já está pago.', 409);
     $corpo = [
       'customer' => Asaas::cliente($c),
       'description' => mb_substr(Config::get('loja_nome') . ' - Pedido #' . $p['id'], 0, 500),
@@ -159,6 +161,11 @@ return function (Roteador $r) {
     if ($valor !== null && ((float)$valor <= 0 || (float)$valor > $disponivel + 0.001)) {
       throw new ErroApi('O valor do estorno deve ser maior que zero e no máximo ' . Pedidos::brl($disponivel) . '.', 422, ['campo' => 'valor']);
     }
+    // Recebimento manual: a loja devolveu o dinheiro por fora; aqui só fica registrado.
+    if ($pg['app'] === Pedidos::APP_MANUAL) {
+      Pedidos::estornarRecebimento($pg, $valor, Auth::exigirAdmin());
+      return ['ok' => true];
+    }
     if (Asaas::ehParcelamento($pg['mp_id'])) {
       // Compra parcelada: o Asaas estorna todas as parcelas de uma vez.
       if ($valor !== null && (float)$valor < $disponivel - 0.001) {
@@ -179,7 +186,16 @@ return function (Roteador $r) {
     $pg = Banco::um('SELECT * FROM pagamentos WHERE id = ?', [(int)$id]);
     if (!$pg) throw new ErroApi('Pagamento não encontrado.', 404);
     $antigo($pg);
+    if ($pg['app'] === Pedidos::APP_MANUAL) throw new ErroApi('Recebimento manual: não há o que consultar no Asaas.', 422);
     Pedidos::registrarPagamento((int)$pg['pedido_id'], Asaas::pagamento($pg['mp_id']), $pg['app']);
+    return ['ok' => true];
+  });
+
+  // Recebimento manual lançado por engano: deixa de contar (fica no histórico como desfeito).
+  $r->admin('POST', 'pagamentos/{id}/desfazer', function ($id) {
+    $pg = Banco::um('SELECT * FROM pagamentos WHERE id = ?', [(int)$id]);
+    if (!$pg) throw new ErroApi('Pagamento não encontrado.', 404);
+    Pedidos::desfazerRecebimento($pg, Auth::exigirAdmin());
     return ['ok' => true];
   });
 };

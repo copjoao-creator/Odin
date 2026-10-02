@@ -15,7 +15,12 @@
     rejected: 'Recusado', cancelled: 'Cancelado', refunded: 'Estornado', charged_back: 'Contestado'
   };
   const STATUS_ASSINATURA = { ativa: 'Ativa', atrasada: 'Atrasada', encerrada: 'Encerrada', cancelada: 'Cancelada' };
-  const METODOS = { pix: 'Pix', boleto: 'Boleto', credito: 'Crédito', debito: 'Débito', outro: 'Outro' };
+  const METODOS = { pix: 'Pix', boleto: 'Boleto', credito: 'Crédito', debito: 'Débito', dinheiro: 'Dinheiro', transferencia: 'Transferência', outro: 'Outro' };
+  // Recebimento manual (fora da loja): as mesmas formas de Pedidos::FORMAS_MANUAIS.
+  const FORMAS_MANUAIS = {
+    dinheiro: 'Dinheiro', pix: 'Pix em outra conta', credito: 'Cartão de crédito (maquininha)',
+    debito: 'Cartão de débito (maquininha)', transferencia: 'Transferência ou depósito', outro: 'Outro'
+  };
   const ORIGENS = { loja: 'Loja', admin: 'Painel', renovacao: 'Renovação' };
   const RENOVACOES = { unica: 'Pagamento único', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
 
@@ -461,7 +466,8 @@
       return falha(e);
     }
     const aberto = p.status === 'aguardando_pagamento';
-    const podeCancelar = ['aguardando_pagamento', 'em_analise'].includes(p.status);
+    // Com recebimento registrado (mesmo parcial), desfaça ou estorne antes de cancelar.
+    const podeCancelar = ['aguardando_pagamento', 'em_analise'].includes(p.status) && !p.recebido;
     const e = p.endereco;
     const c = p.cliente;
     const mensagemZap = `Olá, ${(c.nome || '').split(' ')[0]}! Segue o link para pagar o pedido #${p.id} (${brl(p.total)}): ${p.link}`;
@@ -507,12 +513,16 @@
 
       <div class="secao-dlg">
         <h3>Pagamentos</h3>
+        ${p.recebido > 0 && p.a_pagar > 0 ? `<p class="recebido-parcial">${Loja.icone('alerta')}<span>Recebido <strong>${brl(p.recebido)}</strong> de ${brl(p.total)}. Falta <strong>${brl(p.a_pagar)}</strong>${p.status === 'aguardando_pagamento' ? ': registre o restante ou envie o link (ele cobra só o que falta)' : ''}.</span></p>` : ''}
         ${p.pagamentos.length ? p.pagamentos.map((pg) => `
           <div class="pagamento-linha" data-pg="${pg.id}">
             <div>
-              <strong>${esc(pg.metodo_texto)}</strong>${pg.parcelas > 1 ? ` em ${pg.parcelas}x` : ''} · ${brl(pg.valor)} ${selo(pg.status, STATUS_MP[pg.status] || pg.status)}<br>
-              <span class="fraco">${esc(pg.mensagem)} · ${esc(pg.gateway)} nº ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>
-              ${pg.valor_liquido !== null ? `<br><span class="fraco">Líquido recebido: ${brl(pg.valor_liquido)}${pg.valor_estornado > 0 ? ` · Estornado: ${brl(pg.valor_estornado)}` : ''}</span>` : ''}
+              <strong>${esc(pg.manual ? pg.forma_manual || pg.metodo_texto : pg.metodo_texto)}</strong>${pg.parcelas > 1 ? ` em ${pg.parcelas}x` : ''} · ${brl(pg.valor)} ${selo(pg.status, STATUS_MP[pg.status] || pg.status)}<br>
+              ${pg.manual
+                ? `<span class="fraco">${esc(pg.mensagem)} · Recebimento manual em ${Loja.data(String(pg.aprovado_em || pg.criado_em).slice(0, 10))}${pg.registrado_por ? ` · registrado por ${esc(pg.registrado_por)}` : ''}</span>
+                   ${pg.observacao ? `<br><span class="fraco">Obs.: ${esc(pg.observacao)}</span>` : ''}`
+                : `<span class="fraco">${esc(pg.mensagem)} · ${esc(pg.gateway)} nº ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>`}
+              ${pg.valor_liquido !== null || pg.valor_estornado > 0 ? `<br><span class="fraco">${pg.valor_liquido !== null ? `Líquido recebido: ${brl(pg.valor_liquido)}` : ''}${pg.valor_liquido !== null && pg.valor_estornado > 0 ? ' · ' : ''}${pg.valor_estornado > 0 ? `Estornado: ${brl(pg.valor_estornado)}` : ''}</span>` : ''}
               ${pg.antigo ? '<br><span class="fraco">Pagamento antigo: consulte ou estorne pelo site do Mercado Pago.</span>' : ''}
               <div class="estorno" hidden>
                 <div class="filtros" style="margin-top:10px">
@@ -524,10 +534,22 @@
               </div>
             </div>
             <div class="acoes">
-              ${pg.antigo ? '' : '<button type="button" class="link" data-acao="atualizar">Atualizar</button>'}
+              ${pg.antigo || pg.manual ? '' : '<button type="button" class="link" data-acao="atualizar">Atualizar</button>'}
+              ${pg.manual && pg.status === 'approved' && !pg.valor_estornado ? '<button type="button" class="link" data-acao="desfazer">Desfazer</button>' : ''}
               ${pg.status === 'approved' && !pg.antigo ? '<button type="button" class="btn btn-pequeno btn-perigo" data-acao="estornar">Estornar</button>' : ''}
             </div>
           </div>`).join('') : '<p class="fraco">Nenhuma tentativa de pagamento ainda.</p>'}
+        ${p.pode_receber ? `
+          <button type="button" class="btn btn-pequeno btn-linha" data-acao="receber" style="margin-top:12px">Registrar recebimento manual</button>
+          <form class="recebimento campos" id="fRecebimento" hidden novalidate>
+            <p class="c-12 fraco">Pagamento feito fora da loja: em dinheiro, na maquininha de cartão de outra empresa, por Pix em outra conta etc. O valor entra no financeiro e, ${p.assinatura ? 'na contratação de assinatura, precisa ser o total' : 'se for só uma parte, o pedido continua aguardando o restante'}.</p>
+            <label class="c-4">Forma <select name="forma" required><option value="">Escolha…</option>${Object.entries(FORMAS_MANUAIS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+            <label class="c-4">Valor recebido (R$) <input name="valor" inputmode="decimal" value="${reaisCampo(p.a_pagar)}" required></label>
+            <label class="c-4">Data <input name="data" type="date" value="${iso(new Date())}" max="${iso(new Date())}" required></label>
+            <label class="c-4">Taxas descontadas (R$) <input name="taxa" inputmode="decimal" placeholder="0,00"><span class="dica">Opcional. Ex.: taxa da maquininha.</span></label>
+            <label class="c-8">Observação <input name="observacao" maxlength="200" placeholder="Ex.: maquininha Stone, NSU 123456"></label>
+            <div class="c-12"><button type="submit" class="btn btn-pequeno">Confirmar recebimento</button></div>
+          </form>` : ''}
       </div>
 
       <div class="secao-dlg">
@@ -570,10 +592,23 @@
         case 'confirmar-estorno': {
           const campoValor = $('.estorno input', b.closest('[data-pg]'));
           const valor = campoValor ? campoValor.value.trim() : '';
-          if (!confirm(`Confirma o estorno de ${valor ? `R$ ${valor}` : 'todo o valor restante'}? O dinheiro volta para o cliente e não é possível desfazer.`)) return;
-          acao(() => api(`pagamentos/${pgId}/estornar`, { metodo: 'POST', dados: { valor } }), 'Estorno solicitado.');
+          const manual = p.pagamentos.some((x) => String(x.id) === pgId && x.manual);
+          const quanto = valor ? `R$ ${valor}` : 'todo o valor restante';
+          if (!confirm(manual
+            ? `Registrar que a loja devolveu ${quanto} ao cliente (por fora, em dinheiro, Pix etc.)? Não é possível desfazer.`
+            : `Confirma o estorno de ${quanto}? O dinheiro volta para o cliente e não é possível desfazer.`)) return;
+          acao(() => api(`pagamentos/${pgId}/estornar`, { metodo: 'POST', dados: { valor } }), manual ? 'Devolução registrada.' : 'Estorno solicitado.');
           break;
         }
+        case 'receber':
+          b.hidden = true;
+          $('#fRecebimento').hidden = false;
+          $('#fRecebimento').elements.forma.focus();
+          break;
+        case 'desfazer':
+          if (!confirm('Desfazer este recebimento lançado por engano? Ele deixa de contar como pago (fica no histórico como desfeito).')) return;
+          acao(() => api(`pagamentos/${pgId}/desfazer`, { metodo: 'POST' }), 'Recebimento desfeito.');
+          break;
         case 'cancelar': {
           const motivo = prompt('Motivo do cancelamento (opcional):', '');
           if (motivo === null) return;
@@ -589,6 +624,24 @@
         default:
       }
     }));
+
+    const fRec = $('#fRecebimento');
+    if (fRec) {
+      fRec.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = fRec.querySelector('[type=submit]');
+        btn.disabled = true;
+        try {
+          await api(`pedidos/${id}/recebimentos`, { metodo: 'POST', dados: Object.fromEntries(new FormData(fRec)) });
+          Loja.aviso('Recebimento registrado.', 'ok');
+          await abrirPedido(id);
+          if (A.tela === 'pedidos' || A.tela === 'painel') recarregarTela();
+        } catch (err) {
+          btn.disabled = false;
+          erroDeForm(fRec, err);
+        }
+      });
+    }
   }
 
   /** Venda fora do site: escolhe o cliente e os itens e gera o link de pagamento. */

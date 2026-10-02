@@ -18,6 +18,12 @@ return function (Roteador $r) {
       'subtotal' => (float)$p['subtotal'],
       'frete' => (float)$p['frete'],
       'total' => (float)$p['total'],
+      'recebido' => Pedidos::recebidoCentavos($p) / 100,
+      'a_pagar' => Pedidos::restanteCentavos($p) / 100,
+      // Recebimento manual (dinheiro, maquininha, Pix em outra conta): só em pedidos aguardando pagamento
+      // e fora da cobrança automática no cartão.
+      'pode_receber' => $p['status'] === 'aguardando_pagamento' && !Pedidos::cobrancaAutomatica($p) && empty($p['mp_assinatura']),
+      'assinatura' => (bool)Pedidos::itemAssinatura($p),
       'custo_total' => (float)$p['custo_total'],
       'lucro_bruto' => round($receitaItens - (float)$p['custo_total'], 2),
       'precisa_entrega' => (bool)$p['precisa_entrega'],
@@ -37,9 +43,14 @@ return function (Roteador $r) {
       'pagamentos' => array_map(fn($pg) => [
         'id' => (int)$pg['id'],
         'mp_id' => $pg['mp_id'],
-        'gateway' => Asaas::antigo($pg) ? 'Mercado Pago (antigo)' : 'Asaas',
+        'gateway' => Asaas::antigo($pg) ? 'Mercado Pago (antigo)' : ($pg['app'] === Pedidos::APP_MANUAL ? 'Recebimento manual' : 'Asaas'),
         // Pagamento antigo do Mercado Pago: só histórico (consulta e estorno no site do Mercado Pago).
         'antigo' => Asaas::antigo($pg),
+        // Informado pela loja no painel: quem registrou e a observação (ex.: maquininha, NSU).
+        'manual' => $pg['app'] === Pedidos::APP_MANUAL,
+        'forma_manual' => $pg['app'] === Pedidos::APP_MANUAL ? (Pedidos::FORMAS_MANUAIS[$pg['metodo']] ?? null) : null,
+        'observacao' => $pg['observacao'] ?? null,
+        'registrado_por' => $pg['registrado_por'] ?? null,
         // Compra parcelada no cartão: o estorno pelo painel é sempre do valor total.
         'parcelado' => Asaas::ehParcelamento($pg['mp_id']),
         'metodo' => $pg['metodo'],
@@ -133,6 +144,11 @@ return function (Roteador $r) {
     }
     $enviado = Validacao::booleano($d['enviar_email'] ?? false) ? Pedidos::enviarLink($p) : false;
     return ['pedido' => $completo($p), 'email_enviado' => $enviado];
+  });
+
+  // Recebimento feito fora da loja: dinheiro, maquininha de cartão de outra empresa, Pix em outra conta...
+  $r->admin('POST', 'pedidos/{id}/recebimentos', function ($id) use ($completo) {
+    return ['pedido' => $completo(Pedidos::registrarRecebimento((int)$id, Http::entrada(), Auth::exigirAdmin()))];
   });
 
   $r->admin('POST', 'pedidos/{id}/cancelar', function ($id) use ($completo) {

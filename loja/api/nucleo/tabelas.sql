@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
   bairro VARCHAR(100) NOT NULL,
   cidade VARCHAR(100) NOT NULL,
   estado CHAR(2) NOT NULL,
-  forma_pagamento ENUM('pix','boleto','credito','debito','outro') NULL,
+  forma_pagamento ENUM('pix','boleto','credito','debito','dinheiro','transferencia','outro') NULL,
   mp_assinatura VARCHAR(40) NULL,
   assinatura_data_final DATE NULL,
   dados_protegidos TINYINT(1) NOT NULL DEFAULT 0,
@@ -102,14 +102,15 @@ CREATE TABLE IF NOT EXISTS pedido_itens (
   CONSTRAINT fk_pedido_itens_pedido FOREIGN KEY (pedido_id) REFERENCES pedidos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Cada tentativa de pagamento no Asaas (Pix, boleto ou cartão de crédito). mp_id: id da cobrança
--- ("pay_…") ou do parcelamento no Asaas. app: "asaas"; "loja"/"servicos" são pagamentos antigos do Mercado Pago.
+-- Cada tentativa de pagamento no Asaas (Pix, boleto ou cartão de crédito) e cada recebimento informado
+-- pela loja no painel. mp_id: id da cobrança ("pay_…") ou do parcelamento no Asaas; "man_…" no manual.
+-- app: "asaas"; "manual" (dinheiro, maquininha, Pix em outra conta...); "loja"/"servicos" = Mercado Pago antigo.
 CREATE TABLE IF NOT EXISTS pagamentos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   pedido_id INT UNSIGNED NOT NULL,
   mp_id VARCHAR(60) NOT NULL,
   app VARCHAR(12) NOT NULL DEFAULT 'asaas',
-  metodo ENUM('pix','boleto','credito','debito','outro') NOT NULL,
+  metodo ENUM('pix','boleto','credito','debito','dinheiro','transferencia','outro') NOT NULL,
   mp_metodo VARCHAR(40) NULL,
   status VARCHAR(30) NOT NULL,
   status_detalhe VARCHAR(80) NULL,
@@ -123,6 +124,8 @@ CREATE TABLE IF NOT EXISTS pagamentos (
   codigo_barras VARCHAR(100) NULL,
   expira_em DATETIME NULL,
   aprovado_em DATETIME NULL,
+  observacao VARCHAR(255) NULL,
+  registrado_por VARCHAR(100) NULL,
   criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   atualizado_em DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

@@ -14,8 +14,25 @@ final class Pedidos
     'estornado' => 'Estornado',
   ];
 
-  // "debito" fica para os pagamentos antigos (Mercado Pago); o Asaas não recebe débito digitado na loja.
-  public const METODOS = ['pix' => 'Pix', 'boleto' => 'Boleto', 'credito' => 'Cartão de crédito', 'debito' => 'Cartão de débito', 'outro' => 'Outro'];
+  // "debito" fica para os pagamentos antigos (Mercado Pago) e os recebimentos manuais (maquininha);
+  // o Asaas não recebe débito digitado na loja. "dinheiro" e "transferencia": só recebimentos manuais.
+  public const METODOS = [
+    'pix' => 'Pix', 'boleto' => 'Boleto', 'credito' => 'Cartão de crédito', 'debito' => 'Cartão de débito',
+    'dinheiro' => 'Dinheiro', 'transferencia' => 'Transferência ou depósito', 'outro' => 'Outro',
+  ];
+
+  /** Recebimento informado pela loja no painel (pagamentos.app): o dinheiro não passou pelo Asaas. */
+  public const APP_MANUAL = 'manual';
+
+  /** Formas do recebimento manual, como aparecem no painel. */
+  public const FORMAS_MANUAIS = [
+    'dinheiro' => 'Dinheiro',
+    'pix' => 'Pix em outra conta',
+    'credito' => 'Cartão de crédito (maquininha)',
+    'debito' => 'Cartão de débito (maquininha)',
+    'transferencia' => 'Transferência ou depósito',
+    'outro' => 'Outro',
+  ];
 
   /**
    * Mensagens para o cliente conforme o detalhe gravado no pagamento: os do Asaas
@@ -30,6 +47,8 @@ final class Pedidos
     'refund_requested' => 'Estorno solicitado.',
     'refund_in_progress' => 'Estorno em andamento.',
     'cancelled' => 'Esta cobrança foi cancelada.',
+    'manual' => 'Recebido pela loja.',
+    'desfeito' => 'Recebimento desfeito (lançado por engano).',
     'accredited' => 'Pagamento aprovado!',
     'pending_contingency' => 'Estamos processando o pagamento. Em até 2 dias úteis você receberá a confirmação por e-mail.',
     'pending_review_manual' => 'O pagamento está em análise. Em até 2 dias úteis você receberá a confirmação por e-mail.',
@@ -247,9 +266,12 @@ final class Pedidos
       ],
       'pagamento' => $ultimo ? self::resumoPagamento($ultimo) : null,
       'link' => self::link($p),
+      // Recebimentos já registrados (ex.: parte em dinheiro informada pela loja) e o que falta pagar online.
+      'recebido' => self::recebidoCentavos($p) / 100,
+      'a_pagar' => self::restanteCentavos($p) / 100,
       'pagamentos_ativos' => Asaas::configurado(),
-      // Parcelas sem juros que o cliente pode escolher no cartão para este total.
-      'max_parcelas' => Asaas::parcelasPossiveis((float)$p['total']),
+      // Parcelas sem juros que o cliente pode escolher no cartão para o valor a pagar.
+      'max_parcelas' => Asaas::parcelasPossiveis(self::restanteCentavos($p) / 100),
       'cobranca_automatica' => self::cobrancaAutomatica($p),
       // Serviço recorrente: pago só no cartão de crédito, com renovação automática a cada período.
       'assinatura' => ($a = self::itemAssinatura($p)) ? [
@@ -359,10 +381,16 @@ final class Pedidos
       $p = self::carregar($id, true);
       if (!$p) return null;
       $status = array_column($p['pagamentos'], 'status');
-      // Só vale como pago o pagamento aprovado que cobre o total do pedido.
+      // Pago quando os pagamentos aprovados somam o total (um só, ou vários recebimentos parciais).
+      // A forma do pedido é a do maior deles; a data, a do último.
       $aprovado = null;
-      foreach ($p['pagamentos'] as $pg) {
-        if ($pg['status'] === 'approved' && self::centavos($pg['valor']) >= self::centavos($p['total'])) $aprovado = $pg;
+      $quando = null;
+      if (self::recebidoCentavos($p) >= self::centavos($p['total'])) {
+        foreach ($p['pagamentos'] as $pg) {
+          if ($pg['status'] !== 'approved') continue;
+          if (!$aprovado || self::centavos($pg['valor']) > self::centavos($aprovado['valor'])) $aprovado = $pg;
+          if ($pg['aprovado_em'] && (!$quando || $pg['aprovado_em'] > $quando)) $quando = $pg['aprovado_em'];
+        }
       }
 
       if ($aprovado) $novo = 'pago';
@@ -380,7 +408,7 @@ final class Pedidos
         'UPDATE pedidos SET status = ?, forma_pagamento = ?, efeitos_aplicados = ?,
            pago_em = CASE WHEN ? = \'pago\' THEN COALESCE(pago_em, ?, NOW()) ELSE pago_em END
          WHERE id = ?',
-        [$novo, $forma, ($aplicar || ($p['efeitos_aplicados'] && !$reverter)) ? 1 : 0, $novo, $aprovado['aprovado_em'] ?? null, $id]
+        [$novo, $forma, ($aplicar || ($p['efeitos_aplicados'] && !$reverter)) ? 1 : 0, $novo, $quando, $id]
       );
       if ($aplicar || $reverter) {
         foreach ($p['itens'] as $item) {
@@ -395,6 +423,118 @@ final class Pedidos
     if ($aprovadoAgora) self::avisarPagamentoAprovado($id);
   }
 
+  /** Quanto já foi recebido (soma dos pagamentos aprovados), em centavos. */
+  public static function recebidoCentavos(array $p): int
+  {
+    $soma = 0;
+    foreach ($p['pagamentos'] ?? [] as $pg) if ($pg['status'] === 'approved') $soma += self::centavos($pg['valor']);
+    return $soma;
+  }
+
+  /** Quanto falta pagar (total menos o já recebido), em centavos. */
+  public static function restanteCentavos(array $p): int
+  {
+    return max(0, self::centavos($p['total']) - self::recebidoCentavos($p));
+  }
+
+  /**
+   * Recebimento feito fora da loja (dinheiro, maquininha de outra empresa, Pix em outra conta...), informado
+   * no painel. Pode ser parcial: o pedido fica pago quando a soma dos recebimentos cobre o total, e o que faltar
+   * pode ser pago pelo link (já com o valor restante). Pix e boleto em aberto no Asaas são cancelados, para o
+   * cliente não pagar de novo o valor cheio.
+   */
+  public static function registrarRecebimento(int $id, array $d, array $admin): array
+  {
+    // O pedido fica travado enquanto confere o que falta pagar (dois cliques não registram em dobro).
+    $p = Banco::transacao(fn() => self::lancarRecebimento($id, $d, $admin));
+    foreach ($p['pagamentos'] as $pg) self::cancelarCobranca($pg);
+    self::sincronizar($id);
+    return self::carregar($id);
+  }
+
+  private static function lancarRecebimento(int $id, array $d, array $admin): array
+  {
+    $p = self::carregar($id, true);
+    if (!$p) throw new ErroApi('Pedido não encontrado.', 404);
+    if ($p['status'] === 'em_analise') throw new ErroApi('Há um pagamento em análise no Asaas para este pedido: aguarde a resposta antes de registrar um recebimento.', 422);
+    if ($p['status'] !== 'aguardando_pagamento') throw new ErroApi('Só é possível registrar recebimento em pedidos aguardando pagamento.', 422);
+    if (self::cobrancaAutomatica($p) || !empty($p['mp_assinatura'])) {
+      throw new ErroApi('Este pedido é cobrado automaticamente no cartão pelo Asaas (assinatura). Não registre recebimento manual: o cliente pagaria duas vezes.', 422);
+    }
+    $forma = (string)($d['forma'] ?? '');
+    if (!isset(self::FORMAS_MANUAIS[$forma])) throw new ErroApi('Escolha a forma do recebimento.', 422, ['campo' => 'forma']);
+    $restante = self::restanteCentavos($p);
+    $valor = self::centavos(Validacao::dinheiro($d['valor'] ?? '', 'valor', 'Valor recebido'));
+    if ($valor <= 0 || $valor > $restante) {
+      throw new ErroApi('O valor recebido deve ser maior que zero e no máximo ' . self::brl($restante / 100) . ' (o que falta pagar).', 422, ['campo' => 'valor']);
+    }
+    // Contratação de assinatura: o período é pago de uma vez (a renovação depende do pagamento inteiro).
+    if (self::itemAssinatura($p) && $valor !== $restante) {
+      throw new ErroApi('Na contratação de assinatura, registre o valor total do período (' . self::brl($restante / 100) . ').', 422, ['campo' => 'valor']);
+    }
+    $taxa = self::centavos(Validacao::dinheiro($d['taxa'] ?? '', 'taxa', 'Taxas descontadas', false));
+    if ($taxa >= $valor) throw new ErroApi('As taxas descontadas devem ser menores que o valor recebido.', 422, ['campo' => 'taxa']);
+    $data = Validacao::data($d['data'] ?? '', 'data', 'Data do recebimento');
+    if ($data > date('Y-m-d')) throw new ErroApi('A data do recebimento não pode ser no futuro.', 422, ['campo' => 'data']);
+    $obs = Validacao::texto($d, 'observacao', 'Observação', 200, false);
+
+    Banco::executar(
+      "INSERT INTO pagamentos (pedido_id, mp_id, app, metodo, status, status_detalhe, valor, valor_liquido, valor_estornado, parcelas,
+         aprovado_em, observacao, registrado_por)
+       VALUES (?, ?, ?, ?, 'approved', 'manual', ?, ?, 0, 1, ?, ?, ?)",
+      [
+        $id, 'man_' . bin2hex(random_bytes(10)), self::APP_MANUAL, $forma,
+        self::reais($valor), $taxa > 0 ? self::reais($valor - $taxa) : null,
+        $data === date('Y-m-d') ? date('Y-m-d H:i:s') : $data . ' 12:00:00',
+        $obs !== '' ? $obs : null, mb_substr((string)($admin['nome'] ?? ''), 0, 100),
+      ]
+    );
+    Banco::executar(
+      "UPDATE pedidos SET observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
+      [date('d/m/Y H:i') . ' - Recebimento manual registrado por ' . ($admin['nome'] ?? '') . ': ' . self::FORMAS_MANUAIS[$forma] . ', '
+        . self::brl($valor / 100) . ' em ' . date('d/m/Y', strtotime($data)) . ($obs !== '' ? " ({$obs})" : ''), $id]
+    );
+    return $p;
+  }
+
+  /**
+   * Desfaz um recebimento manual lançado por engano: deixa de contar (fica no histórico como cancelado)
+   * e, se o pedido deixar de estar pago, o estoque e a assinatura voltam ao que eram.
+   */
+  public static function desfazerRecebimento(array $pg, array $admin): array
+  {
+    if ($pg['app'] !== self::APP_MANUAL) throw new ErroApi('Só recebimentos manuais podem ser desfeitos. Para pagamentos do Asaas, use Estornar.', 422);
+    if ($pg['status'] !== 'approved' || (float)$pg['valor_estornado'] > 0) throw new ErroApi('Este recebimento não pode mais ser desfeito (já foi estornado ou desfeito).', 422);
+    Banco::executar("UPDATE pagamentos SET status = 'cancelled', status_detalhe = 'desfeito' WHERE id = ?", [$pg['id']]);
+    Banco::executar(
+      "UPDATE pedidos SET observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
+      [date('d/m/Y H:i') . ' - Recebimento manual de ' . self::brl((float)$pg['valor']) . ' desfeito por ' . ($admin['nome'] ?? ''), $pg['pedido_id']]
+    );
+    self::sincronizar((int)$pg['pedido_id']);
+    return self::carregar((int)$pg['pedido_id']);
+  }
+
+  /**
+   * Estorno de um recebimento manual: a loja devolveu o dinheiro por fora (total ou parte).
+   * $valor null = todo o valor restante.
+   */
+  public static function estornarRecebimento(array $pg, ?string $valor, array $admin): void
+  {
+    $disponivel = self::centavos($pg['valor']) - self::centavos($pg['valor_estornado']);
+    $estorno = $valor === null ? $disponivel : self::centavos($valor);
+    $total = self::centavos($pg['valor_estornado']) + $estorno;
+    $integral = $total >= self::centavos($pg['valor']);
+    Banco::executar(
+      'UPDATE pagamentos SET valor_estornado = ?, status = ?, status_detalhe = ? WHERE id = ?',
+      [self::reais($total), $integral ? 'refunded' : 'approved', $integral ? 'refunded' : 'manual', $pg['id']]
+    );
+    Banco::executar(
+      "UPDATE pedidos SET observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
+      [date('d/m/Y H:i') . ' - Estorno de ' . self::brl($estorno / 100) . ' do recebimento manual registrado por ' . ($admin['nome'] ?? ''), $pg['pedido_id']]
+    );
+    self::sincronizar((int)$pg['pedido_id']);
+  }
+
   /** Cancela um pedido ainda não pago (pelo painel ou por expiração). */
   public static function cancelar(int $id, string $motivo): array
   {
@@ -403,6 +543,9 @@ final class Pedidos
       if (!$p) throw new ErroApi('Pedido não encontrado.', 404);
       if (!in_array($p['status'], ['aguardando_pagamento', 'em_analise'], true)) {
         throw new ErroApi('Só é possível cancelar pedidos que ainda não foram pagos.', 422);
+      }
+      if (self::recebidoCentavos($p) > 0) {
+        throw new ErroApi('Este pedido já tem recebimento registrado. Desfaça ou estorne o recebimento antes de cancelar.', 422);
       }
       Banco::executar(
         "UPDATE pedidos SET status = 'cancelado', cancelado_em = NOW(), observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
@@ -442,8 +585,10 @@ final class Pedidos
   {
     $dias = max(1, (int)Config::get('dias_expiracao_pedido'));
     $log = [];
+    // Pedidos com parte já recebida (recebimento manual parcial) não são cancelados sozinhos.
     $ids = Banco::todos(
-      "SELECT id FROM pedidos WHERE status = 'aguardando_pagamento' AND criado_em < DATE_SUB(NOW(), INTERVAL {$dias} DAY)"
+      "SELECT p.id FROM pedidos p WHERE p.status = 'aguardando_pagamento' AND p.criado_em < DATE_SUB(NOW(), INTERVAL {$dias} DAY)
+         AND NOT EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.pedido_id = p.id AND pg.status = 'approved')"
     );
     foreach ($ids as ['id' => $id]) {
       try {

@@ -83,6 +83,8 @@
             <div><dt>Subtotal</dt><dd>${Loja.brl(p.subtotal)}</dd></div>
             ${p.precisa_entrega ? `<div><dt>Frete</dt><dd>${p.frete ? Loja.brl(p.frete) : 'Grátis'}</dd></div>` : ''}
             <div class="valores-total"><dt>Total</dt><dd>${Loja.brl(p.total)}</dd></div>
+            ${p.recebido > 0 && p.status !== 'pago' ? `<div><dt>Já pago</dt><dd>− ${Loja.brl(p.recebido)}</dd></div>
+            <div class="valores-total"><dt>Falta pagar</dt><dd>${Loja.brl(p.a_pagar)}</dd></div>` : ''}
           </dl>
           <p class="muted">Cliente: ${Loja.esc(p.cliente.nome)}</p>
           <p class="resumo-seguro">${Loja.icone('escudo')} Pagamento seguro processado pelo Asaas</p>`;

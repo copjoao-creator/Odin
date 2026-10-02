@@ -152,6 +152,10 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .pagamento-linha { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; padding: 12px 0; border-bottom: 1px solid var(--linha); font-size: .88rem; }
 .pagamento-linha:last-child { border-bottom: 0; }
 .pagamento-linha .acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+/* Recebimento manual (dinheiro, maquininha, Pix em outra conta...) e pedido pago só em parte */
+.recebido-parcial { display: flex; gap: 10px; align-items: flex-start; background: #FBF3E4; border-left: 4px solid #9A6B1F; padding: 10px 12px; font-size: .88rem; margin-bottom: 10px; }
+.recebido-parcial .ico { color: #9A6B1F; width: 18px; height: 18px; }
+.recebimento { margin-top: 12px; background: var(--creme); padding: 14px; border-radius: 6px; }
 .obs { white-space: pre-line; background: var(--creme); padding: 12px; font-size: .88rem; }
 .campos textarea { width: 100%; padding: 12px; border: 1px solid var(--bege-escuro); border-radius: 3px; background: var(--branco); font-size: .95rem; resize: vertical; min-height: 110px; }
 .campos .dica { font-size: .75rem; color: var(--suave); }

@@ -434,6 +434,8 @@ body.marca-sem-nome .logo-texto { display: none; }
 /* ---------- Pagamento ---------- */
 .pg-total { display: flex; justify-content: space-between; align-items: center; background: var(--creme); padding: 14px 16px; margin-bottom: 16px; }
 .pg-total strong { font-size: 1.3rem; color: var(--azul); }
+/* Parte já paga por fora (recebimento informado pela loja): mostra o total e o que já foi pago */
+.pg-ja-pago { display: block; font-size: .78rem; color: var(--suave); margin-top: 2px; }
 .carregando { color: var(--suave); text-align: center; padding: 60px 0; }
 .pg-opcoes { display: grid; gap: 10px; margin-bottom: 8px; }
 .pg-opcao { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--branco); border: 1px solid var(--bege-escuro); border-radius: var(--raio); padding: 14px 16px; cursor: pointer; color: var(--texto); font: inherit; }

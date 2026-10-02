@@ -137,7 +137,7 @@ body.marca-sem-nome .logo-texto { display: none; }
 .hero-in { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 40px; padding-top: 88px; padding-bottom: 88px; }
 .sobretitulo { display: inline-flex; align-items: center; gap: 14px; font-size: .78rem; letter-spacing: 4px; text-transform: uppercase; opacity: .8; }
 .sobretitulo::before { content: ""; width: 36px; height: 1px; background: currentColor; }
-.hero h1 { font-size: clamp(2.1rem, 4.4vw, 3.6rem); line-height: 1.12; font-weight: 300; letter-spacing: -.5px; margin: 22px 0 20px; max-width: 16ch; }
+.hero h1 { font-size: clamp(2rem, 3.6vw, 3.4rem); line-height: 1.12; font-weight: 300; letter-spacing: -.5px; margin: 22px 0 20px; max-width: 20ch; text-wrap: balance; }
 .hero-sub { font-size: 1.1rem; line-height: 1.7; max-width: 52ch; opacity: .85; }
 .hero-acoes { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; }
 .hero-arte { position: relative; aspect-ratio: 1; max-width: 400px; width: 100%; justify-self: center; display: grid; place-items: center; }

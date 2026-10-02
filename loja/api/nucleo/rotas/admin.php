@@ -35,9 +35,7 @@ return function (Roteador $r) {
       'modulos' => $modulos,
       'tecnico' => $tecnico,
       'identidade' => Marca::publica(),
-      'pagamentos_configurados' => MercadoPago::configurado() || Asaas::configurado(),
-      'webhook_url' => $tecnico ? Http::urlLoja() . 'api/?r=webhook/mercadopago' : null,
-      'webhook_url_servicos' => $tecnico ? Http::urlLoja() . 'api/?r=webhook/mercadopago&app=servicos' : null,
+      'pagamentos_configurados' => Asaas::configurado(),
       'webhook_url_asaas' => $tecnico ? Http::urlLoja() . 'api/?r=webhook/asaas' : null,
       'comando_cron' => $cron,
       'ultima_tarefa_diaria' => $c['ultima_tarefa_diaria'] ?? null,
@@ -105,15 +103,8 @@ return function (Roteador $r) {
     foreach (['frete_valor' => 'Frete', 'frete_gratis_acima' => 'Frete grátis acima de'] as $k => $rotulo) {
       if (array_key_exists($k, $d)) $v[$k] = Validacao::dinheiro($d[$k], $k, $rotulo, false);
     }
-    $inteiros = ['max_parcelas' => ['Parcelas', 1, 24], 'dias_expiracao_pedido' => ['Dias para expirar', 1, 60], 'dias_antecedencia_renovacao' => ['Antecedência da renovação', 0, 30], 'estoque_minimo' => ['Estoque mínimo', 0, 100000]];
+    $inteiros = ['max_parcelas' => ['Parcelas', 1, Asaas::MAX_PARCELAS], 'dias_expiracao_pedido' => ['Dias para expirar', 1, 60], 'dias_antecedencia_renovacao' => ['Antecedência da renovação', 0, 30], 'estoque_minimo' => ['Estoque mínimo', 0, 100000]];
     foreach ($inteiros as $k => [$rotulo, $min, $max]) if (array_key_exists($k, $d)) $v[$k] = (string)Validacao::inteiro($d[$k], $k, $rotulo, $min, $max);
-    foreach (['mp_public_key', 'mp_access_token', 'mp_webhook_secret', 'mp_serv_public_key', 'mp_serv_access_token', 'mp_serv_webhook_secret'] as $k) {
-      if (!array_key_exists($k, $d)) continue;
-      $s = trim((string)$d[$k]);
-      if ($s === '' || strpos($s, '…') !== false || strpos($s, '•') !== false) continue; // não mexe (campo mascarado)
-      if (!preg_match('/^[A-Za-z0-9_\-]{8,300}$/', $s)) throw new ErroApi('Chave do Mercado Pago inválida: copie e cole sem espaços.', 422, ['campo' => $k]);
-      $v[$k] = $s;
-    }
     if (array_key_exists('asaas_ambiente', $d)) $v['asaas_ambiente'] = $d['asaas_ambiente'] === 'producao' ? 'producao' : 'sandbox';
     foreach (['asaas_api_key' => 'Chave de API do Asaas', 'asaas_webhook_token' => 'Token do webhook do Asaas'] as $k => $rotulo) {
       if (!array_key_exists($k, $d)) continue;

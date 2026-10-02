@@ -125,7 +125,7 @@
         <label class="c-12">Nome da loja <input name="nome" maxlength="120" required></label>
         <label class="c-12">Endereço
           <span class="endereco-loja"><span class="fraco">${esc(base)}/</span><input name="slug" maxlength="40" pattern="[a-z0-9-]+" autocomplete="off" required></span>
-          <span class="dica">Letras minúsculas, números e hífen. <strong>Não pode ser mudado depois</strong> (é o endereço dos links de pagamento e dos avisos do Mercado Pago/Asaas).</span>
+          <span class="dica">Letras minúsculas, números e hífen. <strong>Não pode ser mudado depois</strong> (é o endereço dos links de pagamento e dos avisos do Asaas).</span>
         </label>
         <h3 class="c-12 titulo-form">Primeiro acesso ao painel da loja</h3>
         <label class="c-6">Nome do administrador <input name="admin_nome" maxlength="100" required></label>
@@ -159,7 +159,7 @@
             <div><dt>Painel</dt><dd><a href="${esc(l.url)}admin/" target="_blank" rel="noopener">${esc(l.url)}admin/</a></dd></div>
             <div><dt>Acesso do lojista</dt><dd>${esc(dados.admin_email)} · senha: <code>${esc(dados.admin_senha)}</code></dd></div>
           </dl>
-          <p class="fraco">Próximos passos no painel da loja (você já tem acesso): personalização, cadastro de produtos/serviços e, em Configurações, as chaves de pagamento (Mercado Pago/Asaas) da loja.</p>`,
+          <p class="fraco">Próximos passos no painel da loja (você já tem acesso): personalização, cadastro de produtos/serviços e, em Configurações, a chave de pagamento (Asaas) da loja.</p>`,
         '<button type="button" class="btn btn-pequeno" data-fechar>Fechar</button>');
         if (M.tela === 'lojas') ir();
       } catch (err) {

@@ -1,30 +1,57 @@
 <?php
 /**
- * Cliente da API do Asaas, usada nas assinaturas de serviços cobradas automaticamente no cartão de crédito.
- * O Asaas valida o cartão ao criar a assinatura, cobra o primeiro período na hora e depois renova sozinho
- * a cada período (com novas tentativas no dia do vencimento, se o cartão recusar).
- * As compras avulsas (Pix, boleto e cartão) continuam no Mercado Pago.
+ * Cliente da API do Asaas, que processa todos os pagamentos da loja:
+ * - compras: Pix (QR code na própria página), boleto e cartão de crédito à vista ou parcelado (sem juros);
+ * - assinaturas de serviços: renovação automática no cartão de crédito a cada período.
  * Documentação: https://docs.asaas.com
  *
  * Os dados do cartão só passam por aqui para serem enviados ao Asaas: nunca são gravados nem registrados em log.
  */
 final class Asaas
 {
-  /** Nome da "aplicação" gravado nos pagamentos que vêm do Asaas (coluna pagamentos.app). */
+  /** Nome do gateway gravado nos pagamentos (coluna pagamentos.app). */
   public const APP = 'asaas';
+  /** Pagamentos feitos pelo Mercado Pago antes da troca para o Asaas: ficam só no histórico. */
+  public const APPS_ANTIGOS = ['loja', 'servicos'];
 
   /** Ciclos do Asaas para cada renovação da loja. */
   public const CICLOS = ['mensal' => 'MONTHLY', 'trimestral' => 'QUARTERLY', 'semestral' => 'SEMIANNUALLY', 'anual' => 'YEARLY'];
+
+  /** Prazo do boleto e do Pix, em dias a partir de hoje. */
+  public const DIAS_BOLETO = 3;
+  public const DIAS_PIX = 1;
+  /** Parcelas no cartão: até 12 (aceito por todas as bandeiras no Asaas) e cada uma de pelo menos R$ 5,00. */
+  public const MAX_PARCELAS = 12;
+  public const PARCELA_MINIMA = 5.0;
 
   public static function configurado(): bool
   {
     return Config::get('asaas_api_key') !== '';
   }
 
-  /** Assinaturas do Asaas têm id "sub_…"; as do Mercado Pago, não. */
+  /** Assinaturas do Asaas têm id "sub_…". */
   public static function ehAssinatura(?string $id): bool
   {
     return is_string($id) && strpos($id, 'sub_') === 0;
+  }
+
+  /** Compra parcelada no cartão: o Asaas cria um parcelamento (id no formato UUID) com uma cobrança por parcela. */
+  public static function ehParcelamento(?string $id): bool
+  {
+    return is_string($id) && (bool)preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id);
+  }
+
+  /** Pagamento antigo, feito pelo Mercado Pago: só consulta no histórico. */
+  public static function antigo(array $pg): bool
+  {
+    return in_array($pg['app'] ?? '', self::APPS_ANTIGOS, true);
+  }
+
+  /** Quantas parcelas o cliente pode escolher para este valor (máximo do painel, limite do Asaas e parcela mínima). */
+  public static function parcelasPossiveis(float $total): int
+  {
+    $max = min(max(1, (int)Config::get('max_parcelas')), self::MAX_PARCELAS);
+    return max(1, min($max, (int)floor($total / self::PARCELA_MINIMA + 0.0001)));
   }
 
   private static function base(): string
@@ -96,11 +123,72 @@ final class Asaas
       'addressNumber' => $c['numero'],
       'complement' => $c['complemento'] ?? '',
       'externalReference' => $c['cpf'],
-      // A loja envia os próprios e-mails (pedido, pagamento aprovado); evita avisos em dobro do Asaas.
+      // A loja envia os próprios e-mails (pedido, boleto, pagamento aprovado); evita avisos em dobro do Asaas.
       'notificationDisabled' => true,
     ]);
     if (empty($novo['id'])) throw new ErroApi('O Asaas não confirmou o cadastro do cliente. Tente de novo.', 502);
     return (string)$novo['id'];
+  }
+
+  // ---------------- Cobranças (compras) ----------------
+
+  /**
+   * Cria a cobrança. No cartão, o Asaas autoriza na hora: recusado = HTTP 400 e nada é criado.
+   * Parcelado (installmentCount): devolve a 1ª parcela, com o id do parcelamento em "installment".
+   */
+  public static function criarCobranca(array $corpo): array
+  {
+    return self::requisicao('POST', '/payments', $corpo);
+  }
+
+  public static function consultar(string $id): array
+  {
+    return self::requisicao('GET', '/payments/' . rawurlencode($id));
+  }
+
+  /** QR code do Pix: encodedImage (PNG em base64), payload (copia e cola) e expirationDate. */
+  public static function pixQrCode(string $id): array
+  {
+    return self::requisicao('GET', '/payments/' . rawurlencode($id) . '/pixQrCode');
+  }
+
+  /** Linha digitável do boleto. */
+  public static function linhaDigitavel(string $id): ?string
+  {
+    $r = self::requisicao('GET', '/payments/' . rawurlencode($id) . '/identificationField');
+    return ($r['identificationField'] ?? '') !== '' ? (string)$r['identificationField'] : null;
+  }
+
+  /** Remove uma cobrança ainda não paga (Pix ou boleto): ela deixa de poder ser paga. */
+  public static function remover(string $id): void
+  {
+    self::requisicao('DELETE', '/payments/' . rawurlencode($id));
+  }
+
+  /** Estorno total (sem valor) ou parcial. */
+  public static function estornar(string $id, ?string $valor = null): array
+  {
+    return self::requisicao('POST', '/payments/' . rawurlencode($id) . '/refund', $valor !== null ? ['value' => (float)$valor] : []);
+  }
+
+  // ---------------- Parcelamentos (cartão parcelado) ----------------
+
+  public static function consultarParcelamento(string $id): array
+  {
+    return self::requisicao('GET', '/installments/' . rawurlencode($id));
+  }
+
+  /** Cobranças (parcelas) do parcelamento. */
+  public static function cobrancasDoParcelamento(string $id): array
+  {
+    $r = self::requisicao('GET', '/installments/' . rawurlencode($id) . '/payments?limit=100');
+    return is_array($r['data'] ?? null) ? $r['data'] : [];
+  }
+
+  /** Estorna todas as parcelas. */
+  public static function estornarParcelamento(string $id): array
+  {
+    return self::requisicao('POST', '/installments/' . rawurlencode($id) . '/refund', []);
   }
 
   // ---------------- Assinaturas ----------------
@@ -143,23 +231,20 @@ final class Asaas
     return $dataFinal ? date('Y-m-d', strtotime($dataFinal . ' -1 day')) : null;
   }
 
-  // ---------------- Cobranças ----------------
+  // ---------------- Formato gravado pela loja ----------------
 
-  public static function consultar(string $id): array
+  /** Situação atual de um pagamento gravado (cobrança "pay_…" ou parcelamento), consultada no Asaas. */
+  public static function pagamento(string $id, string $evento = ''): array
   {
-    return self::requisicao('GET', '/payments/' . rawurlencode($id));
-  }
-
-  /** Estorno total (sem valor) ou parcial. */
-  public static function estornar(string $id, ?string $valor = null): array
-  {
-    return self::requisicao('POST', '/payments/' . rawurlencode($id) . '/refund', $valor !== null ? ['value' => (float)$valor] : []);
+    if (self::ehParcelamento($id)) return self::comoParcelamento(self::consultarParcelamento($id), self::cobrancasDoParcelamento($id));
+    return self::comoPagamento(self::consultar($id), $evento);
   }
 
   /**
-   * Converte uma cobrança do Asaas para o formato que a loja já grava (o mesmo do Mercado Pago),
-   * para o pedido, o painel e os relatórios tratarem tudo igual.
+   * Converte uma cobrança do Asaas para o formato da tabela "pagamentos".
+   * status: approved, pending, in_process, rejected, cancelled, refunded ou charged_back.
    * $evento: evento do webhook, que às vezes diz mais que o status (ex.: cartão recusado).
+   * Campos null não apagam o que já foi gravado (ex.: o QR code do Pix, que vem de outra consulta).
    */
   public static function comoPagamento(array $c, string $evento = ''): array
   {
@@ -174,7 +259,10 @@ final class Asaas
     $bruto = (string)($c['status'] ?? 'PENDING');
     $status = $mapa[$bruto] ?? 'pending';
     $detalhe = strtolower($bruto);
-    if (!empty($c['deleted'])) $status = 'cancelled';
+    if (!empty($c['deleted'])) {
+      $status = 'cancelled';
+      $detalhe = 'cancelled';
+    }
     // Cartão recusado ou reprovado pela análise de risco: o status pode continuar "PENDING"/"OVERDUE".
     // (A cobrança é consultada na hora; se uma nova tentativa já aprovou, vale a aprovação.)
     if (in_array($status, ['pending', 'rejected', 'in_process'], true)) {
@@ -186,20 +274,69 @@ final class Asaas
         $detalhe = 'cc_rejected_other_reason';
       }
     }
-    $tipo = ['CREDIT_CARD' => 'credit_card', 'DEBIT_CARD' => 'debit_card', 'PIX' => 'bank_transfer', 'BOLETO' => 'ticket'][$c['billingType'] ?? ''] ?? 'credit_card';
+    $valor = (float)($c['value'] ?? 0);
+    $estornado = 0.0;
+    if ($status === 'refunded') {
+      $estornado = $valor;
+    } elseif (is_array($c['refunds'] ?? null)) {
+      foreach ($c['refunds'] as $e) if (($e['status'] ?? '') !== 'CANCELLED') $estornado += (float)($e['value'] ?? 0);
+    }
+    $tipo = (string)($c['billingType'] ?? '');
     $data = $c['confirmedDate'] ?? $c['clientPaymentDate'] ?? $c['paymentDate'] ?? null;
     return [
       'id' => (string)$c['id'],
       'status' => $status,
-      'status_detail' => $detalhe,
-      'payment_type_id' => $tipo,
-      'payment_method_id' => strtolower((string)($c['creditCard']['creditCardBrand'] ?? 'asaas')),
-      'transaction_amount' => (float)($c['value'] ?? 0),
-      'transaction_amount_refunded' => $status === 'refunded' ? (float)($c['value'] ?? 0) : 0,
-      'transaction_details' => ['net_received_amount' => $c['netValue'] ?? null],
-      'installments' => 1,
-      'date_approved' => $status === 'approved' && $data ? $data . 'T00:00:00-03:00' : null,
+      'status_detalhe' => $detalhe,
+      'metodo' => ['CREDIT_CARD' => 'credito', 'DEBIT_CARD' => 'debito', 'PIX' => 'pix', 'BOLETO' => 'boleto'][$tipo] ?? 'outro',
+      'bandeira' => isset($c['creditCard']['creditCardBrand']) ? strtolower((string)$c['creditCard']['creditCardBrand']) : null,
+      'valor' => $valor,
+      'valor_liquido' => isset($c['netValue']) && (float)$c['netValue'] > 0 ? (float)$c['netValue'] : null,
+      'valor_estornado' => min($valor, $estornado),
+      'parcelas' => 1,
+      'link_pagamento' => $tipo === 'BOLETO' ? ($c['bankSlipUrl'] ?? $c['invoiceUrl'] ?? null) : null,
+      'expira_em' => $tipo === 'BOLETO' && !empty($c['dueDate']) ? $c['dueDate'] . ' 23:59:59' : null,
+      'aprovado_em' => $status === 'approved' && $data ? self::momento((string)$data) : null,
     ];
+  }
+
+  /** Compra parcelada: o parcelamento inteiro vira um só pagamento, com a soma das parcelas. */
+  public static function comoParcelamento(array $parcelamento, array $cobrancas): array
+  {
+    $lista = array_map(fn($c) => self::comoPagamento($c), $cobrancas);
+    $st = array_column($lista, 'status');
+    $todas = fn(string $s) => $st && count(array_filter($st, fn($x) => $x === $s)) === count($st);
+    if (in_array('charged_back', $st, true)) $status = 'charged_back';
+    elseif ($todas('refunded')) $status = 'refunded';
+    elseif (in_array('approved', $st, true)) $status = 'approved';
+    elseif (in_array('in_process', $st, true)) $status = 'in_process';
+    elseif ($todas('cancelled')) $status = 'cancelled';
+    elseif (in_array('rejected', $st, true)) $status = 'rejected';
+    else $status = 'pending';
+    $principal = $lista[0] ?? null;
+    foreach ($lista as $l) if ($l['status'] === $status) { $principal = $l; break; }
+    $liquido = array_sum(array_map(fn($l) => (float)($l['valor_liquido'] ?? 0), $lista));
+    $aprovados = array_filter(array_column($lista, 'aprovado_em'));
+    return [
+      'id' => (string)$parcelamento['id'],
+      'status' => $status,
+      'status_detalhe' => $principal['status_detalhe'] ?? strtolower($status),
+      'metodo' => 'credito',
+      'bandeira' => $principal['bandeira'] ?? null,
+      'valor' => $lista ? array_sum(array_column($lista, 'valor')) : (float)($parcelamento['value'] ?? 0),
+      'valor_liquido' => $liquido > 0 ? $liquido : null,
+      'valor_estornado' => array_sum(array_column($lista, 'valor_estornado')),
+      'parcelas' => (int)($parcelamento['installmentCount'] ?? count($lista)) ?: 1,
+      'link_pagamento' => null,
+      'expira_em' => null,
+      'aprovado_em' => $aprovados ? min($aprovados) : null,
+    ];
+  }
+
+  /** O Asaas informa só a data: hoje vale a hora atual; dias anteriores, meio-dia (para os relatórios por dia). */
+  private static function momento(string $data): string
+  {
+    $dia = substr($data, 0, 10);
+    return $dia === date('Y-m-d') ? date('Y-m-d H:i:s') : $dia . ' 12:00:00';
   }
 
   /** Confere o token que o Asaas envia no cabeçalho "asaas-access-token" de cada aviso (webhook). */

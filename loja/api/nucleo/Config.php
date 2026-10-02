@@ -2,7 +2,7 @@
 /**
  * Configurações da loja.
  * - config.php (criado pelo instalar.php): acesso ao banco de dados.
- * - tabela "configuracoes": tudo o que se altera pelo painel (textos da loja, frete, Mercado Pago, módulos).
+ * - tabela "configuracoes": tudo o que se altera pelo painel (textos da loja, frete, Asaas, módulos).
  */
 final class Config
 {
@@ -49,18 +49,11 @@ final class Config
     'emailjs_template_id' => '',
     'frete_valor' => '0.00',
     'frete_gratis_acima' => '0.00',
-    'max_parcelas' => '12',
+    'max_parcelas' => '12', // parcelas sem juros no cartão de crédito (até 12)
     'dias_expiracao_pedido' => '7',
     'dias_antecedencia_renovacao' => '5',
     'estoque_minimo' => '5',
-    'mp_public_key' => '',
-    'mp_access_token' => '',
-    'mp_webhook_secret' => '',
-    // Aplicação do Mercado Pago só para serviços (pedidos de serviços e assinaturas no cartão).
-    'mp_serv_public_key' => '',
-    'mp_serv_access_token' => '',
-    'mp_serv_webhook_secret' => '',
-    // Asaas: assinaturas de serviços com renovação automática no cartão de crédito.
+    // Asaas: todos os pagamentos (Pix, boleto, cartão de crédito e assinaturas com renovação automática).
     'asaas_ambiente' => 'sandbox',
     'asaas_api_key' => '',
     'asaas_webhook_token' => '',
@@ -72,14 +65,13 @@ final class Config
   ];
 
   /** Chaves secretas: nunca voltam inteiras para o navegador. */
-  public const SECRETAS = ['mp_access_token', 'mp_webhook_secret', 'mp_serv_access_token', 'mp_serv_webhook_secret', 'asaas_api_key', 'asaas_webhook_token'];
+  public const SECRETAS = ['asaas_api_key', 'asaas_webhook_token'];
 
   /** Configurações de pagamento: só o perfil "tecnico" vê e altera (a loja é entregue com elas prontas). */
-  public const TECNICAS = [
-    'mp_public_key', 'mp_access_token', 'mp_webhook_secret',
-    'mp_serv_public_key', 'mp_serv_access_token', 'mp_serv_webhook_secret',
-    'asaas_ambiente', 'asaas_api_key', 'asaas_webhook_token',
-  ];
+  public const TECNICAS = ['asaas_ambiente', 'asaas_api_key', 'asaas_webhook_token'];
+
+  /** Chaves do Mercado Pago, usado até a troca para o Asaas (a migração v6 apaga do banco). */
+  public const ANTIGAS = ['mp_public_key', 'mp_access_token', 'mp_webhook_secret', 'mp_serv_public_key', 'mp_serv_access_token', 'mp_serv_webhook_secret'];
 
   /** Cores do tema (loja, painel e e-mails), já validadas. */
   public static function cores(): array

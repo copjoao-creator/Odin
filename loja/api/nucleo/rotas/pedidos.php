@@ -37,12 +37,16 @@ return function (Roteador $r) {
       'pagamentos' => array_map(fn($pg) => [
         'id' => (int)$pg['id'],
         'mp_id' => $pg['mp_id'],
-        'gateway' => $pg['app'] === Asaas::APP ? 'Asaas' : 'Mercado Pago',
+        'gateway' => Asaas::antigo($pg) ? 'Mercado Pago (antigo)' : 'Asaas',
+        // Pagamento antigo do Mercado Pago: só histórico (consulta e estorno no site do Mercado Pago).
+        'antigo' => Asaas::antigo($pg),
+        // Compra parcelada no cartão: o estorno pelo painel é sempre do valor total.
+        'parcelado' => Asaas::ehParcelamento($pg['mp_id']),
         'metodo' => $pg['metodo'],
         'metodo_texto' => Pedidos::METODOS[$pg['metodo']] ?? $pg['metodo'],
         'mp_metodo' => $pg['mp_metodo'],
         'status' => $pg['status'],
-        'mensagem' => MercadoPago::mensagem($pg['status'], $pg['status_detalhe'], $pg['metodo']),
+        'mensagem' => Pedidos::mensagem($pg['status'], $pg['status_detalhe'], $pg['metodo']),
         'status_detalhe' => $pg['status_detalhe'],
         'valor' => (float)$pg['valor'],
         'valor_liquido' => $pg['valor_liquido'] !== null ? (float)$pg['valor_liquido'] : null,
@@ -140,7 +144,7 @@ return function (Roteador $r) {
     $p = Pedidos::carregar((int)$id);
     if (!$p) throw new ErroApi('Pedido não encontrado.', 404);
     if (!in_array($p['status'], ['aguardando_pagamento'], true)) throw new ErroApi('Este pedido não está aguardando pagamento.', 422);
-    if (Pedidos::cobrancaAutomatica($p)) throw new ErroApi('Esta renovação é debitada automaticamente no cartão pelo Mercado Pago. Não envie link: o cliente pagaria duas vezes.', 422);
+    if (Pedidos::cobrancaAutomatica($p)) throw new ErroApi('Esta renovação é debitada automaticamente no cartão pelo Asaas. Não envie link: o cliente pagaria duas vezes.', 422);
     if (!Pedidos::enviarLink($p)) throw new ErroApi('Não foi possível enviar o e-mail. Copie o link e envie pelo WhatsApp.', 502);
     return ['ok' => true];
   });

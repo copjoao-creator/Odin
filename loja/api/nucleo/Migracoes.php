@@ -6,7 +6,10 @@
  */
 final class Migracoes
 {
-  private const VERSAO = 5;
+  private const VERSAO = 6;
+
+  /** Trechos dos textos padrão antigos que citavam o Mercado Pago (v6: todos os pagamentos passam a ser pelo Asaas). */
+  private const SEM_MERCADO_PAGO = [' via Mercado Pago' => '', ' pelo Mercado Pago' => ''];
 
   /** Textos padrão da loja até a v4 (a loja passou a vir com textos neutros para qualquer cliente). */
   private const TEXTOS_ANTIGOS = [
@@ -22,7 +25,7 @@ final class Migracoes
     $versao = (int)Config::get('versao_banco');
     if ($versao >= self::VERSAO) return;
 
-    // v2: duas aplicações do Mercado Pago e assinaturas cobradas no cartão.
+    // v2: gateway de cada pagamento (coluna app) e assinaturas cobradas no cartão.
     self::coluna('pagamentos', 'app', "VARCHAR(12) NOT NULL DEFAULT 'loja' AFTER mp_id");
     self::coluna('pedidos', 'mp_assinatura', 'VARCHAR(40) NULL AFTER forma_pagamento');
     if (self::tabela('assinaturas')) {
@@ -52,11 +55,25 @@ final class Migracoes
       self::coluna('administradores', 'perfil', "VARCHAR(20) NOT NULL DEFAULT 'administrador' AFTER senha_hash");
       Banco::executar("UPDATE administradores SET perfil = 'tecnico'");
     }
-    if ($versao >= 1) {
+    if ($versao >= 1 && $versao < 5) {
       $salvos = array_column(Banco::todos('SELECT chave FROM configuracoes'), 'chave');
       $manter = array_diff_key(self::TEXTOS_ANTIGOS, array_flip($salvos));
       if ($manter) Config::salvar($manter);
     }
+
+    // v6: todos os pagamentos pelo Asaas (Pix, boleto, cartão e assinaturas).
+    // - O id do parcelamento do Asaas (UUID) tem 36 caracteres.
+    // - As chaves do Mercado Pago saem do banco; os pagamentos antigos ficam só no histórico.
+    // - Os textos padrão antigos deixam de citar o Mercado Pago.
+    Banco::executar("ALTER TABLE pagamentos MODIFY COLUMN mp_id VARCHAR(60) NOT NULL, MODIFY COLUMN app VARCHAR(12) NOT NULL DEFAULT 'asaas'");
+    Banco::executar('DELETE FROM configuracoes WHERE chave IN (' . implode(', ', array_fill(0, count(Config::ANTIGAS), '?')) . ')', Config::ANTIGAS);
+    $textos = [];
+    foreach (['aviso_topo', 'loja_subtitulo'] as $k) {
+      $atual = (string)Banco::valor('SELECT valor FROM configuracoes WHERE chave = ?', [$k]);
+      $novo = strtr($atual, self::SEM_MERCADO_PAGO);
+      if ($novo !== $atual) $textos[$k] = $novo;
+    }
+    if ($textos) Config::salvar($textos);
 
     Config::salvar(['versao_banco' => (string)self::VERSAO]);
   }

@@ -12,7 +12,8 @@ O que existe na pasta `loja/`:
 | `https://www.odinfocus.com.br/loja/pagar.html?...` | Página de pagamento de um pedido (link que você envia ao cliente) |
 | `https://www.odinfocus.com.br/loja/instalar.php` | Instalador (usado uma única vez) |
 
-Pagamentos aceitos, todos pelo **Mercado Pago**: **Pix**, **boleto**, **cartão de crédito** (parcelado) e **cartão de débito**.
+Pagamentos aceitos, todos pelo **Asaas**: **Pix**, **boleto** e **cartão de crédito** (à vista ou parcelado
+sem juros), além das **assinaturas** de serviços com renovação automática no cartão.
 
 ---
 
@@ -56,7 +57,7 @@ Pronto. Você **não precisa** abrir o phpMyAdmin nem criar tabelas: o instalado
    (normalmente já vêm marcadas).
 3. Abra `https://www.odinfocus.com.br` e confira se aparece o **cadeado** no navegador.
    Se não aparecer, no cPanel abra **SSL/TLS Status** e clique em **Run AutoSSL**.
-   O Mercado Pago só aceita cartões em sites com cadeado (HTTPS).
+   Sem o cadeado (HTTPS) a loja não pode receber cartões: os dados do cartão passam pelo site a caminho do Asaas.
 
 ---
 
@@ -75,108 +76,76 @@ Pronto. Você **não precisa** abrir o phpMyAdmin nem criar tabelas: o instalado
 
 ---
 
-## Passo 5. Ligar o Mercado Pago
+## Passo 5. Ligar os pagamentos (Asaas)
 
-Você precisa de uma conta do Mercado Pago (a mesma usada para vender).
+Todos os pagamentos da loja passam pelo **Asaas**. O cliente paga **na própria página da loja**:
 
-1. Acesse **https://www.mercadopago.com.br/developers/panel/app** e clique em **Criar aplicação**.
-   - Nome: `Loja Odin Focus`
-   - Tipo de pagamento: **Pagamentos on-line**
-   - Produto: **Checkout Transparente** (ou *CheckoutAPI / Checkout Bricks*)
-2. Dentro da aplicação, abra **Credenciais de produção** e copie a **Public Key** e o **Access Token**.
-3. Entre no painel da loja (`/loja/admin/`) › **Configurações** › **Mercado Pago** e cole as duas chaves.
-   Clique em **Salvar configurações**.
-4. Ainda na aplicação do Mercado Pago, abra **Webhooks** (Notificações):
-   - Cole a **URL** que aparece no painel da loja (algo como
-     `https://www.odinfocus.com.br/loja/api/?r=webhook/mercadopago`).
-   - Marque o evento **Pagamentos** e salve.
-   - Copie a **assinatura secreta** e cole no campo *Assinatura secreta do webhook* no painel da loja. Salve.
-5. **Pix:** para receber Pix, a sua conta do Mercado Pago precisa ter uma **chave Pix cadastrada**
-   (app do Mercado Pago › Seu perfil › Chaves Pix).
+- **Pix:** o QR code e o "copia e cola" aparecem na hora; a confirmação chega em segundos.
+- **Boleto:** vence em 3 dias e também é enviado para o e-mail do cliente.
+- **Cartão de crédito:** à vista ou parcelado **sem juros para o cliente** (até 12x, cada parcela de no mínimo
+  R$ 5,00; o máximo de parcelas fica em **Configurações › Vendas e frete**). A taxa de parcelamento do Asaas sai do
+  valor que a loja recebe. Se o banco recusar o cartão, nada é cobrado e o cliente pode tentar outro.
+- **Assinaturas** (serviços recorrentes): só no cartão de crédito. O Asaas cobra o **primeiro período na hora** e
+  depois **renova sozinho** a cada mês, trimestre, semestre ou ano (se o cartão recusar, tenta de novo no dia do
+  vencimento). Cada cobrança vira um pedido de renovação no painel.
+- **Cartão de débito não é aceito:** o Asaas não recebe débito digitado na loja.
 
-### Quer testar antes, sem dinheiro de verdade?
+Sobre o cartão:
 
-Use as **Credenciais de teste** (em vez das de produção) no passo 3. Os pagamentos serão simulados.
-Os números de cartão de teste ficam na documentação do Mercado Pago: em
-https://www.mercadopago.com.br/developers procure por **“cartões de teste”**.
-Quando terminar os testes, troque pelas credenciais de produção.
-
-> O Access Token e a assinatura secreta são senhas: o painel mostra só o começo e o fim delas.
-> Para trocar, cole a nova. Deixar o campo em branco mantém a atual.
-
-### Aplicação de serviços e assinaturas no cartão
-
-Os serviços podem usar uma **segunda aplicação** do Mercado Pago, na **mesma conta**. Com ela:
-
-- os pedidos de serviços são cobrados por essa aplicação (produtos continuam na da loja);
-- os **serviços recorrentes** (assinaturas) são pagos **só com cartão de crédito** e o Mercado Pago
-  **cobra sozinho** a cada período. Cada cobrança vira um pedido de renovação no painel.
-- produtos e serviços ficam em **pedidos separados**, e cada assinatura vai sozinha no pedido
-  (a loja avisa o cliente ao tentar misturar no carrinho).
-
-Para ligar:
-
-1. Na aplicação de serviços, ative as **Credenciais de produção** e copie a **Public Key** e o **Access Token**.
-2. No painel da loja › **Configurações** › **Mercado Pago · Serviços**, cole as duas chaves e salve.
-3. Na aplicação de serviços › **Webhooks**, cole a URL mostrada nessa seção (termina em `&app=servicos`),
-   marque **Pagamentos** e **Planos e assinaturas**, salve e cole a **assinatura secreta** no painel.
-
-**Data final:** em **Assinaturas › Data final** você define, muda ou tira a data em que cada assinatura
-termina (também dá para informar ao criar um *Novo link de pagamento*). Nesse dia a rotina diária marca a
-assinatura como **Encerrada** e, no cartão, cancela no Mercado Pago; cobranças que cairiam nessa data ou
-depois não acontecem. Para terminar hoje, use **Cancelar**.
-
-Sem essa seção preenchida, os serviços usam a aplicação da loja (as assinaturas também).
-Assinaturas criadas antes desta mudança continuam no modelo antigo: link de pagamento por e-mail
-antes de cada vencimento. Para cancelar uma assinatura no cartão, use **Assinaturas › Cancelar** no painel:
-ela é cancelada também no Mercado Pago.
-
-> **Teste com credenciais de teste:** nas assinaturas, o Mercado Pago exige que o comprador seja um
-> **usuário de teste** (Suas integrações › Contas de teste) e que o e-mail informado seja o dele.
-
-### Assinaturas com renovação automática pelo Asaas (recomendado)
-
-Com o Asaas configurado, **toda assinatura nova** é cobrada por ele, com **renovação automática no
-cartão de crédito**. As compras avulsas (Pix, boleto e cartão) continuam no Mercado Pago, e as
-assinaturas antigas do Mercado Pago seguem como estão até terminarem.
-
-Como funciona:
-
-- o cliente digita o cartão na página de pagamento da loja. O Asaas valida o cartão e cobra o
-  **primeiro período na hora**. Se o banco recusar, nada é criado e o cliente pode tentar outro cartão.
-- depois, o Asaas **renova sozinho** a cada mês, trimestre, semestre ou ano. Se o cartão recusar,
-  ele tenta de novo no dia do vencimento. Cada cobrança vira um pedido de renovação no painel.
 - os dados do cartão passam pelo servidor da loja só para serem enviados ao Asaas: **não são
   gravados** nem vão para os logs. Por isso o site precisa estar com o cadeado (HTTPS) ativo.
 - o nome e o CPF enviados são os do **titular do cartão**. Se o cartão for de outra pessoa, o cliente
   marca "O cartão é de outra pessoa" e informa também CEP, número do endereço e celular dela.
 - para evitar que alguém use a página para testar cartões roubados, cada pedido aceita até 5
   tentativas por hora, e cada IP até 10.
+- produtos e serviços ficam em **pedidos separados**, e cada assinatura vai sozinha no pedido
+  (a loja avisa o cliente ao tentar misturar no carrinho).
 
-Para ligar (comece pelo **ambiente de teste**):
+Para ligar (comece pelo **ambiente de teste**; só o perfil **Técnico** vê esta seção do painel):
 
 1. Crie uma conta de teste em **https://sandbox.asaas.com**.
 2. No Asaas, em **Integrações › Chaves de API**, gere uma chave.
-3. No painel da loja › **Configurações** › **Asaas · Assinaturas no cartão**, escolha o ambiente
+3. No painel da loja › **Configurações** › **Asaas · Pagamentos**, escolha o ambiente
    **Teste (sandbox)**, cole a chave e salve.
 4. No Asaas, em **Integrações › Webhooks**, crie um webhook:
    - **URL:** a mostrada na seção do Asaas no painel (termina em `webhook/asaas`);
    - **Versão da API:** v3; **Fila de sincronização:** ativada;
    - **Token de autenticação:** crie um token (sem espaços) e cole o **mesmo** no painel da loja;
    - **Eventos:** marque os de **Cobranças** e os de **Assinaturas**.
-5. Faça uma assinatura de teste na loja com um cartão de teste do Asaas (veja a documentação do
-   sandbox) e confira no painel: o pedido fica **Pago** e a assinatura aparece em **Assinaturas**.
-6. Quando estiver tudo certo, crie (ou use) a sua conta em **https://www.asaas.com**, gere a chave
+5. **Pix:** cadastre uma **chave Pix** na conta do Asaas (Pix › Minhas chaves). Sem ela, o Pix não é gerado.
+6. Faça compras de teste na loja (Pix, boleto e cartão com os cartões de teste da documentação do sandbox do
+   Asaas) e uma assinatura de teste. Confira no painel: o pedido fica **Pago** e a assinatura aparece em
+   **Assinaturas**.
+7. Quando estiver tudo certo, crie (ou use) a sua conta em **https://www.asaas.com**, gere a chave
    de **produção**, crie o webhook de novo nessa conta e, no painel, troque o ambiente para
    **Produção** e cole a nova chave e o novo token.
 
 > A chave de teste só funciona com o ambiente **Teste** e a de produção só com **Produção**. Se
 > aparecer "chave de API do Asaas inválida", confira se o ambiente escolhido combina com a chave.
+> A chave e o token são senhas: o painel mostra só o começo e o fim. Para trocar, cole a nova;
+> deixar o campo em branco mantém a atual.
 
-**No painel:** cancelar uma assinatura, mudar a data final e estornar uma cobrança funcionam com o
-Asaas do mesmo jeito que com o Mercado Pago. O estorno pelo painel é sempre do valor total; estorno
-parcial se faz no painel do Asaas. Se uma assinatura for removida direto no Asaas, ela também é
-cancelada na loja (pelo aviso do webhook).
+**Data final das assinaturas:** em **Assinaturas › Data final** você define, muda ou tira a data em que cada
+assinatura termina (também dá para informar ao criar um *Novo link de pagamento*). Nesse dia a rotina diária
+marca a assinatura como **Encerrada** e cancela no Asaas; cobranças que cairiam nessa data ou depois não
+acontecem. Para terminar hoje, use **Cancelar**: a assinatura é cancelada também no Asaas. Se ela for
+removida direto no Asaas, também é cancelada na loja (pelo aviso do webhook).
+
+**Estornos:** pelo painel, total ou parcial. Compras **parceladas** são estornadas pelo valor total
+(todas as parcelas); estorno parcial delas se faz no painel do Asaas.
+
+### Lojas que usavam o Mercado Pago
+
+Ao atualizar, a loja passa a usar **só o Asaas**. O que acontece com o que já existia:
+
+- as chaves do Mercado Pago são **apagadas** do banco (atualização automática do banco, versão 6);
+- os **pagamentos antigos** continuam no histórico dos pedidos, marcados como *Mercado Pago (antigo)*, só para
+  consulta. Para **estornar** um pagamento antigo, use o site do Mercado Pago;
+- um Pix ou boleto antigo do Mercado Pago que ainda estava em aberto **não é mais acompanhado**: se o cliente pagar,
+  confira no Mercado Pago e combine com ele;
+- **assinaturas antigas** do Mercado Pago no cartão: a loja não recebe mais as cobranças delas. Cancele cada uma no
+  site do Mercado Pago (e em **Assinaturas › Cancelar** no painel) e peça ao cliente para assinar de novo pela loja;
+- no Mercado Pago Developers, **apague os webhooks** que apontavam para a loja (`webhook/mercadopago`).
 
 ---
 
@@ -270,7 +239,7 @@ para esquecer a senha, e trocar a senha (Painel master › Minha conta) também 
 
 **Cadastrar uma loja** (só o master): Painel master › **Nova loja** › nome, endereço (não pode ser
 mudado depois) e o primeiro acesso do lojista (perfil *Administrador*). A loja já nasce no ar, vazia.
-Em seguida, pelo **Abrir painel**, configure as chaves de pagamento (Mercado Pago/Asaas) da loja.
+Em seguida, pelo **Abrir painel**, configure a chave de pagamento (Asaas) da loja.
 
 - **Acessos:** cria outro acesso ou **redefine a senha** de um lojista que esqueceu.
 - **Suspender:** a loja sai do ar para clientes e lojista; os avisos de pagamento continuam chegando.
@@ -282,7 +251,7 @@ Em seguida, pelo **Abrir painel**, configure as chaves de pagamento (Mercado Pag
 
 Endereço: **`https://www.odinfocus.com.br/loja/admin/`**
 
-- **Painel financeiro:** faturamento, lucro estimado, valor líquido (após as taxas do Mercado Pago),
+- **Painel financeiro:** faturamento, lucro estimado, valor líquido (após as taxas do Asaas),
   ticket médio, pedidos em aberto, estornos, receita recorrente das assinaturas, capital em estoque,
   gráfico por dia, vendas por forma de pagamento e mais vendidos. Botão **Exportar planilha** (abre no Excel).
 - **Pedidos:** busque por número, nome, e-mail ou CPF. Clique num pedido para ver itens, pagamentos,
@@ -295,10 +264,11 @@ Endereço: **`https://www.odinfocus.com.br/loja/admin/`**
   e volta se houver estorno.
 - **Serviços:** mesmos dados, mais **recorrente (sim/não)** e **renovação** (única, mensal, trimestral, semestral, anual)
   e **1 foto** (PNG ou JPG, até 250×250 pixels).
-- **Assinaturas:** criadas automaticamente quando um serviço recorrente é pago. Antes de cada vencimento o sistema gera
-  o pedido de renovação e manda o link de pagamento ao cliente. Você pode cobrar na hora ou cancelar.
+- **Assinaturas:** criadas automaticamente quando um serviço recorrente é pago. As do cartão são renovadas pelo
+  Asaas sozinhas; nas antigas (sem cartão), antes de cada vencimento o sistema gera o pedido de renovação e manda o
+  link de pagamento ao cliente. Você pode cobrar na hora, mudar a data final ou cancelar.
 - **Configurações:** textos da loja, contatos, frete (valor fixo e frete grátis acima de um valor), parcelas,
-  Mercado Pago, Asaas, abas da loja, módulos, rotina diária, administradores e troca de senha.
+  Asaas (só o perfil Técnico), abas da loja, módulos, rotina diária, administradores e troca de senha.
 
 **Dica da descrição:** a primeira linha da descrição vira o **título** do item na loja. As linhas seguintes são os detalhes.
 
@@ -316,7 +286,7 @@ antigas continuam no painel.
 | Situação | O que significa |
 |---|---|
 | Aguardando pagamento | Pedido criado; Pix/boleto ainda não pago ou cliente ainda não pagou |
-| Em análise | O Mercado Pago está analisando o cartão (resposta em até 2 dias úteis) |
+| Em análise | O Asaas está analisando o cartão (análise de segurança) |
 | Pago | Dinheiro aprovado. Estoque baixado e assinatura criada/renovada |
 | Cancelado | Cancelado por você ou por falta de pagamento no prazo configurado |
 | Estornado | O valor foi devolvido ao cliente |
@@ -345,15 +315,17 @@ Faça uma vez por semana:
 confira na parte *Usuários atuais* se o usuário existe; use **Alterar senha** para definir uma nova e tente de novo.
 Confira também, em *Adicionar usuário ao banco de dados*, se ele foi ligado ao banco com **Todos os privilégios**.
 
-**“Pagamento online em configuração” aparece para o cliente** – faltam a Public Key e o Access Token (passo 5).
+**“Pagamento online em configuração” aparece para o cliente** – falta a chave de API do Asaas (passo 5).
 
-**“As credenciais de produção do Mercado Pago ainda não foram ativadas”** (ou, no `api/error_log`,
-*Unauthorized use of live credentials*) – em Mercado Pago Developers › sua aplicação › **Credenciais de produção**,
-clique em **Ativar credenciais**, preencha o ramo e o site da loja, copie de novo a Public Key e o Access Token
-e salve no painel. Para testar antes disso, use as **Credenciais de teste**.
+**“Não foi possível gerar o Pix agora”** – a conta do Asaas ainda não tem **chave Pix** cadastrada (passo 5, item 5).
+O motivo exato fica no `api/error_log`.
 
-**O pagamento foi feito, mas o pedido continua “Aguardando pagamento”** – confira o webhook do passo 5.
-Enquanto isso, abra o pedido no painel e clique em **Atualizar** no pagamento: o sistema consulta o Mercado Pago na hora.
+**“A chave de API do Asaas é inválida”** – a chave é de outro ambiente: chave de teste só com **Teste (sandbox)**,
+chave de produção só com **Produção** (Configurações › Asaas · Pagamentos).
+
+**O pagamento foi feito, mas o pedido continua “Aguardando pagamento”** – confira o webhook do passo 5 (URL, token e
+eventos de cobranças). Enquanto isso, abra o pedido no painel e clique em **Atualizar** no pagamento: o sistema
+consulta o Asaas na hora.
 
 **Os e-mails não chegam** – veja o passo 7 e peça ao cliente para olhar a caixa de spam. Você sempre pode copiar
 o link de pagamento do pedido e enviar pelo WhatsApp.
@@ -375,13 +347,17 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
 - PHP 8 puro (sem frameworks nem Composer) + MySQL 5.7+/MariaDB, próprio para hospedagem compartilhada.
 - A API responde em `api/?r=rota` (não depende de reescrita de URL). Valores, frete e estoque são sempre
   calculados no servidor; o navegador nunca define preço.
-- Integração com o Mercado Pago pelo **Payment Brick** (Checkout Transparente): o cartão é digitado no formulário
-  do Mercado Pago e a loja recebe só um token. O webhook tem a assinatura conferida e o pagamento é sempre
-  reconsultado na API antes de mudar o pedido.
-- Duas aplicações do Mercado Pago (`MercadoPago::APPS`): `loja` e `servicos`. Cada pagamento guarda a aplicação
-  que o criou (`pagamentos.app`). Assinaturas usam a API de *preapproval* com o **Card Payment Brick**; o webhook
-  `&app=servicos` recebe `subscription_preapproval` e `subscription_authorized_payment`, e o módulo de serviços
-  decide se a cobrança é do pedido de origem ou de um pedido de renovação.
+- Pagamentos pelo **Asaas** (`api/nucleo/Asaas.php`, API v3): Pix (`/payments` + `/pixQrCode`), boleto
+  (`/payments` + `/identificationField`), cartão de crédito à vista ou parcelado (`installmentCount` +
+  `totalValue`; o parcelamento inteiro é gravado como um pagamento, com o id do parcelamento) e assinaturas
+  (`/subscriptions`). O cartão é digitado no formulário da loja (`js/pagamento.js`) e validado em
+  `api/nucleo/Cartao.php`; não é gravado nem registrado em log.
+- O webhook `webhook/asaas` é autenticado pelo cabeçalho `asaas-access-token` e a cobrança é sempre reconsultada
+  na API antes de mudar o pedido. Cobranças com `subscription` vão para o módulo de serviços, que decide se são do
+  pedido de origem ou de um pedido de renovação.
+- `Asaas::comoPagamento()` converte a cobrança para a tabela `pagamentos` (os status seguem `approved`, `pending`,
+  `refunded` etc.). As colunas `mp_id`/`mp_assinatura` guardam os ids do Asaas (o nome ficou do Mercado Pago);
+  `pagamentos.app` = `asaas`, e `loja`/`servicos` marcam pagamentos antigos do Mercado Pago (só histórico).
 - Mudanças no banco de lojas já instaladas ficam em `api/nucleo/Migracoes.php` e rodam sozinhas na primeira chamada à API.
 - Plataforma (`Plataforma.php`, `LojaAtual.php`, `plataforma.sql`, `rotas_plataforma.php`): a loja vem do primeiro
   trecho do endereço; cada loja tem prefixo de tabelas (`l{id}_`) aplicado em `Banco::sql()` — o SQL continua com os
@@ -397,7 +373,7 @@ preencha o formulário: ele aproveita as tabelas que já existem e cria o seu ac
 ```
 loja/
 ├── index.html · pagar.html     loja e página de pagamento
-├── css/loja.css · js/          vitrine, carrinho e pagamento (Payment Brick)
+├── css/loja.css · js/          vitrine, carrinho e pagamento (Pix, boleto e cartão pelo Asaas)
 ├── admin/                      painel administrativo
 ├── instalar.php                instalador (apague depois de usar)
 ├── config.php                  criado pelo instalador (acesso ao banco)
@@ -405,7 +381,7 @@ loja/
 └── api/
     ├── index.php               entrada da API
     ├── cron.php                rotina diária
-    ├── nucleo/                 clientes, pedidos, pagamentos, relatórios, Mercado Pago, segurança
+    ├── nucleo/                 clientes, pedidos, pagamentos (Asaas), relatórios, segurança
     └── modulos/
         ├── produtos/           módulo de produtos (tabelas + rotas + estoque)
         └── servicos/           módulo de serviços (tabelas + rotas + assinaturas)

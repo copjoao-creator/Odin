@@ -226,14 +226,18 @@
     const tile = (rotulo, valor, extra = '') => `<div class="indicador"><span class="rotulo">${rotulo}</span><span class="valor">${valor}</span>${extra ? `<span class="extra">${extra}</span>` : ''}</div>`;
 
     const alertas = [];
-    if (!r.mercado_pago_configurado) alertas.push(`Os pagamentos online ainda não estão ligados. Informe as chaves do Mercado Pago em <a href="#configuracoes">Configurações</a>.`);
+    if (!r.pagamentos_configurados) {
+      alertas.push(A.admin.perfil === 'tecnico'
+        ? 'Os pagamentos online ainda não estão ligados. Informe a chave do Asaas em <a href="#configuracoes">Configurações</a>.'
+        : 'Os pagamentos online ainda não estão ligados. Fale com o suporte técnico da loja para concluir a configuração.');
+    }
     if (mods.produto && mods.produto.estoque_baixo.length) alertas.push(`${mods.produto.estoque_baixo.length} produto(s) com estoque baixo. Veja a lista abaixo.`);
     if (mods.servico && mods.servico.assinaturas_atrasadas) alertas.push(`${mods.servico.assinaturas_atrasadas} assinatura(s) com pagamento atrasado. <a href="#assinaturas">Ver assinaturas</a>.`);
 
     const tiles = [
       tile('Lucro estimado', brl(t.lucro_estimado), `Margem de ${t.margem.toLocaleString('pt-BR')}% sobre o faturamento`),
       tile('Pedidos pagos', t.pedidos_pagos.toLocaleString('pt-BR'), `Ticket médio ${brl(t.ticket_medio)}`),
-      tile('Valor líquido recebido', brl(t.valor_liquido), `Após taxas do Mercado Pago (${brl(t.taxas_mercado_pago)})`),
+      tile('Valor líquido recebido', brl(t.valor_liquido), `Após as taxas de pagamento (${brl(t.taxas_pagamento)})`),
       tile('Custo dos itens vendidos', brl(t.custo_itens), `Frete cobrado: ${brl(t.frete_cobrado)}`),
       tile('Aguardando pagamento', brl(r.aguardando.valor), `${r.aguardando.pedidos} pedido(s) em aberto`),
       tile('Estornos no período', brl(r.estornados.valor + t.estornos_parciais), `${r.estornados.pedidos} pedido(s) estornado(s) · ${r.cancelados} cancelado(s)`),
@@ -288,7 +292,7 @@
       ${mods.servico && mods.servico.renovacoes_proximas.length ? `
         <section class="bloco">
           <h2>Renovações nos próximos 30 dias</h2>
-          <p class="bloco-sub">Assinaturas no cartão são renovadas sozinhas (Asaas ou Mercado Pago); nas antigas, o link de pagamento é enviado por e-mail antes do vencimento.</p>
+          <p class="bloco-sub">Assinaturas no cartão são renovadas sozinhas pelo Asaas; nas antigas, o link de pagamento é enviado por e-mail antes do vencimento.</p>
           <div class="tabela-caixa">${tabela(['Cliente', 'Serviço', '#Valor', 'Vencimento', 'Situação'], mods.servico.renovacoes_proximas.map((a) => `
             <tr><td>${esc(a.cliente)}</td><td>${esc(a.descricao)}</td><td class="num">${brl(a.valor)}</td><td>${Loja.data(a.proxima_cobranca)}</td><td>${selo(a.status, STATUS_ASSINATURA[a.status])}</td></tr>`))}</div>
         </section>` : ''}`;
@@ -474,7 +478,7 @@
       ${aberto && p.cobranca_automatica ? `
       <div class="secao-dlg">
         <h3>Cobrança automática</h3>
-        <p class="fraco">Renovação de assinatura no cartão: o Asaas (ou o Mercado Pago, nas assinaturas antigas) debita sozinho e tenta de novo se o cartão recusar. Não envie link de pagamento, para o cliente não pagar duas vezes.</p>
+        <p class="fraco">Renovação de assinatura no cartão: o Asaas debita sozinho e tenta de novo se o cartão recusar. Não envie link de pagamento, para o cliente não pagar duas vezes.</p>
       </div>` : ''}
       ${aberto && !p.cobranca_automatica ? `
       <div class="secao-dlg">
@@ -507,18 +511,21 @@
           <div class="pagamento-linha" data-pg="${pg.id}">
             <div>
               <strong>${esc(pg.metodo_texto)}</strong>${pg.parcelas > 1 ? ` em ${pg.parcelas}x` : ''} · ${brl(pg.valor)} ${selo(pg.status, STATUS_MP[pg.status] || pg.status)}<br>
-              <span class="fraco">${esc(pg.mensagem)} · ${esc(pg.gateway || 'Mercado Pago')} nº ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>
+              <span class="fraco">${esc(pg.mensagem)} · ${esc(pg.gateway)} nº ${esc(pg.mp_id)} · ${Loja.dataHora(pg.criado_em)}</span>
               ${pg.valor_liquido !== null ? `<br><span class="fraco">Líquido recebido: ${brl(pg.valor_liquido)}${pg.valor_estornado > 0 ? ` · Estornado: ${brl(pg.valor_estornado)}` : ''}</span>` : ''}
+              ${pg.antigo ? '<br><span class="fraco">Pagamento antigo: consulte ou estorne pelo site do Mercado Pago.</span>' : ''}
               <div class="estorno" hidden>
                 <div class="filtros" style="margin-top:10px">
-                  <label>Valor do estorno (vazio = total restante) <input type="text" inputmode="decimal" placeholder="${reaisCampo(pg.valor - pg.valor_estornado)}"></label>
+                  ${pg.parcelado
+                    ? `<p class="fraco">Compra parcelada: o estorno é do valor total (${brl(pg.valor - pg.valor_estornado)}), em todas as parcelas.</p>`
+                    : `<label>Valor do estorno (vazio = total restante) <input type="text" inputmode="decimal" placeholder="${reaisCampo(pg.valor - pg.valor_estornado)}"></label>`}
                   <button type="button" class="btn btn-pequeno btn-perigo" data-acao="confirmar-estorno">Confirmar estorno</button>
                 </div>
               </div>
             </div>
             <div class="acoes">
-              <button type="button" class="link" data-acao="atualizar">Atualizar</button>
-              ${pg.status === 'approved' ? '<button type="button" class="btn btn-pequeno btn-perigo" data-acao="estornar">Estornar</button>' : ''}
+              ${pg.antigo ? '' : '<button type="button" class="link" data-acao="atualizar">Atualizar</button>'}
+              ${pg.status === 'approved' && !pg.antigo ? '<button type="button" class="btn btn-pequeno btn-perigo" data-acao="estornar">Estornar</button>' : ''}
             </div>
           </div>`).join('') : '<p class="fraco">Nenhuma tentativa de pagamento ainda.</p>'}
       </div>
@@ -561,7 +568,8 @@
           $('.estorno', b.closest('[data-pg]')).hidden = false;
           break;
         case 'confirmar-estorno': {
-          const valor = $('.estorno input', b.closest('[data-pg]')).value.trim();
+          const campoValor = $('.estorno input', b.closest('[data-pg]'));
+          const valor = campoValor ? campoValor.value.trim() : '';
           if (!confirm(`Confirma o estorno de ${valor ? `R$ ${valor}` : 'todo o valor restante'}? O dinheiro volta para o cliente e não é possível desfazer.`)) return;
           acao(() => api(`pagamentos/${pgId}/estornar`, { metodo: 'POST', dados: { valor } }), 'Estorno solicitado.');
           break;
@@ -1009,7 +1017,7 @@
     el.innerHTML = `
       <div class="bloco filtros">
         <label>Situação <select id="fStatus"><option value="">Todas</option><option value="ativa">Ativas</option><option value="atrasada">Atrasadas</option><option value="encerrada">Encerradas</option><option value="cancelada">Canceladas</option></select></label>
-        <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Asaas (ou o Mercado Pago, nas assinaturas antigas) cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
+        <p class="fraco" style="flex:1 1 300px"><strong>Cartão automático:</strong> o Asaas cobra sozinho a cada período e cada cobrança vira um pedido de renovação aqui. <strong>Link por e-mail</strong> (assinaturas antigas): antes do vencimento, o sistema envia o link para pagar com Pix, boleto ou cartão.</p>
       </div>
       <div class="tabela-caixa" id="lista"><p class="carregando">Carregando…</p></div>`;
     $('#fStatus').value = filtro;
@@ -1051,10 +1059,10 @@
       }
       const cancelar = e.target.closest('[data-cancelar]');
       if (cancelar) {
-        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças (no cartão automático, a assinatura também é cancelada no Asaas ou no Mercado Pago).')) return;
+        if (!confirm('Cancelar esta assinatura? Não serão geradas novas cobranças (no cartão automático, a assinatura também é cancelada no Asaas).')) return;
         try {
-          await api(`assinaturas/${cancelar.dataset.cancelar}/cancelar`, { metodo: 'POST' });
-          Loja.aviso('Assinatura cancelada.', 'ok');
+          const x = await api(`assinaturas/${cancelar.dataset.cancelar}/cancelar`, { metodo: 'POST' });
+          Loja.aviso(x.aviso ? `Assinatura cancelada. ${x.aviso}` : 'Assinatura cancelada.', x.aviso ? 'erro' : 'ok');
           recarregarTela();
         } catch (err) {
           falha(err);
@@ -1280,7 +1288,7 @@
           <div class="campos">
             ${dinheiro('frete_valor', 'Frete fixo (R$)', 'Valor por pedido com produtos.')}
             ${dinheiro('frete_gratis_acima', 'Frete grátis acima de (R$)', '0 = nunca grátis.')}
-            ${inteiro('max_parcelas', 'Parcelas no cartão (máx.)', 1, 24, 'Os juros seguem sua conta do Mercado Pago.')}
+            ${inteiro('max_parcelas', 'Parcelas no cartão (máx.)', 1, 12, 'Sem juros para o cliente; cada parcela de no mínimo R$ 5,00.')}
             ${inteiro('dias_expiracao_pedido', 'Cancelar pedidos sem pagamento após (dias)', 1, 60, 'Boletos ainda no prazo são mantidos.')}
             ${inteiro('dias_antecedencia_renovacao', 'Enviar cobrança de renovação (dias antes)', 0, 30, 'Para serviços recorrentes.')}
             ${inteiro('estoque_minimo', 'Alerta de estoque baixo (unidades)', 0, 100000, 'Aparece no painel financeiro.')}
@@ -1289,44 +1297,13 @@
 
         ${r.tecnico ? `
         <section class="bloco">
-          <h2>Mercado Pago</h2>
-          <p class="bloco-sub">Pix, boleto, cartão de crédito e débito são processados pelo Mercado Pago.</p>
-          <ol class="passo-a-passo">
-            <li>Entre em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener">Mercado Pago Developers › Suas integrações</a> e crie uma aplicação (Pagamentos on-line › Checkout Transparente).</li>
-            <li>Em <strong>Credenciais de produção</strong>, copie a <strong>Public Key</strong> e o <strong>Access Token</strong> e cole abaixo.</li>
-            <li>Em <strong>Webhooks</strong>, cole o endereço abaixo, marque o evento <strong>Pagamentos</strong>, salve e copie a <strong>assinatura secreta</strong>.</li>
-            <li>Para receber Pix, cadastre uma chave Pix na sua conta do Mercado Pago.</li>
-          </ol>
-          <div class="copiavel" style="margin:14px 0"><code id="urlWebhook">${esc(r.webhook_url)}</code><button type="button" class="btn btn-pequeno btn-linha" data-copiar="#urlWebhook">Copiar</button></div>
-          <div class="campos">
-            <label class="c-12">Public Key <input name="mp_public_key" autocomplete="off" value="${esc(c.mp_public_key)}" placeholder="APP_USR-..."></label>
-            ${secreto('mp_access_token', 'Access Token')}
-            ${secreto('mp_webhook_secret', 'Assinatura secreta do webhook')}
-          </div>
-        </section>
-
-        <section class="bloco">
-          <h2>Mercado Pago · Serviços</h2>
-          <p class="bloco-sub">Aplicação separada (na mesma conta do Mercado Pago) para os pedidos de serviços. Sem ela, os serviços usam a aplicação acima. As <strong>assinaturas</strong> usam o Asaas (abaixo) quando ele estiver configurado.</p>
-          <ol class="passo-a-passo">
-            <li>Na aplicação de serviços, em <strong>Credenciais de produção</strong>, copie a <strong>Public Key</strong> e o <strong>Access Token</strong> e cole abaixo.</li>
-            <li>Em <strong>Webhooks</strong>, cole o endereço abaixo e marque os eventos <strong>Pagamentos</strong> e <strong>Planos e assinaturas</strong> (assinaturas e pagamentos recorrentes). Salve e copie a <strong>assinatura secreta</strong>.</li>
-          </ol>
-          <div class="copiavel" style="margin:14px 0"><code id="urlWebhookServ">${esc(r.webhook_url_servicos)}</code><button type="button" class="btn btn-pequeno btn-linha" data-copiar="#urlWebhookServ">Copiar</button></div>
-          <div class="campos">
-            <label class="c-12">Public Key <input name="mp_serv_public_key" autocomplete="off" value="${esc(c.mp_serv_public_key)}" placeholder="APP_USR-..."></label>
-            ${secreto('mp_serv_access_token', 'Access Token')}
-            ${secreto('mp_serv_webhook_secret', 'Assinatura secreta do webhook')}
-          </div>
-        </section>
-
-        <section class="bloco">
-          <h2>Asaas · Assinaturas no cartão</h2>
-          <p class="bloco-sub">Serviços recorrentes são cobrados pelo Asaas com <strong>renovação automática no cartão de crédito</strong>: o primeiro período na hora e depois a cada mês, trimestre, semestre ou ano. Se o cartão recusar, o Asaas tenta de novo no dia do vencimento. Assinaturas antigas do Mercado Pago continuam como estão até terminarem.</p>
+          <h2>Asaas · Pagamentos</h2>
+          <p class="bloco-sub">Todos os pagamentos passam pelo Asaas: <strong>Pix</strong> (QR code na própria página), <strong>boleto</strong>, <strong>cartão de crédito</strong> à vista ou parcelado sem juros e as <strong>assinaturas</strong> de serviços, com renovação automática no cartão (se o cartão recusar, o Asaas tenta de novo no dia do vencimento).</p>
           <ol class="passo-a-passo">
             <li>Comece pelo ambiente de <strong>teste</strong>: crie uma conta em <a href="https://sandbox.asaas.com" target="_blank" rel="noopener">sandbox.asaas.com</a>. Para valer, use a conta de <a href="https://www.asaas.com" target="_blank" rel="noopener">asaas.com</a> e mude o ambiente para Produção.</li>
             <li>No Asaas, em <strong>Integrações › Chaves de API</strong>, gere uma chave e cole abaixo.</li>
-            <li>Em <strong>Integrações › Webhooks</strong>, crie um webhook com o endereço abaixo, API <strong>v3</strong>, fila de sincronização ativada e um <strong>token de autenticação</strong> (cole o mesmo token abaixo). Marque os eventos de <strong>cobranças</strong>.</li>
+            <li>Em <strong>Integrações › Webhooks</strong>, crie um webhook com o endereço abaixo, API <strong>v3</strong>, fila de sincronização ativada e um <strong>token de autenticação</strong> (cole o mesmo token abaixo). Marque os eventos de <strong>cobranças</strong> e de <strong>assinaturas</strong>.</li>
+            <li>Para receber Pix, cadastre uma <strong>chave Pix</strong> na conta do Asaas (Pix › Minhas chaves).</li>
           </ol>
           <div class="copiavel" style="margin:14px 0"><code id="urlWebhookAsaas">${esc(r.webhook_url_asaas)}</code><button type="button" class="btn btn-pequeno btn-linha" data-copiar="#urlWebhookAsaas">Copiar</button></div>
           <div class="campos">
@@ -1343,7 +1320,7 @@
         ` : `
         <section class="bloco">
           <h2>Pagamentos</h2>
-          <p class="bloco-sub">${r.pagamentos_configurados ? 'Os pagamentos (Mercado Pago e Asaas) já estão configurados.' : 'Os pagamentos ainda não foram configurados.'} As chaves de pagamento são mantidas pelo <strong>suporte técnico</strong> da loja.</p>
+          <p class="bloco-sub">${r.pagamentos_configurados ? 'Os pagamentos (Asaas) já estão configurados.' : 'Os pagamentos ainda não foram configurados.'} As chaves de pagamento são mantidas pelo <strong>suporte técnico</strong> da loja.</p>
         </section>`}
 
         <section class="bloco">

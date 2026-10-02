@@ -8,9 +8,6 @@ return new class implements ModuloCatalogo {
   private const TAMANHO_FOTO = 250;
   private const PASTA = 'servicos';
   private const MESES = ['mensal' => 1, 'trimestral' => 3, 'semestral' => 6, 'anual' => 12];
-  /** Tentativas de cartão por hora: por pedido e por IP (evita usar a página para testar cartões roubados). */
-  private const TENTATIVAS_PEDIDO = 5;
-  private const TENTATIVAS_IP = 10;
   private const RENOVACOES = ['unica' => 'Pagamento único', 'mensal' => 'Mensal', 'trimestral' => 'Trimestral', 'semestral' => 'Semestral', 'anual' => 'Anual'];
 
   public function tipo(): string
@@ -39,10 +36,8 @@ return new class implements ModuloCatalogo {
     $r->admin('POST', 'servicos/{codigo}/foto', fn($c) => $this->enviarFoto($c));
     $r->admin('DELETE', 'servicos/{codigo}/foto', fn($c) => $this->excluirFoto($c));
 
-    // Página de pagamento: contrata a assinatura com o cartão (renovação automática).
-    // Asaas (formulário de cartão da loja) quando configurado; senão, Mercado Pago (formulário do Mercado Pago).
+    // Página de pagamento: contrata a assinatura no Asaas com o cartão de crédito (renovação automática).
     $r->publica('POST', 'assinaturas/asaas', fn() => $this->assinarNoAsaas());
-    $r->publica('POST', 'assinaturas/cartao', fn() => $this->assinarNoCartao());
 
     $r->admin('GET', 'assinaturas', fn() => $this->assinaturas());
     $r->admin('POST', 'assinaturas/renovacoes', fn() => ['mensagens' => $this->tarefasDiarias()]);
@@ -278,11 +273,14 @@ return new class implements ModuloCatalogo {
     }
   }
 
-  /** Cancela a cobrança automática onde ela foi criada (Asaas "sub_…" ou Mercado Pago). */
+  /**
+   * Cancela a cobrança automática no Asaas. Assinatura antiga do Mercado Pago: termina só aqui
+   * (o administrador cancela também no site do Mercado Pago; o painel avisa).
+   */
   private function cancelarNoGateway(string $id): void
   {
     if (!Asaas::ehAssinatura($id)) {
-      MercadoPago::cancelarAssinatura($id);
+      error_log("Assinatura antiga do Mercado Pago {$id} encerrada só na loja: cancele também no site do Mercado Pago.");
       return;
     }
     try {
@@ -292,65 +290,6 @@ return new class implements ModuloCatalogo {
       $s = Asaas::consultarAssinatura($id);
       if (empty($s['deleted']) && ($s['status'] ?? '') === 'ACTIVE') throw $e;
     }
-  }
-
-  // ---------------- Assinaturas no cartão (Mercado Pago) ----------------
-
-  /**
-   * Cria a assinatura no Mercado Pago com o cartão do cliente. O Mercado Pago cobra a primeira
-   * parcela logo em seguida e depois a cada período; cada cobrança chega pelo webhook.
-   */
-  private function assinarNoCartao(): array
-  {
-    $d = Http::entrada();
-    $p = Pedidos::peloToken($d['pedido_id'] ?? 0, $d['token'] ?? '');
-    $item = Pedidos::itemAssinatura($p);
-    if (!$item) throw new ErroApi('Este pedido não é de assinatura.', 422);
-    if ($p['status'] !== 'aguardando_pagamento') throw new ErroApi('Este pedido não está aguardando pagamento.', 409);
-    if (!empty($p['mp_assinatura'])) throw new ErroApi('A assinatura deste pedido já foi criada. Aguarde a confirmação da primeira cobrança.', 409);
-    if (!MercadoPago::configurado('servicos')) throw new ErroApi('Pagamentos indisponíveis no momento. Fale com a loja.', 503);
-
-    $f = is_array($d['dados'] ?? null) ? $d['dados'] : [];
-    $cartao = (string)($f['token'] ?? '');
-    if (!preg_match('/^[A-Za-z0-9]{10,100}$/', $cartao)) throw new ErroApi('Preencha os dados do cartão.', 422);
-    $c = Clientes::buscar($p['cliente_cpf']);
-    $email = filter_var($f['payer']['email'] ?? '', FILTER_VALIDATE_EMAIL) ?: $c['email'];
-    $meses = self::MESES[$item['renovacao']] ?? 0;
-    if (!$meses) throw new ErroApi('Período da assinatura inválido.', 422);
-
-    $url = Http::urlLoja();
-    $corpo = [
-      'reason' => $this->nomeDaAssinatura($item),
-      'external_reference' => (string)$p['id'],
-      'payer_email' => $email,
-      'card_token_id' => $cartao,
-      'auto_recurring' => [
-        'frequency' => $meses,
-        'frequency_type' => 'months',
-        'transaction_amount' => (float)$item['preco_unitario'],
-        'currency_id' => 'BRL',
-      ],
-      'back_url' => $url !== '' ? $url : 'https://www.mercadopago.com.br',
-      'status' => 'authorized',
-    ];
-    // Data final definida no painel: o Mercado Pago para de cobrar sozinho nessa data.
-    if (!empty($p['assinatura_data_final'])) $corpo['auto_recurring']['end_date'] = MercadoPago::fimDoDia($p['assinatura_data_final']);
-    try {
-      $mp = MercadoPago::criarAssinatura($corpo);
-    } catch (ErroApi $e) {
-      // Só troca a mensagem quando o problema é o cartão; os outros motivos seguem como vieram (e ficam no error_log).
-      if ($e->status === 422 && preg_match('/card|cc_|cartão|cartao/i', $e->getMessage())) {
-        throw new ErroApi('O cartão não foi aceito para a assinatura. Confira os dados ou use outro cartão de crédito.', 422);
-      }
-      throw $e;
-    }
-    if (empty($mp['id'])) throw new ErroApi('O Mercado Pago não confirmou a assinatura. Tente de novo.', 502);
-    Banco::executar(
-      "UPDATE pedidos SET mp_assinatura = ?, observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
-      [(string)$mp['id'], date('d/m/Y H:i') . ' - Assinatura criada no Mercado Pago: ' . $mp['id'], $p['id']]
-    );
-    $this->sincronizarAssinaturaCartao((string)$mp['id']);
-    return ['pedido' => Pedidos::publico(Pedidos::carregar((int)$p['id']))];
   }
 
   // ---------------- Assinaturas no cartão (Asaas) ----------------
@@ -373,11 +312,10 @@ return new class implements ModuloCatalogo {
     $ciclo = Asaas::CICLOS[$item['renovacao']] ?? null;
     if (!$ciclo) throw new ErroApi('Período da assinatura inválido.', 422);
 
-    $cartao = $this->validarCartao(is_array($d['cartao'] ?? null) ? $d['cartao'] : []);
-    $this->limitarTentativas((int)$p['id']);
+    $cartao = Cartao::validar(is_array($d['cartao'] ?? null) ? $d['cartao'] : []);
+    Cartao::limitarTentativas((int)$p['id']);
 
     $c = Clientes::buscar($p['cliente_cpf']);
-    $t = $cartao['titular'];
     $corpo = [
       'customer' => Asaas::cliente($c),
       'billingType' => 'CREDIT_CARD',
@@ -386,25 +324,7 @@ return new class implements ModuloCatalogo {
       'cycle' => $ciclo,
       'description' => $this->nomeDaAssinatura($item),
       'externalReference' => (string)$p['id'],
-      'creditCard' => [
-        'holderName' => $t['nome'],
-        'number' => $cartao['numero'],
-        'expiryMonth' => $cartao['mes'],
-        'expiryYear' => $cartao['ano'],
-        'ccv' => $cartao['cvv'],
-      ],
-      // O Asaas compara estes dados com os do banco emissor: devem ser do titular do cartão.
-      'creditCardHolderInfo' => [
-        'name' => $t['nome'],
-        'email' => $c['email'],
-        'cpfCnpj' => $t['cpf'],
-        'postalCode' => $t['cep'] ?: $c['cep'],
-        'addressNumber' => $t['numero'] ?: $c['numero'],
-        'phone' => $t['celular'] ?: $c['celular'],
-        'mobilePhone' => $t['celular'] ?: $c['celular'],
-      ],
-      'remoteIp' => Http::ip(),
-    ];
+    ] + Cartao::paraAsaas($cartao, $c); // titular: o Asaas compara com os dados do banco emissor
     // Data final definida no painel: o Asaas não gera cobranças a partir dela.
     $fim = Asaas::ultimoVencimento($p['assinatura_data_final'] ?? null);
     if ($fim) $corpo['endDate'] = $fim;
@@ -416,12 +336,7 @@ return new class implements ModuloCatalogo {
         "UPDATE pedidos SET observacoes = CONCAT_WS('\n', observacoes, ?) WHERE id = ?",
         [date('d/m/Y H:i') . ' - Asaas não criou a assinatura: ' . mb_substr($e->getMessage(), 0, 300), $p['id']]
       );
-      if ($e->status === 422) {
-        throw new ErroApi(($e->extra['codigo_asaas'] ?? '') === 'invalid_creditCard'
-          ? 'O banco não autorizou este cartão. Confira os dados do cartão e do titular (nome e CPF) ou use outro cartão de crédito.'
-          : $e->getMessage(), 422);
-      }
-      throw $e;
+      throw Cartao::recusa($e);
     } finally {
       unset($corpo, $cartao);
     }
@@ -435,72 +350,6 @@ return new class implements ModuloCatalogo {
     return ['pedido' => Pedidos::publico(Pedidos::carregar((int)$p['id']))];
   }
 
-  /** Confere os dados do cartão e do titular antes de enviar ao Asaas. */
-  private function validarCartao(array $f): array
-  {
-    $numero = Validacao::digitos($f['numero'] ?? '');
-    if (strlen($numero) < 13 || strlen($numero) > 19 || !self::luhn($numero)) {
-      throw new ErroApi('Número do cartão inválido. Confira os números digitados.', 422, ['campo' => 'numero']);
-    }
-    $mes = (int)Validacao::digitos($f['mes'] ?? '');
-    $ano = (int)Validacao::digitos($f['ano'] ?? '');
-    if ($ano < 100) $ano += 2000;
-    $agora = [(int)date('Y'), (int)date('n')];
-    if ($mes < 1 || $mes > 12 || $ano > $agora[0] + 20 || $ano < $agora[0] || ($ano === $agora[0] && $mes < $agora[1])) {
-      throw new ErroApi('Validade do cartão inválida ou vencida.', 422, ['campo' => 'validade']);
-    }
-    $cvv = Validacao::digitos($f['cvv'] ?? '');
-    if (strlen($cvv) < 3 || strlen($cvv) > 4) throw new ErroApi('Código de segurança (CVV) inválido.', 422, ['campo' => 'cvv']);
-    $nome = trim((string)preg_replace('/\s+/u', ' ', (string)($f['nome'] ?? '')));
-    if (mb_strlen($nome) < 3 || mb_strlen($nome) > 100 || !preg_match("/^[\\p{L} .'-]+$/u", $nome)) {
-      throw new ErroApi('Informe o nome do titular como está impresso no cartão.', 422, ['campo' => 'nome']);
-    }
-    $cpf = Validacao::digitos($f['cpf'] ?? '');
-    if (!Validacao::cpfValido($cpf)) throw new ErroApi('CPF do titular do cartão inválido.', 422, ['campo' => 'cpf']);
-    // Endereço e celular do titular: só quando o cartão é de outra pessoa (senão, vale o cadastro do cliente).
-    $cep = Validacao::digitos($f['cep'] ?? '');
-    if ($cep !== '' && strlen($cep) !== 8) throw new ErroApi('CEP do titular inválido.', 422, ['campo' => 'cep']);
-    $celular = Validacao::digitos($f['celular'] ?? '');
-    if ($celular !== '' && (strlen($celular) < 10 || strlen($celular) > 11)) throw new ErroApi('Celular do titular inválido.', 422, ['campo' => 'celular']);
-    return [
-      'numero' => $numero,
-      'mes' => sprintf('%02d', $mes),
-      'ano' => (string)$ano,
-      'cvv' => $cvv,
-      'titular' => [
-        'nome' => $nome,
-        'cpf' => $cpf,
-        'cep' => $cep,
-        'numero' => mb_substr(trim((string)($f['numero_endereco'] ?? '')), 0, 20),
-        'celular' => $celular,
-      ],
-    ];
-  }
-
-  /** Dígito verificador do número do cartão (algoritmo de Luhn). */
-  private static function luhn(string $n): bool
-  {
-    $soma = 0;
-    $dobra = false;
-    for ($i = strlen($n) - 1; $i >= 0; $i--) {
-      $d = (int)$n[$i];
-      if ($dobra && ($d *= 2) > 9) $d -= 9;
-      $soma += $d;
-      $dobra = !$dobra;
-    }
-    return $soma % 10 === 0;
-  }
-
-  private function limitarTentativas(int $pedidoId): void
-  {
-    $chaves = ['cc:p' . $pedidoId => self::TENTATIVAS_PEDIDO, 'cc:' . substr(sha1(Http::ip()), 0, 40) => self::TENTATIVAS_IP];
-    foreach ($chaves as $chave => $max) {
-      $n = (int)Banco::valor('SELECT COUNT(*) FROM login_tentativas WHERE ip = ? AND momento > DATE_SUB(NOW(), INTERVAL 1 HOUR)', [$chave]);
-      if ($n >= $max) throw new ErroApi('Muitas tentativas com cartão em pouco tempo. Aguarde 1 hora e tente de novo, ou fale com a loja.', 429);
-    }
-    foreach (array_keys($chaves) as $chave) Banco::executar('INSERT INTO login_tentativas (ip) VALUES (?)', [$chave]);
-  }
-
   /** Aviso do Asaas sobre uma cobrança de assinatura: registra no pedido certo (primeiro período ou renovação). */
   public function cobrancaAsaas(string $evento, array $cobranca): void
   {
@@ -508,7 +357,7 @@ return new class implements ModuloCatalogo {
     if (!Asaas::ehAssinatura($sub) || !Banco::valor('SELECT id FROM pedidos WHERE mp_assinatura = ?', [$sub])) return;
     // Cobrança futura ainda não processada (o Asaas gera antes do vencimento): nada a registrar.
     if (($cobranca['status'] ?? '') === 'PENDING' && $evento !== 'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED') return;
-    $this->registrarCobranca($sub, Asaas::comoPagamento($cobranca, $evento), Asaas::APP);
+    $this->registrarCobranca($sub, Asaas::comoPagamento($cobranca, $evento));
   }
 
   /** Assinatura removida ou desativada direto no painel do Asaas: termina aqui também. */
@@ -524,8 +373,8 @@ return new class implements ModuloCatalogo {
   }
 
   /**
-   * Nome da assinatura no Mercado Pago (aparece para o cliente). Limite do Mercado Pago: 60 caracteres.
-   * Ex.: "Consultoria mensal (Mensal) - Odin Focus"; se não couber, o nome do serviço é encurtado.
+   * Nome da assinatura no Asaas (aparece para o cliente), com no máximo 60 caracteres.
+   * Ex.: "Consultoria mensal (Mensal) - Minha Loja"; se não couber, o nome do serviço é encurtado.
    */
   private function nomeDaAssinatura(array $item): string
   {
@@ -538,70 +387,28 @@ return new class implements ModuloCatalogo {
     return rtrim(mb_substr($servico, 0, $limite - mb_strlen($periodo) - 1)) . '…' . $periodo;
   }
 
-  /** Webhook da aplicação de serviços: mudança na assinatura ou em uma cobrança dela. */
-  public function avisoAssinaturaMp(string $tipo, string $id): void
-  {
-    if ($tipo === 'subscription_authorized_payment') {
-      $fatura = MercadoPago::consultarFatura($id);
-      $this->registrarFatura($fatura);
-      return;
-    }
-    $pre = MercadoPago::consultarAssinatura($id);
-    if (in_array($pre['status'] ?? '', ['cancelled', 'finished'], true)) {
-      // Terminou na data final (ou depois dela) = encerrada; antes disso = cancelada.
-      $n = Banco::executar(
-        "UPDATE assinaturas SET status = IF(data_final IS NOT NULL AND data_final <= CURDATE() + INTERVAL 1 DAY, 'encerrada', 'cancelada'),
-           cancelada_em = NOW()
-         WHERE mp_assinatura = ? AND status NOT IN ('cancelada', 'encerrada')",
-        [$id]
-      );
-      if ($n) error_log("Assinatura {$id} terminou no Mercado Pago ({$pre['status']}).");
-    }
-  }
-
-  /** Aviso de "payment" da aplicação de serviços: se for cobrança de assinatura, registra no pedido certo. */
-  public function pagamentoDeAssinaturaMp(array $mp): bool
-  {
-    $pre = (string)($mp['point_of_interaction']['transaction_data']['subscription_id'] ?? $mp['metadata']['preapproval_id'] ?? '');
-    if ($pre === '') {
-      // Sem a indicação da assinatura: confere se a referência é de um pedido de assinatura no cartão.
-      $pre = (string)(Banco::valor('SELECT mp_assinatura FROM pedidos WHERE id = ?', [(int)($mp['external_reference'] ?? 0)]) ?? '');
-    }
-    if ($pre === '' || !Banco::valor('SELECT id FROM pedidos WHERE mp_assinatura = ?', [$pre])) return false;
-    $this->registrarCobranca($pre, $mp);
-    return true;
-  }
-
-  /** Consulta as cobranças da assinatura no Asaas ou no Mercado Pago (reserva para avisos do webhook que se perderam). */
+  /**
+   * Consulta as cobranças da assinatura no Asaas (reserva para avisos do webhook que se perderam).
+   * Assinaturas antigas do Mercado Pago não são mais consultadas.
+   */
   public function sincronizarAssinaturaCartao(string $pre): void
   {
+    if (!Asaas::ehAssinatura($pre)) return;
     try {
-      if (Asaas::ehAssinatura($pre)) {
-        foreach (Asaas::cobrancasDaAssinatura($pre) as $c) {
-          if (($c['status'] ?? '') === 'PENDING' || !empty($c['deleted'])) continue; // ainda não processada
-          $this->registrarCobranca($pre, Asaas::comoPagamento($c), Asaas::APP);
-        }
-        return;
+      foreach (Asaas::cobrancasDaAssinatura($pre) as $c) {
+        if (($c['status'] ?? '') === 'PENDING' || !empty($c['deleted'])) continue; // ainda não processada
+        $this->registrarCobranca($pre, Asaas::comoPagamento($c));
       }
-      foreach (MercadoPago::faturasDaAssinatura($pre) as $fatura) $this->registrarFatura($fatura);
     } catch (Throwable $e) {
       error_log("Não foi possível consultar as cobranças da assinatura {$pre}: " . $e->getMessage());
     }
-  }
-
-  private function registrarFatura(array $fatura): void
-  {
-    $pagamento = $fatura['payment']['id'] ?? null;
-    $pre = (string)($fatura['preapproval_id'] ?? '');
-    if (!$pagamento || $pre === '') return; // cobrança ainda agendada
-    $this->registrarCobranca($pre, MercadoPago::consultar((string)$pagamento, 'servicos'));
   }
 
   /**
    * Primeira cobrança: vai para o pedido em que o cliente assinou.
    * Seguintes: cada período ganha um pedido de renovação (já existente em aberto ou criado agora).
    */
-  private function registrarCobranca(string $pre, array $mp, string $app = 'servicos'): void
+  private function registrarCobranca(string $pre, array $mp, string $app = Asaas::APP): void
   {
     $existente = Banco::valor('SELECT pedido_id FROM pagamentos WHERE mp_id = ?', [(string)$mp['id']]);
     if ($existente) {
@@ -670,12 +477,18 @@ return new class implements ModuloCatalogo {
     $a = Banco::um('SELECT * FROM assinaturas WHERE id = ?', [$id]);
     if (!$a) throw new ErroApi('Assinatura não encontrada.', 404);
     $this->finalizar($a, 'cancelada', 'assinatura cancelada');
-    return ['ok' => true];
+    return ['ok' => true, 'aviso' => $this->avisoAntiga($a, 'Cancele também no site do Mercado Pago para parar as cobranças no cartão do cliente.')];
+  }
+
+  /** Assinatura no cartão criada no Mercado Pago, antes da troca para o Asaas: a loja não fala mais com ele. */
+  private function avisoAntiga(array $a, string $texto): ?string
+  {
+    return $a['mp_assinatura'] && !Asaas::ehAssinatura($a['mp_assinatura']) ? "Assinatura antiga do Mercado Pago. {$texto}" : null;
   }
 
   /**
    * Termina a assinatura: "cancelada" (pelo painel) ou "encerrada" (chegou a data final).
-   * No cartão, cancela primeiro no Mercado Pago. Se falhar, nada muda aqui, para o cliente não
+   * No cartão, cancela primeiro no Asaas. Se falhar, nada muda aqui, para o cliente não
    * continuar sendo cobrado com a assinatura marcada como terminada.
    */
   private function finalizar(array $a, string $status, string $motivo): void
@@ -694,7 +507,7 @@ return new class implements ModuloCatalogo {
 
   /**
    * Define, muda ou tira (vazio) a data final. Nessa data a assinatura é encerrada pela rotina diária;
-   * no cartão, a data também é enviada ao Mercado Pago para ele parar de cobrar.
+   * no cartão, a data também é enviada ao Asaas para ele parar de cobrar.
    */
   private function alterarDataFinal(int $id): array
   {
@@ -704,18 +517,15 @@ return new class implements ModuloCatalogo {
     $data = Pedidos::validarDataFinal(Http::entrada()['data_final'] ?? null);
     Banco::executar('UPDATE assinaturas SET data_final = ? WHERE id = ?', [$data, $id]);
 
-    $aviso = null;
-    if ($a['mp_assinatura']) {
-      $asaas = Asaas::ehAssinatura($a['mp_assinatura']);
-      $gateway = $asaas ? 'O Asaas' : 'O Mercado Pago';
+    $aviso = $this->avisoAntiga($a, 'Altere a data também no site do Mercado Pago.');
+    if ($a['mp_assinatura'] && !$aviso) {
       try {
-        if ($asaas) Asaas::alterarAssinatura($a['mp_assinatura'], ['endDate' => Asaas::ultimoVencimento($data)]);
-        else MercadoPago::alterarAssinatura($a['mp_assinatura'], ['auto_recurring' => ['end_date' => $data ? MercadoPago::fimDoDia($data) : null]]);
+        Asaas::alterarAssinatura($a['mp_assinatura'], ['endDate' => Asaas::ultimoVencimento($data)]);
       } catch (Throwable $e) {
         error_log("Não foi possível alterar a data final da assinatura {$a['mp_assinatura']}: " . $e->getMessage());
         $aviso = $data
-          ? "Data salva. {$gateway} não aceitou a alteração agora, mas a loja encerra a assinatura nessa data mesmo assim."
-          : "Data removida aqui, mas {$gateway} não aceitou a alteração: ele pode parar de cobrar na data final antiga.";
+          ? 'Data salva. O Asaas não aceitou a alteração agora, mas a loja encerra a assinatura nessa data mesmo assim.'
+          : 'Data removida aqui, mas o Asaas não aceitou a alteração: ele pode parar de cobrar na data final antiga.';
       }
     }
     return ['ok' => true, 'aviso' => $aviso];
@@ -748,7 +558,7 @@ return new class implements ModuloCatalogo {
   /**
    * Pedido de renovação de um período da assinatura.
    * - Assinatura antiga (link de pagamento): usa o preço atual do serviço; null se já houver cobrança em aberto.
-   * - Assinatura no cartão: usa o valor contratado no Mercado Pago e reaproveita a renovação em aberto,
+   * - Assinatura no cartão: usa o valor contratado no Asaas e reaproveita a renovação em aberto,
    *   para as novas tentativas de cobrança do mesmo período caírem no mesmo pedido.
    */
   private function criarPedidoRenovacao(int $id): ?array
@@ -762,7 +572,7 @@ return new class implements ModuloCatalogo {
         $aberto = Pedidos::carregar((int)$a['pedido_renovacao']);
         if ($aberto && in_array($aberto['status'], ['aguardando_pagamento', 'em_analise'], true)) return $aberto;
       }
-      // Assinatura no cartão cancelada ainda recebe a cobrança que o Mercado Pago já tinha feito.
+      // Assinatura no cartão cancelada ainda recebe a cobrança que o Asaas já tinha feito.
       if (in_array($a['status'], ['cancelada', 'encerrada'], true) && !$automatica) return null;
       $cliente = Clientes::buscar($a['cliente_cpf']);
       $s = Banco::um('SELECT preco_venda, preco_custo FROM servicos WHERE codigo_servico = ?', [$a['codigo_servico']]);
@@ -787,7 +597,7 @@ return new class implements ModuloCatalogo {
   public function tarefasDiarias(): array
   {
     $log = [];
-    // Data final chegou: encerra (no cartão, cancela também no Mercado Pago).
+    // Data final chegou: encerra (no cartão, cancela também no Asaas).
     foreach (Banco::todos("SELECT * FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND data_final IS NOT NULL AND data_final <= CURDATE()") as $a) {
       try {
         $this->finalizar($a, 'encerrada', 'assinatura encerrada na data final');
@@ -798,19 +608,19 @@ return new class implements ModuloCatalogo {
     }
     // Cobrança marcada para a data final ou depois dela não acontece: não conta como atraso nem gera renovação.
     $antesDoFim = '(data_final IS NULL OR proxima_cobranca < data_final)';
-    // No cartão, o Mercado Pago cobra no dia dele e tenta de novo se falhar: só marca atraso após 3 dias.
+    // No cartão, o Asaas cobra no dia dele e tenta de novo se falhar: só marca atraso após 3 dias.
     $n = Banco::executar(
       "UPDATE assinaturas SET status = 'atrasada'
        WHERE status = 'ativa' AND {$antesDoFim} AND proxima_cobranca < IF(mp_assinatura IS NULL, CURDATE(), DATE_SUB(CURDATE(), INTERVAL 3 DAY))"
     );
     if ($n) $log[] = "{$n} assinatura(s) com pagamento atrasado.";
     $dias = max(0, (int)Config::get('dias_antecedencia_renovacao'));
-    // Links de renovação só para as assinaturas antigas; as do cartão são cobradas pelo Mercado Pago.
+    // Links de renovação só para as assinaturas antigas; as do cartão são cobradas pelo Asaas.
     $vencendo = Banco::todos(
       "SELECT id FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND pedido_renovacao IS NULL AND mp_assinatura IS NULL
          AND {$antesDoFim} AND proxima_cobranca <= DATE_ADD(CURDATE(), INTERVAL {$dias} DAY)"
     );
-    // Assinaturas no cartão vencidas: confere no Mercado Pago se alguma cobrança chegou sem aviso.
+    // Assinaturas no cartão vencidas: confere no Asaas se alguma cobrança chegou sem aviso.
     $cartao = Banco::todos(
       "SELECT DISTINCT mp_assinatura FROM assinaturas WHERE status IN ('ativa', 'atrasada') AND mp_assinatura IS NOT NULL AND proxima_cobranca <= CURDATE()"
     );

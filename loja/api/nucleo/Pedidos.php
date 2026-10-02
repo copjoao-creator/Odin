@@ -1,6 +1,6 @@
 <?php
 /**
- * Pedidos e o vínculo com os pagamentos do Mercado Pago.
+ * Pedidos e o vínculo com os pagamentos (Asaas).
  * Regras: preços, frete e total são sempre calculados aqui a partir do banco; o status do
  * pedido é derivado dos pagamentos; estoque e assinaturas mudam uma única vez por pedido.
  */
@@ -14,7 +14,47 @@ final class Pedidos
     'estornado' => 'Estornado',
   ];
 
+  // "debito" fica para os pagamentos antigos (Mercado Pago); o Asaas não recebe débito digitado na loja.
   public const METODOS = ['pix' => 'Pix', 'boleto' => 'Boleto', 'credito' => 'Cartão de crédito', 'debito' => 'Cartão de débito', 'outro' => 'Outro'];
+
+  /**
+   * Mensagens para o cliente conforme o detalhe gravado no pagamento: os do Asaas
+   * e, nos pagamentos antigos, os motivos do Mercado Pago.
+   */
+  private const MENSAGENS = [
+    'confirmed' => 'Pagamento aprovado!',
+    'received' => 'Pagamento recebido!',
+    'received_in_cash' => 'Pagamento recebido!',
+    'awaiting_risk_analysis' => 'O pagamento está em análise de segurança. Você receberá a confirmação por e-mail.',
+    'overdue' => 'O prazo para pagar venceu. Escolha uma forma de pagamento para gerar um novo.',
+    'refund_requested' => 'Estorno solicitado.',
+    'refund_in_progress' => 'Estorno em andamento.',
+    'cancelled' => 'Esta cobrança foi cancelada.',
+    'accredited' => 'Pagamento aprovado!',
+    'pending_contingency' => 'Estamos processando o pagamento. Em até 2 dias úteis você receberá a confirmação por e-mail.',
+    'pending_review_manual' => 'O pagamento está em análise. Em até 2 dias úteis você receberá a confirmação por e-mail.',
+    'cc_rejected_insufficient_amount' => 'O cartão não tem limite ou saldo suficiente.',
+    'cc_rejected_call_for_authorize' => 'Autorize o pagamento com o banco emissor do cartão e tente de novo.',
+    'cc_rejected_high_risk' => 'O pagamento foi recusado por segurança. Tente Pix, boleto ou outro cartão.',
+    'cc_rejected_other_reason' => 'O banco emissor recusou o pagamento. Use outro cartão ou outra forma de pagamento.',
+  ];
+
+  /** Texto para o cliente a partir do status, do detalhe e da forma de pagamento. */
+  public static function mensagem(string $status, ?string $detalhe, string $metodo): string
+  {
+    if ($detalhe !== null && isset(self::MENSAGENS[$detalhe])) return self::MENSAGENS[$detalhe];
+    switch ($status) {
+      case 'approved': return 'Pagamento aprovado!';
+      case 'pending': return $metodo === 'boleto' ? 'Boleto gerado. Pague até o vencimento.' : 'Aguardando o pagamento.';
+      case 'in_process':
+      case 'authorized': return 'O pagamento está em análise. Você receberá a confirmação por e-mail.';
+      case 'rejected': return 'O pagamento foi recusado. Tente outro cartão ou outra forma de pagamento.';
+      case 'cancelled': return 'O pagamento foi cancelado ou expirou.';
+      case 'refunded': return 'O pagamento foi estornado.';
+      case 'charged_back': return 'O pagamento foi contestado junto ao cartão (chargeback).';
+      default: return 'Situação do pagamento: ' . $status;
+    }
+  }
 
   public static function centavos($valor): int
   {
@@ -62,9 +102,8 @@ final class Pedidos
   }
 
   /**
-   * Cada pedido é pago por uma única aplicação do Mercado Pago, então produtos e serviços
-   * vão em pedidos separados. Uma assinatura (serviço recorrente) vai sozinha no pedido,
-   * porque vira uma cobrança automática no cartão com valor e período próprios.
+   * Produtos e serviços vão em pedidos separados. Uma assinatura (serviço recorrente) vai sozinha
+   * no pedido, porque vira uma cobrança automática no cartão com valor e período próprios.
    */
   public static function validarComposicao(array $itens, string $origem): void
   {
@@ -79,29 +118,12 @@ final class Pedidos
     }
   }
 
-  /** Aplicação do Mercado Pago do pedido: "servicos" para pedidos de serviços, "loja" para o resto. */
-  public static function app(array $p): string
-  {
-    $tipos = array_column($p['itens'] ?? [], 'tipo');
-    return in_array('servico', $tipos, true) ? MercadoPago::appEfetiva('servicos') : 'loja';
-  }
-
   /** Item de assinatura do pedido (serviço recorrente contratado agora, pago no cartão automático). */
   public static function itemAssinatura(array $p): ?array
   {
     if (($p['origem'] ?? '') === 'renovacao') return null;
     foreach ($p['itens'] ?? [] as $i) if (!empty($i['renovacao'])) return $i;
     return null;
-  }
-
-  /**
-   * Quem cobra a assinatura do pedido: a já criada fica onde nasceu; uma nova vai para o Asaas
-   * quando ele estiver configurado (senão, para o Mercado Pago, como antes).
-   */
-  public static function gatewayAssinatura(array $p): string
-  {
-    if (!empty($p['mp_assinatura'])) return Asaas::ehAssinatura($p['mp_assinatura']) ? 'asaas' : 'mercadopago';
-    return Asaas::configurado() ? 'asaas' : 'mercadopago';
   }
 
   /**
@@ -117,7 +139,7 @@ final class Pedidos
   }
 
   /**
-   * Renovação de assinatura no cartão: quem cobra é o Mercado Pago, automaticamente. Esse pedido
+   * Renovação de assinatura no cartão: quem cobra é o Asaas, automaticamente. Esse pedido
    * não recebe link de pagamento nem pode ser pago pelo link (o cliente pagaria duas vezes).
    */
   public static function cobrancaAutomatica(array $p): bool
@@ -225,18 +247,16 @@ final class Pedidos
       ],
       'pagamento' => $ultimo ? self::resumoPagamento($ultimo) : null,
       'link' => self::link($p),
-      // Chave pública da aplicação do Mercado Pago que cobra este pedido (loja ou serviços).
-      'mp_public_key' => MercadoPago::credenciais(self::app($p))['public_key'],
-      'pagamentos_ativos' => MercadoPago::configurado(self::app($p)),
+      'pagamentos_ativos' => Asaas::configurado(),
+      // Parcelas sem juros que o cliente pode escolher no cartão para este total.
+      'max_parcelas' => Asaas::parcelasPossiveis((float)$p['total']),
       'cobranca_automatica' => self::cobrancaAutomatica($p),
       // Serviço recorrente: pago só no cartão de crédito, com renovação automática a cada período.
-      // gateway: "asaas" (formulário de cartão da loja) ou "mercadopago" (formulário do Mercado Pago).
       'assinatura' => ($a = self::itemAssinatura($p)) ? [
         'renovacao' => $a['renovacao'],
         'valor' => (float)$a['preco_unitario'],
         'criada' => !empty($p['mp_assinatura']),
         'data_final' => $p['assinatura_data_final'] ?? null,
-        'gateway' => self::gatewayAssinatura($p),
       ] : null,
     ];
   }
@@ -248,7 +268,7 @@ final class Pedidos
       'metodo' => $pg['metodo'],
       'metodo_texto' => self::METODOS[$pg['metodo']] ?? $pg['metodo'],
       'status' => $pg['status'],
-      'mensagem' => MercadoPago::mensagem($pg['status'], $pg['status_detalhe'], $pg['metodo']),
+      'mensagem' => self::mensagem($pg['status'], $pg['status_detalhe'], $pg['metodo']),
       'valor' => (float)$pg['valor'],
       'parcelas' => (int)$pg['parcelas'],
       'pix_copia_cola' => $pg['status'] === 'pending' ? $pg['pix_copia_cola'] : null,
@@ -260,58 +280,73 @@ final class Pedidos
   }
 
   /**
-   * Grava (ou atualiza) um pagamento do Mercado Pago e recalcula o pedido.
-   * $app: aplicação que criou o pagamento; se omitida, vale a do pedido (só usada na primeira gravação).
+   * Grava (ou atualiza) um pagamento no formato de Asaas::comoPagamento() e recalcula o pedido.
+   * (A coluna mp_id guarda o id do Asaas; o nome ficou dos pagamentos antigos do Mercado Pago.)
+   * Ao atualizar, campos que vierem vazios não apagam os já gravados (QR code do Pix, linha digitável...),
+   * o valor estornado nunca diminui e a data de aprovação é a primeira registrada.
    */
-  public static function registrarPagamento(int $pedidoId, array $mp, ?string $app = null): array
+  public static function registrarPagamento(int $pedidoId, array $pg, string $app = Asaas::APP): array
   {
-    if ($app === null) {
-      $tipos = Banco::todos('SELECT DISTINCT tipo FROM pedido_itens WHERE pedido_id = ?', [$pedidoId]);
-      $app = self::app(['itens' => $tipos]);
-    }
-    $t = $mp['point_of_interaction']['transaction_data'] ?? [];
-    $det = $mp['transaction_details'] ?? [];
-    $status = (string)($mp['status'] ?? 'pending');
-    $liquido = $det['net_received_amount'] ?? null;
+    $dinheiro = fn($v) => $v === null ? null : number_format((float)$v, 2, '.', '');
     $dados = [
       'pedido_id' => $pedidoId,
-      'mp_id' => (string)$mp['id'],
-      'app' => in_array($app, array_merge(MercadoPago::APPS, [Asaas::APP]), true) ? $app : 'loja',
-      'metodo' => MercadoPago::metodo($mp),
-      'mp_metodo' => $mp['payment_method_id'] ?? null,
-      'status' => $status,
-      'status_detalhe' => $mp['status_detail'] ?? null,
-      'valor' => number_format((float)($mp['transaction_amount'] ?? 0), 2, '.', ''),
-      'valor_liquido' => $liquido !== null && (float)$liquido > 0 ? number_format((float)$liquido, 2, '.', '') : null,
-      'valor_estornado' => number_format((float)($mp['transaction_amount_refunded'] ?? 0), 2, '.', ''),
-      'parcelas' => max(1, (int)($mp['installments'] ?? 1)),
-      'pix_copia_cola' => $t['qr_code'] ?? null,
-      'pix_qr_base64' => $t['qr_code_base64'] ?? null,
-      'link_pagamento' => $det['external_resource_url'] ?? $t['ticket_url'] ?? null,
-      'codigo_barras' => $det['digitable_line'] ?? $mp['barcode']['content'] ?? null,
-      'expira_em' => self::dataMp($mp['date_of_expiration'] ?? null),
-      'aprovado_em' => self::dataMp($mp['date_approved'] ?? null),
+      'mp_id' => (string)$pg['id'],
+      'app' => $app,
+      'metodo' => isset(self::METODOS[$pg['metodo'] ?? '']) ? $pg['metodo'] : 'outro',
+      'mp_metodo' => $pg['bandeira'] ?? null,
+      'status' => (string)($pg['status'] ?? 'pending'),
+      'status_detalhe' => $pg['status_detalhe'] ?? null,
+      'valor' => $dinheiro($pg['valor'] ?? 0),
+      'valor_liquido' => $dinheiro($pg['valor_liquido'] ?? null),
+      'valor_estornado' => $dinheiro($pg['valor_estornado'] ?? 0),
+      'parcelas' => max(1, (int)($pg['parcelas'] ?? 1)),
+      'pix_copia_cola' => $pg['pix_copia_cola'] ?? null,
+      'pix_qr_base64' => $pg['pix_qr_base64'] ?? null,
+      'link_pagamento' => $pg['link_pagamento'] ?? null,
+      'codigo_barras' => $pg['codigo_barras'] ?? null,
+      'expira_em' => $pg['expira_em'] ?? null,
+      'aprovado_em' => $pg['aprovado_em'] ?? null,
     ];
+    $manter = ['valor_liquido', 'pix_copia_cola', 'pix_qr_base64', 'link_pagamento', 'codigo_barras', 'expira_em'];
+    $atualizar = [];
+    foreach (array_diff(array_keys($dados), ['pedido_id', 'mp_id', 'app']) as $c) {
+      if (in_array($c, $manter, true)) $atualizar[] = "{$c} = COALESCE(VALUES({$c}), {$c})";
+      elseif ($c === 'valor_estornado') $atualizar[] = 'valor_estornado = GREATEST(VALUES(valor_estornado), valor_estornado)';
+      elseif ($c === 'aprovado_em') $atualizar[] = 'aprovado_em = COALESCE(aprovado_em, VALUES(aprovado_em))';
+      else $atualizar[] = "{$c} = VALUES({$c})";
+    }
     $colunas = array_keys($dados);
-    $atualizar = array_map(fn($c) => "{$c} = VALUES({$c})", array_diff($colunas, ['pedido_id', 'mp_id', 'app']));
     Banco::executar(
       'INSERT INTO pagamentos (' . implode(', ', $colunas) . ') VALUES (' . implode(', ', array_fill(0, count($colunas), '?')) . ')
        ON DUPLICATE KEY UPDATE ' . implode(', ', $atualizar),
       array_values($dados)
     );
     self::sincronizar($pedidoId);
-    return Banco::um('SELECT * FROM pagamentos WHERE mp_id = ?', [(string)$mp['id']]);
+    return Banco::um('SELECT * FROM pagamentos WHERE mp_id = ?', [(string)$pg['id']]);
   }
 
-  /** Datas do Mercado Pago (ISO 8601 com fuso) no horário de Brasília. */
-  private static function dataMp(?string $iso): ?string
+  /**
+   * Invalida um Pix ou boleto ainda não pago (troca de forma de pagamento ou pedido cancelado).
+   * Pagamentos antigos (Mercado Pago), cartões e cobranças de assinatura ficam como estão.
+   */
+  public static function cancelarCobranca(array $pg): void
   {
-    if (!$iso) return null;
+    if ($pg['app'] !== Asaas::APP || !in_array($pg['status'], ['pending', 'in_process'], true)) return;
+    if (!in_array($pg['metodo'], ['pix', 'boleto'], true) || Asaas::ehParcelamento($pg['mp_id'])) return;
     try {
-      return (new DateTime($iso))->setTimezone(new DateTimeZone('America/Sao_Paulo'))->format('Y-m-d H:i:s');
+      Asaas::remover($pg['mp_id']);
     } catch (Throwable $e) {
-      return null;
+      // Já paga nesse meio-tempo? A consulta mostra; se não der para consultar, fica como está.
+      error_log("Não foi possível remover a cobrança {$pg['mp_id']} no Asaas: " . $e->getMessage());
+      try {
+        self::registrarPagamento((int)$pg['pedido_id'], Asaas::pagamento($pg['mp_id']));
+      } catch (Throwable $e2) {
+        // sem resposta do Asaas agora
+      }
+      return;
     }
+    Banco::executar("UPDATE pagamentos SET status = 'cancelled', status_detalhe = 'cancelled' WHERE id = ?", [$pg['id']]);
+    self::sincronizar((int)$pg['pedido_id']);
   }
 
   /**
@@ -380,31 +415,20 @@ final class Pedidos
       return $p;
     });
     // Invalida Pix e boletos em aberto para não serem pagos depois do cancelamento.
-    // (Cobranças do Asaas pertencem à assinatura; quem as encerra é o cancelamento da assinatura.)
-    foreach ($p['pagamentos'] as $pg) {
-      if ($pg['app'] === Asaas::APP) continue;
-      if (in_array($pg['status'], ['pending', 'in_process'], true)) {
-        try {
-          self::registrarPagamento($id, MercadoPago::cancelar($pg['mp_id'], $pg['app']), $pg['app']);
-        } catch (Throwable $e) {
-          error_log("Não foi possível cancelar o pagamento {$pg['mp_id']} no Mercado Pago: " . $e->getMessage());
-        }
-      }
+    // (Cobranças de assinatura são encerradas pelo cancelamento da assinatura.)
+    if (empty($p['mp_assinatura'])) {
+      foreach ($p['pagamentos'] as $pg) self::cancelarCobranca($pg);
     }
     return self::carregar($id);
   }
 
-  /** Consulta de novo no Mercado Pago ou no Asaas (caso algum aviso do webhook tenha se perdido). */
+  /** Consulta de novo no Asaas (caso algum aviso do webhook tenha se perdido). Pagamentos antigos ficam como estão. */
   public static function atualizarPagamentosPendentes(array $p): void
   {
+    if (!Asaas::configurado()) return;
     foreach ($p['pagamentos'] as $pg) {
-      if (!in_array($pg['status'], ['pending', 'in_process', 'authorized'], true)) continue;
-      if ($pg['app'] === Asaas::APP) {
-        if (Asaas::configurado()) self::registrarPagamento((int)$p['id'], Asaas::comoPagamento(Asaas::consultar($pg['mp_id'])), Asaas::APP);
-        continue;
-      }
-      if (!MercadoPago::configurado($pg['app'])) continue;
-      self::registrarPagamento((int)$p['id'], MercadoPago::consultar($pg['mp_id'], $pg['app']), $pg['app']);
+      if (!in_array($pg['status'], ['pending', 'in_process', 'authorized'], true) || Asaas::antigo($pg)) continue;
+      self::registrarPagamento((int)$p['id'], Asaas::pagamento($pg['mp_id']));
     }
     // Assinatura no cartão ainda sem a primeira cobrança registrada: pergunta ao gateway.
     $servicos = Modulos::doItem('servico');
@@ -428,7 +452,7 @@ final class Pedidos
         $p = self::carregar((int)$id);
         if ($p['status'] !== 'aguardando_pagamento') continue;
         $boletoNoPrazo = Banco::valor(
-          "SELECT COUNT(*) FROM pagamentos WHERE pedido_id = ? AND status = 'pending' AND expira_em > NOW()",
+          "SELECT COUNT(*) FROM pagamentos WHERE pedido_id = ? AND metodo = 'boleto' AND status = 'pending' AND expira_em > NOW()",
           [$id]
         );
         if ($boletoNoPrazo) continue;

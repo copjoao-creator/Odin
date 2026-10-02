@@ -41,7 +41,7 @@
 
   const parcelasHtml = () => {
     const n = estado.loja ? estado.loja.max_parcelas : 12;
-    return n > 1 ? `<p class="card-parcela">Parcele em até ${n}x no cartão</p>` : '';
+    return n > 1 ? `<p class="card-parcela">Em até ${n}x sem juros no cartão</p>` : '';
   };
 
   async function iniciar() {
@@ -86,7 +86,7 @@
     $('#sobreTitulo').textContent = l.nome;
     $('#sobreTexto').textContent = l.sobre;
     $('#rodapeSobre').textContent = l.sobre;
-    if (l.max_parcelas > 1) $('#benParcelas').textContent = `Parcele em até ${l.max_parcelas}x`;
+    if (l.max_parcelas > 1) $('#benParcelas').textContent = `Até ${l.max_parcelas}x sem juros`;
     if (l.frete_gratis_acima > 0) {
       const t = `Frete grátis acima de ${brl(l.frete_gratis_acima)}`;
       $('#benFrete').textContent = t;
@@ -599,7 +599,7 @@
         <div><dt>Frete</dt><dd>${rodape.entrega ? (rodape.frete ? brl(rodape.frete) : 'Grátis') : 'Não se aplica'}</dd></div>
         <div class="valores-total"><dt>Total</dt><dd>${brl(rodape.total)}</dd></div>
       </dl>
-      <p class="resumo-seguro">${Loja.icone('escudo')} Compra protegida pelo Mercado Pago</p>`;
+      <p class="resumo-seguro">${Loja.icone('escudo')} Pagamento seguro processado pelo Asaas</p>`;
   }
 
   function abrirCheckout() {

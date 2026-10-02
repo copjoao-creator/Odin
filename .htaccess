@@ -18,7 +18,7 @@
 
   # ---------- Endereço único: https://www.odinfocus.com.br ----------
   # Um endereço só evita carrinho e login "sumindo" ao trocar entre com e sem www, e o HTTPS é
-  # exigido pelo Mercado Pago. A pasta .well-known fica de fora (renovação do certificado).
+  # exigido para receber pagamentos. A pasta .well-known fica de fora (renovação do certificado).
   RewriteCond %{REQUEST_URI} !^/\.well-known/
   RewriteCond %{HTTP_HOST} ^odinfocus\.com\.br$ [NC]
   RewriteRule ^(.*)$ https://www.odinfocus.com.br/$1 [R=301,L]

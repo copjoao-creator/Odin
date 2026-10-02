@@ -28,7 +28,7 @@ return function (Roteador $r) {
     return [
       'pedidos_pagos' => (int)$p['pedidos'],
       'receita_bruta' => round($receita, 2),
-      'taxas_mercado_pago' => round(max(0, $receita - $liquido), 2),
+      'taxas_pagamento' => round(max(0, $receita - $liquido), 2),
       'valor_liquido' => round($liquido - $estornoParcial, 2),
       'estornos_parciais' => round($estornoParcial, 2),
       'custo_itens' => round((float)$p['custo'], 2),
@@ -101,7 +101,7 @@ return function (Roteador $r) {
       'cancelados' => $cancelados,
       'clientes_novos' => (int)Banco::valor('SELECT COUNT(*) FROM clientes WHERE criado_em >= ? AND criado_em < ?', [$ini, $fim]),
       'modulos' => $modulos,
-      'mercado_pago_configurado' => MercadoPago::configurado(),
+      'pagamentos_configurados' => Asaas::configurado(),
       'ultima_tarefa_diaria' => Config::get('ultima_tarefa_diaria') ?: null,
     ];
   });

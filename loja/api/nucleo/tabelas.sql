@@ -102,12 +102,13 @@ CREATE TABLE IF NOT EXISTS pedido_itens (
   CONSTRAINT fk_pedido_itens_pedido FOREIGN KEY (pedido_id) REFERENCES pedidos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Cada tentativa de pagamento no Mercado Pago (Pix, boleto, crédito ou débito).
+-- Cada tentativa de pagamento no Asaas (Pix, boleto ou cartão de crédito). mp_id: id da cobrança
+-- ("pay_…") ou do parcelamento no Asaas. app: "asaas"; "loja"/"servicos" são pagamentos antigos do Mercado Pago.
 CREATE TABLE IF NOT EXISTS pagamentos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   pedido_id INT UNSIGNED NOT NULL,
-  mp_id VARCHAR(30) NOT NULL,
-  app VARCHAR(12) NOT NULL DEFAULT 'loja',
+  mp_id VARCHAR(60) NOT NULL,
+  app VARCHAR(12) NOT NULL DEFAULT 'asaas',
   metodo ENUM('pix','boleto','credito','debito','outro') NOT NULL,
   mp_metodo VARCHAR(40) NULL,
   status VARCHAR(30) NOT NULL,

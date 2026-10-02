@@ -1,7 +1,7 @@
 <?php
 /* Rotas públicas da vitrine: dados da loja, criação do pedido e página de pagamento. */
 return function (Roteador $r) {
-  // Textos, contatos, frete e chave pública do Mercado Pago (nunca as chaves secretas).
+  // Textos, contatos, frete e se os pagamentos estão ligados (nunca as chaves do Asaas).
   $r->publica('GET', 'loja', function () {
     $c = Config::todas();
     $modulos = $abas = [];
@@ -28,9 +28,8 @@ return function (Roteador $r) {
       ] : null,
       'frete_valor' => (float)$c['frete_valor'],
       'frete_gratis_acima' => (float)$c['frete_gratis_acima'],
-      'max_parcelas' => (int)$c['max_parcelas'],
-      'mp_public_key' => $c['mp_public_key'],
-      'pagamentos_ativos' => MercadoPago::configurado(),
+      'max_parcelas' => min(max(1, (int)$c['max_parcelas']), Asaas::MAX_PARCELAS),
+      'pagamentos_ativos' => Asaas::configurado(),
       'modulos' => $modulos,
       'abas' => $abas,
     ] + Marca::publica()]; // marca (logotipos), cores e empresa
@@ -89,7 +88,7 @@ return function (Roteador $r) {
   // Página de pagamento (pagar.html) e acompanhamento do Pix. Exige o token secreto do pedido.
   $r->publica('GET', 'pedidos/{id}/publico', function ($id) {
     $p = Pedidos::peloToken($id, $_GET['t'] ?? '');
-    // Consulta o Mercado Pago de novo se o cliente está esperando (Pix/cartão em análise), no máximo a cada 15 s.
+    // Consulta o Asaas de novo se o cliente está esperando (Pix/cartão em análise), no máximo a cada 15 s.
     // Assinatura no cartão ainda sem cobrança registrada também é consultada (a primeira cobrança chega depois).
     if (!empty($_GET['atualizar']) && in_array($p['status'], ['aguardando_pagamento', 'em_analise'], true) && $p['pagamentos']) {
       $ultimo = $p['pagamentos'][count($p['pagamentos']) - 1];
@@ -99,7 +98,7 @@ return function (Roteador $r) {
           Pedidos::atualizarPagamentosPendentes($p);
           Banco::executar('UPDATE pagamentos SET atualizado_em = NOW() WHERE id = ?', [$ultimo['id']]);
         } catch (ErroApi $e) {
-          // Sem resposta do Mercado Pago agora: o webhook ou a próxima consulta resolvem.
+          // Sem resposta do Asaas agora: o webhook ou a próxima consulta resolvem.
         }
         $p = Pedidos::carregar((int)$p['id']);
       }

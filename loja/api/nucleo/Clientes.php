@@ -162,7 +162,7 @@ final class Clientes
     return $numero === '' ? '' : mb_substr($numero, 0, 1) . str_repeat('*', max(1, mb_strlen($numero) - 1));
   }
 
-  /** Primeiro e último nome (o Mercado Pago pede separados no boleto). */
+  /** Primeiro nome e o restante (o primeiro é usado na saudação dos e-mails). */
   public static function nomes(string $nome): array
   {
     $partes = preg_split('/\s+/', trim($nome)) ?: [''];

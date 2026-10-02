@@ -34,5 +34,13 @@ try {
   Http::erro($e->getMessage(), $e->status, $e->extra);
 } catch (Throwable $e) {
   error_log('Erro na API da loja: ' . $e);
-  Http::erro('Erro interno. Tente novamente em instantes.', 500);
+  // Só para o administrador master: o motivo técnico na própria tela (sem precisar abrir o error_log).
+  // Clientes e lojistas veem apenas a mensagem genérica.
+  $detalhe = null;
+  try {
+    if (Plataforma::master()) $detalhe = get_class($e) . ': ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+  } catch (Throwable $ignorado) {
+    // Sem banco ou sem sessão: fica a mensagem genérica.
+  }
+  Http::erro('Erro interno. Tente novamente em instantes.' . ($detalhe ? " [Detalhe para o master: {$detalhe}]" : ''), 500);
 }

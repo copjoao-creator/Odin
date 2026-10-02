@@ -254,3 +254,7 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .aviso-master { background: var(--realce); color: var(--azul); font-size: .8rem; padding: 8px 16px; display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 .aviso-master a { color: inherit; font-weight: 600; }
 @media (max-width: 600px) { .resumo-loja div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Configurações: botão "Salvar configurações" no fim da página (fora do formulário, ligado por form="fConfig"). */
+.salvar-config { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra); padding: 18px 22px; border-top: 3px solid var(--azul); }
+.salvar-config p { margin: 0; flex: 1 1 260px; }

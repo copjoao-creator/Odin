@@ -1448,8 +1448,6 @@
             ${r.modulos.map((m) => `<label class="c-6 marcar"><input type="checkbox" name="modulo_${m.tipo}" ${m.ligado ? 'checked' : ''}> ${esc(m.nome)}</label>`).join('')}
           </div>
         </section>
-
-        <div><button type="submit" class="btn">Salvar configurações</button></div>
       </form>
 
       <section class="bloco">
@@ -1483,7 +1481,13 @@
           <label class="c-4">Repita a nova senha <input name="senha_repetida" type="password" minlength="8" required autocomplete="new-password"></label>
           <div class="c-12"><button type="submit" class="btn btn-pequeno btn-linha">Alterar senha</button></div>
         </form>
-      </section>`;
+      </section>
+
+      <div class="salvar-config">
+        <p class="fraco">Salva todas as configurações desta página. Administradores e Minha senha têm botões próprios.</p>
+        <!-- Fica no fim da página, fora do formulário: o atributo form="fConfig" liga o botão a ele. -->
+        <button type="submit" form="fConfig" class="btn">Salvar configurações</button>
+      </div>`;
 
     $$('[data-copiar]', el).forEach((b) => b.addEventListener('click', async () => {
       if (await Loja.copiar($(b.dataset.copiar).textContent)) Loja.aviso('Copiado!', 'ok');

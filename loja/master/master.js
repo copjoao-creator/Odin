@@ -76,13 +76,13 @@
           <thead><tr><th>Loja</th><th>Situação</th><th class="num">Pedidos pagos</th><th class="num">Faturamento 30 dias</th><th>Acessos ao painel</th><th></th></tr></thead>
           <tbody>${r.lojas.map((l) => `
             <tr>
-              <td><strong>${esc(l.nome)}</strong>${l.original ? ' <span class="fraco">(original)</span>' : ''}<br><a href="${esc(l.url)}" target="_blank" rel="noopener" class="fraco">${esc(l.url.replace(/^https?:\/\//, ''))}</a></td>
+              <td><strong>${esc(l.nome)}</strong>${l.original ? ' <span class="fraco">(original)</span>' : ''}<br><a href="${esc(l.url)}" class="fraco">${esc(l.url.replace(/^https?:\/\//, ''))}</a></td>
               <td><span class="status st-${l.status === 'ativa' ? 'ativa' : 'cancelada'}">${l.status === 'ativa' ? 'Ativa' : 'Suspensa'}</span></td>
               <td class="num">${l.erro ? '—' : l.pedidos_pagos}</td>
               <td class="num">${l.erro ? '—' : brl(l.faturamento_30d)}</td>
               <td>${l.erro ? `<span class="fraco">${esc(l.erro)}</span>` : l.administradores.map((a) => `${esc(a.email)} <span class="fraco">· ${PERFIS[a.perfil] || esc(a.perfil)}</span>`).join('<br>') || '<span class="fraco">nenhum</span>'}</td>
               <td class="acoes-loja">
-                <a href="${esc(l.url)}" target="_blank" rel="noopener">Abrir loja ↗</a>
+                <a href="${esc(l.url)}">Abrir loja</a>
                 <a href="${esc(l.url)}admin/" target="_blank" rel="noopener">Abrir painel ↗</a>
                 <button type="button" class="link" data-acesso="${l.id}">Acessos</button>
                 <button type="button" class="link" data-nome="${l.id}">Renomear</button>
@@ -153,7 +153,7 @@
         dialogo('Loja criada!', `
           <p><strong>${esc(l.nome)}</strong> já está no ar.</p>
           <dl class="resumo-loja">
-            <div><dt>Loja</dt><dd><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.url)}</a></dd></div>
+            <div><dt>Loja</dt><dd><a href="${esc(l.url)}">${esc(l.url)}</a></dd></div>
             <div><dt>Painel</dt><dd><a href="${esc(l.url)}admin/" target="_blank" rel="noopener">${esc(l.url)}admin/</a></dd></div>
             <div><dt>Acesso do lojista</dt><dd>${esc(dados.admin_email)} · senha: <code>${esc(dados.admin_senha)}</code></dd></div>
           </dl>

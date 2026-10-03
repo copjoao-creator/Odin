@@ -314,3 +314,5 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 /* Configurações: botão "Salvar configurações" no fim da página (fora do formulário, ligado por form="fConfig"). */
 .salvar-config { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border: 1px solid var(--realce); border-radius: var(--raio); padding: 18px 20px; }
 .salvar-config p { margin: 0; flex: 1 1 260px; }
+/* "Cabeçalho/Rodapé": a primeira área, que pinta faixa do topo, cabeçalho, menu e rodapé de uma vez */
+.area-cor[data-area="moldura"] { border-color: var(--realce); }

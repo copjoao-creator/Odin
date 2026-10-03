@@ -21,13 +21,6 @@
   --titulo: #FFFAFA;
   --sobre-principal: #FFFFFF;
 
-  --linha: color-mix(in srgb, var(--secundaria) 30%, transparent);
-  --suave: color-mix(in srgb, var(--texto) 72%, var(--fundo));
-  --tom: color-mix(in srgb, var(--texto) 8%, transparent);
-  --campo: var(--fundo);
-  --ok: color-mix(in srgb, #22C55E 70%, var(--texto));
-  --erro: color-mix(in srgb, #EF4444 75%, var(--texto));
-  --atencao: color-mix(in srgb, #DAA520 80%, var(--texto));
   --raio: 16px;
   --raio-grande: 24px;
   --raio-pequeno: 12px;
@@ -35,6 +28,18 @@
   --fonte: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
   --topo: 132px;
   color-scheme: dark;
+}
+/* Cores derivadas das básicas. Uma variável derivada é calculada onde é declarada, então ela é declarada também no
+   corpo dos painéis (admin.css), que trocam as básicas pelas do Tênis de Mesa para Todos: sem isso, campos, linhas e
+   textos secundários do painel sairiam nas cores da loja. */
+:root, body.painel {
+  --linha: color-mix(in srgb, var(--secundaria) 30%, transparent);
+  --suave: color-mix(in srgb, var(--texto) 72%, var(--fundo));
+  --tom: color-mix(in srgb, var(--texto) 8%, transparent);
+  --campo: var(--fundo);
+  --ok: color-mix(in srgb, #22C55E 70%, var(--texto));
+  --erro: color-mix(in srgb, #EF4444 75%, var(--texto));
+  --atencao: color-mix(in srgb, #DAA520 80%, var(--texto));
 }
 
 * { box-sizing: border-box; }
@@ -120,8 +125,10 @@ body.marca-sem-nome .logo-texto { display: none; }
 .rodape .logo-claro { color: var(--a-rodape-texto, var(--titulo)); }
 .rodape .logo-claro .logo-texto small { color: inherit; opacity: .7; }
 
-.busca { display: flex; max-width: 560px; width: 100%; justify-self: center; border: 1px solid var(--secundaria); background: var(--campo); border-radius: var(--raio-pequeno); overflow: hidden; }
-.busca input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 14px; outline: none; color: var(--texto); }
+/* Busca: no fundo e na cor de texto do cabeçalho (segue as cores escolhidas para o cabeçalho) */
+.busca { display: flex; max-width: 560px; width: 100%; justify-self: center; border: 1px solid var(--secundaria); background: transparent; border-radius: var(--raio-pequeno); overflow: hidden; }
+.busca input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 14px; outline: none; color: inherit; }
+.busca input::placeholder { color: color-mix(in srgb, currentColor 60%, transparent); }
 .busca:focus-within { box-shadow: 0 0 0 2px var(--secundaria); }
 .busca button { border: 0; background: var(--a-botao-fundo, var(--principal)); color: var(--a-botao-texto, var(--sobre-principal)); width: 50px; cursor: pointer; display: grid; place-items: center; }
 
@@ -163,6 +170,8 @@ body.marca-sem-nome .logo-texto { display: none; }
 .hero-sub { font-size: 1.05rem; line-height: 1.6; max-width: 60ch; }
 .hero-acoes { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 24px; }
 .hero .btn-contorno { color: inherit; }
+/* Botão cheio do destaque: invertido quando a cor dos botões some no fundo do destaque (o tema.css avisa) */
+.hero .btn-creme { background: var(--a-destaque-botao-fundo, var(--a-botao-fundo, var(--principal))); color: var(--a-destaque-botao-texto, var(--a-botao-texto, var(--sobre-principal))); }
 /* A arte (anéis e logotipo grande) não faz parte do padrão limpo do Tênis de Mesa para Todos */
 .hero-arte { display: none; }
 
@@ -293,18 +302,21 @@ body.marca-sem-nome .logo-texto { display: none; }
 .selos { grid-template-columns: repeat(2, auto); justify-content: start; }
 .selos li { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--linha); border-radius: 10px; padding: 6px 10px; font-size: .8rem; }
 .selos .ico { width: 18px; height: 18px; color: var(--realce); }
-.rodape-seguro { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: .8rem; color: var(--suave); }
+/* Textos secundários do rodapé: a cor do texto do rodapé, mais apagada (assim seguem as cores escolhidas para o rodapé) */
+.rodape-seguro { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: .8rem; opacity: .8; }
 .rodape-seguro .ico { width: 18px; height: 18px; color: var(--realce); }
 .rodape-base { border-top: 1px solid var(--linha); font-size: .78rem; }
 .rodape-base p { padding: 16px 0; }
 /* Linha legal (razão social, CPF/CNPJ e endereço) e crédito do sistema */
-.rodape-base-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding-top: 14px; padding-bottom: 14px; }
+.rodape-base-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 24px; padding-top: 14px; padding-bottom: 14px; padding-right: 84px; }
 .rodape-base-in p { padding: 0; }
-.rodape-legal { flex: 1 1 100%; color: var(--suave); }
-.credito a { text-decoration: underline; text-underline-offset: 2px; }
-.credito a.selo-clubes { text-decoration: none; }
+.rodape-legal { flex: 1 1 100%; opacity: .75; }
+/* Crédito discreto do sistema: símbolo do Odin Focus e "Odin Focus Financeiro", na cor do texto do rodapé */
+.credito-odin { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; font-size: .75rem; opacity: .7; transition: opacity .2s ease; }
+.credito-odin:hover { opacity: 1; }
+.credito-odin svg { width: 18px; height: 18px; flex: none; }
 
-/* ---------- Selo do Tênis de Mesa para Todos (Módulo Financeiro de Clubes · Odin Focus) ---------- */
+/* ---------- Selo do Tênis de Mesa para Todos (Módulo Financeiro de Clubes · Odin Focus), nas telas do painel ---------- */
 /* Herda a cor do texto de onde está; o símbolo vai sobre um fundo branco, como no cabeçalho do Tênis de Mesa para Todos. */
 .selo-clubes { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; line-height: 1.25; }
 .selo-clubes img { width: 40px; height: 40px; object-fit: contain; flex: none; background: #FFFFFF; border-radius: 6px; padding: 2px; }
@@ -319,19 +331,10 @@ body.marca-sem-nome .logo-texto { display: none; }
 .selo-clubes-linha .selo-clubes-texto { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
 .selo-clubes-linha .selo-clubes-texto > * { font-size: inherit; text-transform: inherit; }
 .selo-clubes-linha .selo-clubes-texto > * + *::before { content: "·"; margin-right: 6px; opacity: .6; color: var(--texto); }
-
-.credito .selo-clubes-linha img { width: 26px; height: 26px; }
-
-/* Faixa do topo com o selo à esquerda e os avisos da loja à direita */
-.faixa-com-selo { justify-content: space-between; align-items: center; }
-.faixa-com-selo .selo-clubes-linha img { width: 26px; height: 26px; }
-.faixa-avisos { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
-/* Celular: o selo em duas linhas (sem os pontos separadores) e a faixa centralizada */
+/* Celular: o selo em duas linhas (sem os pontos separadores) */
 @media (max-width: 760px) {
   .selo-clubes-linha .selo-clubes-texto { flex-direction: column; align-items: flex-start; }
   .selo-clubes-linha .selo-clubes-texto > * + *::before { content: none; }
-  .faixa-com-selo { justify-content: center; gap: 4px 24px; }
-  .faixa-com-selo .selo-clubes-texto > span { display: none; }
 }
 
 .zap-flutuante {

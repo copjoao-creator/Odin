@@ -1315,7 +1315,7 @@
     return `
       <section class="bloco">
         <h2>Personalização · Cores por área</h2>
-        <p class="bloco-sub">Escolha o fundo e o texto de cada parte da loja. Em branco (automático), a área usa as cores básicas acima. Se o texto ficar difícil de ler sobre o fundo, aparece um aviso.</p>
+        <p class="bloco-sub">Escolha o fundo e o texto de cada parte da loja. Use <strong>Cabeçalho/Rodapé</strong> para pintar a faixa do topo, o cabeçalho, o menu e o rodapé de uma vez; cada um deles ainda pode ter cor própria logo abaixo. Em branco (automático), a área usa as cores básicas acima, e num fundo próprio o texto automático fica claro ou escuro para dar leitura. Se o texto ficar difícil de ler, aparece um aviso.</p>
         <div class="areas-cor-grade">
           <div class="campos areas-cor">
             ${Object.entries(areas).map(([area, [rotulo]]) => `
@@ -1341,17 +1341,29 @@
   }
 
   /** Cores por área: quadrado e código sincronizados, cor automática à mostra, aviso de contraste e prévia da loja. */
-  function ligarCoresAreas(f, areas) {
+  function ligarCoresAreas(f, areas, moldura) {
     const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v.toUpperCase() : '');
     // Básicas digitadas e derivadas (o texto dos botões, por exemplo, segue a claridade da cor dos botões).
     const basica = (k) => coresDoForm(f)[k];
-    // Cor que a área terá de fato: a própria ou a básica que ela segue (Config::AREAS_COR: [rótulo, fundo, texto]).
-    const efetiva = (area, parte) => hex(f.elements[`cor_${area}_${parte}`].value) || basica(areas[area][parte === 'fundo' ? 1 : 2]);
+    const propria = (area, parte) => hex(f.elements[`cor_${area}_${parte}`].value);
+    // Cores que a área terá de fato, com a mesma regra do Config::coresAreas() do servidor: a própria; nas áreas da
+    // moldura, a do "Cabeçalho/Rodapé"; senão, a básica (Config::AREAS_COR: [rótulo, fundo, texto]). Num fundo próprio,
+    // o texto automático só fica com a cor básica se ela for legível; senão, vira branco ou quase preto.
+    const efetiva = (area) => {
+      const herdada = (parte) => propria(area, parte) || (moldura.includes(area) ? propria('moldura', parte) : '');
+      const fundo = herdada('fundo');
+      let texto = herdada('texto');
+      if (!texto) {
+        texto = basica(areas[area][2]);
+        if (fundo && Loja.contraste(texto, fundo) < 4.5) texto = Loja.corEscura(fundo) ? '#FFFFFF' : '#111111';
+      }
+      return { fundo: fundo || basica(areas[area][1]), texto };
+    };
     const previa = $('#previaLoja');
     const pintar = () => {
       Object.keys(areas).forEach((area) => {
         const linha = $(`[data-area="${area}"]`, f);
-        const cor = { fundo: efetiva(area, 'fundo'), texto: efetiva(area, 'texto') };
+        const cor = efetiva(area);
         ['fundo', 'texto'].forEach((parte) => {
           const nome = `cor_${area}_${parte}`;
           const campo = f.elements[nome];
@@ -1606,7 +1618,7 @@
     }));
     desenharMarca($('#marcaGrade'), r.identidade.marca);
     ligarCores($('#fConfig'));
-    ligarCoresAreas($('#fConfig'), r.areas_cor || {});
+    ligarCoresAreas($('#fConfig'), r.areas_cor || {}, r.areas_moldura || []);
     ligarEmpresa($('#fConfig'));
 
     $('#fConfig').addEventListener('submit', async (e) => {

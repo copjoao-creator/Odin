@@ -33,6 +33,7 @@ final class Config
     'cor_texto' => '#B4ECFC',
     'cor_realce' => '#F45900',
     // Cores por área (fundo e texto). Vazio = a área segue as cores básicas acima (ver Config::AREAS_COR).
+    'cor_moldura_fundo' => '', 'cor_moldura_texto' => '',
     'cor_faixa_fundo' => '', 'cor_faixa_texto' => '',
     'cor_cabecalho_fundo' => '', 'cor_cabecalho_texto' => '',
     'cor_menu_fundo' => '', 'cor_menu_texto' => '',
@@ -90,6 +91,7 @@ final class Config
    * Sem cor própria, a área usa as cores indicadas de Config::cores() (as básicas ou as derivadas delas).
    */
   public const AREAS_COR = [
+    'moldura' => ['Cabeçalho/Rodapé (faixa do topo, cabeçalho, menu e rodapé de uma vez)', 'fundo', 'texto'],
     'faixa' => ['Faixa do topo (avisos)', 'fundo', 'texto'],
     'cabecalho' => ['Cabeçalho (logotipo, busca e carrinho)', 'fundo', 'texto'],
     'menu' => ['Menu (Início, Produtos, Serviços…)', 'fundo', 'texto'],
@@ -99,15 +101,34 @@ final class Config
     'rodape' => ['Rodapé', 'fundo', 'texto'],
   ];
 
-  /** Cores próprias de cada área (só as definidas): ['faixa' => ['fundo' => '#...', 'texto' => '#...'], ...]. */
+  /** Áreas que seguem o "Cabeçalho/Rodapé" (moldura) no que não tiverem cor própria. */
+  public const AREAS_DA_MOLDURA = ['faixa', 'cabecalho', 'menu', 'rodape'];
+
+  /**
+   * Cores de cada área que fogem das básicas: ['faixa' => ['fundo' => '#...', 'texto' => '#...'], ...].
+   * - Faixa do topo, cabeçalho, menu e rodapé pegam do "Cabeçalho/Rodapé" o que não tiverem de próprio.
+   * - Fundo próprio com texto automático: o texto básico da área, se for legível nesse fundo; senão, branco ou quase preto.
+   * O "Cabeçalho/Rodapé" em si não aparece aqui: ele só vale por meio das quatro áreas.
+   */
   public static function coresAreas(): array
   {
-    $r = [];
+    $proprias = [];
     foreach (array_keys(self::AREAS_COR) as $area) {
       foreach (['fundo', 'texto'] as $parte) {
         $v = self::get("cor_{$area}_{$parte}");
-        if (preg_match('/^#[0-9a-fA-F]{6}$/', $v)) $r[$area][$parte] = strtoupper($v);
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $v)) $proprias[$area][$parte] = strtoupper($v);
       }
+    }
+    $base = self::cores();
+    $r = [];
+    foreach (self::AREAS_COR as $area => [, , $textoBase]) {
+      if ($area === 'moldura') continue;
+      $c = $proprias[$area] ?? [];
+      if (in_array($area, self::AREAS_DA_MOLDURA, true)) $c += $proprias['moldura'] ?? [];
+      if (isset($c['fundo']) && !isset($c['texto']) && self::contraste($base[$textoBase], $c['fundo']) < 4.5) {
+        $c['texto'] = self::corEscura($c['fundo']) ? '#FFFFFF' : '#111111';
+      }
+      if ($c) $r[$area] = $c;
     }
     return $r;
   }

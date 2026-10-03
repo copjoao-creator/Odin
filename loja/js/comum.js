@@ -308,8 +308,14 @@ Loja.seloClubes = (formato = 'bloco') => {
     + `<span class="selo-clubes-texto"><small>${c.modulo}</small><strong>${c.nome}</strong><span>Odin Focus</span></span></a>`;
 };
 
-/** Crédito do sistema no rodapé da loja: o selo do Módulo Financeiro de Clubes. */
-Loja.credito = () => Loja.seloClubes('linha');
+/** Símbolo do Odin Focus (hexágono com um olho), desenhado na cor do texto em volta: segue as cores de cada loja. */
+Loja.SIMBOLO_ODIN = '<svg viewBox="0 0 1024 1024" aria-hidden="true">'
+  + '<path d="M512 76 902 302v420L512 947 122 722V302Z" fill="none" stroke="currentColor" stroke-width="46"/>'
+  + '<path d="M226 512C330 410 420 377 512 377S694 410 797 512C694 614 604 647 512 647S330 614 226 512Z" fill="none" stroke="currentColor" stroke-width="44"/>'
+  + '<circle cx="512" cy="512" r="105" fill="currentColor"/></svg>';
+
+/** Crédito discreto do sistema no rodapé da loja: símbolo do Odin Focus e "Odin Focus Financeiro". */
+Loja.credito = () => `<a class="credito-odin" href="https://www.odinfocus.com.br" target="_blank" rel="noopener" title="Odin Focus Financeiro">${Loja.SIMBOLO_ODIN}<span>Odin Focus Financeiro</span></a>`;
 
 /** Preenche o rodapé-base comum a todas as páginas: nome, linha legal e crédito. */
 Loja.aplicarRodape = (l) => {

@@ -87,6 +87,13 @@ final class Marca
     foreach ($proprias as $area => $cores) {
       foreach ($cores as $parte => $hex) $areas .= "--a-{$area}-{$parte}:{$hex};";
     }
+    // Botão cheio do destaque: se a cor dos botões quase some no fundo do destaque, ele usa as cores do destaque invertidas.
+    if (isset($proprias['destaque']['fundo'])) {
+      $fundo = $proprias['destaque']['fundo'];
+      if (Config::contraste($proprias['botao']['fundo'] ?? $c['principal'], $fundo) < 1.6) {
+        $areas .= '--a-destaque-botao-fundo:' . ($proprias['destaque']['texto'] ?? $c['texto']) . ";--a-destaque-botao-texto:{$fundo};";
+      }
+    }
     // Textos pequenos do cabeçalho ("Loja oficial", "Atendimento"): a cor do texto da área, mais apagada.
     if (isset($proprias['cabecalho']['texto'])) {
       $areas .= "--a-cabecalho-suave:color-mix(in srgb,{$proprias['cabecalho']['texto']} 72%,var(--a-cabecalho-fundo,var(--fundo)));";

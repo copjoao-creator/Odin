@@ -36,6 +36,7 @@ return function (Roteador $r) {
       'tecnico' => $tecnico,
       'identidade' => Marca::publica(),
       'areas_cor' => Config::AREAS_COR,
+      'areas_moldura' => Config::AREAS_DA_MOLDURA,
       'pagamentos_configurados' => Asaas::configurado(),
       'webhook_url_asaas' => $tecnico ? Http::urlLoja() . 'api/?r=webhook/asaas' : null,
       'comando_cron' => $cron,

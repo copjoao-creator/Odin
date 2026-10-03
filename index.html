@@ -67,6 +67,23 @@
     .rodape-logo img { width: 30px; height: 30px; display: block; }
     .rodape .contato a { color: var(--laranja); display: inline-flex; align-items: center; gap: 6px; }
     .rodape-base { text-align: center; font-size: .75rem; margin-top: 28px; }
+    /* Janela "O que é o Odin Focus", no padrão das janelas do Tênis de Mesa para Todos */
+    .janela { margin: auto; width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--borda); border-radius: 24px; background: var(--marinho); color: var(--celeste); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .5); }
+    .janela::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(4px); }
+    .janela-corpo { position: relative; padding: 24px; }
+    .janela h2 { display: flex; align-items: center; gap: 10px; color: var(--neve); font-size: 1.25rem; margin-right: 36px; }
+    .janela h2 img { width: 32px; height: 32px; flex: none; }
+    .janela p { margin-top: 12px; font-size: .95rem; }
+    .janela p a { color: var(--laranja); }
+    .janela strong { color: var(--neve); }
+    .janela ul { list-style: none; padding: 0; margin-top: 14px; display: grid; gap: 8px; font-size: .9rem; }
+    .janela li { display: flex; align-items: flex-start; gap: 8px; }
+    .janela li .ico { color: var(--laranja); margin-top: 5px; width: 14px; height: 14px; }
+    .janela-fechar { position: absolute; top: 16px; right: 16px; background: none; border: 0; color: var(--celeste); font: inherit; font-size: 1.5rem; line-height: 1; padding: 2px 8px; border-radius: 8px; cursor: pointer; }
+    .janela-fechar:hover { color: var(--neve); background: rgba(180, 236, 252, .1); }
+    .janela-acoes { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(128, 255, 255, .3); }
+    .btn-contorno { background: transparent; border: 1px solid var(--borda); color: var(--celeste); font: inherit; cursor: pointer; }
+    .btn-contorno:hover { filter: none; background: rgba(180, 236, 252, .08); }
     @media (max-width: 860px) { .cartoes { grid-template-columns: 1fr; } .rodape-in { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 560px) { .selo-clubes span { display: none; } .hero { padding: 24px 16px; } .rodape-in { grid-template-columns: 1fr; } }
   </style>
@@ -105,7 +122,7 @@
             <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Compra rápida pelo CPF</li>
             <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Fale conosco e WhatsApp</li>
           </ul>
-          <a class="btn" href="loja/">Conheça <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn" href="#sobre-odin" data-sobre-odin>Conheça <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </section>
 
         <section class="cartao">
@@ -153,7 +170,7 @@
           <h3>Links rápidos</h3>
           <ul>
             <li><a href="loja/entrar.html">Entrar</a></li>
-            <li><a href="loja/">Conheça a loja Odin Focus</a></li>
+            <li><a href="#sobre-odin" data-sobre-odin>Conheça o Odin Focus</a></li>
           </ul>
         </div>
         <div>
@@ -170,6 +187,39 @@
       <p class="rodape-base">© <span id="ano">2026</span> Odin Focus · Módulo Financeiro de Clubes do Tênis de Mesa para Todos. Todos os direitos reservados.</p>
     </div>
   </footer>
-  <script>document.getElementById('ano').textContent = new Date().getFullYear();</script>
+  <!-- Janela "O que é o Odin Focus": aberta pelos links "Conheça" (ou pelo endereço com #sobre-odin) -->
+  <dialog class="janela" id="sobreOdin" aria-labelledby="sobreOdinTitulo">
+    <div class="janela-corpo">
+      <button type="button" class="janela-fechar" data-fechar aria-label="Fechar">×</button>
+      <h2 id="sobreOdinTitulo"><img src="img/odin-focus-financeiro.png" alt="" width="32" height="32">O que é o Odin Focus</h2>
+      <p>O <strong>Odin Focus</strong> é o Módulo Financeiro de Clubes do Tênis de Mesa para Todos: um sistema para clubes e escolas de tênis de mesa venderem produtos e serviços pela internet e cuidarem do financeiro em um só lugar.</p>
+      <p>Cada clube recebe a sua própria loja online, com endereço próprio, o logotipo e as cores do clube, e um painel de administração só dele.</p>
+      <ul>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Loja online:</strong> produtos (materiais, uniformes…) e serviços (aulas, treinos, planos), avulsos ou por assinatura.</span></li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Pagamentos:</strong> Pix, boleto e cartão de crédito parcelado sem juros, processados pelo Asaas, e assinaturas cobradas automaticamente no cartão.</span></li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Recebimentos fora do site:</strong> dinheiro, maquininha ou Pix em outra conta também ficam registrados.</span></li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Gestão financeira:</strong> faturamento, pedidos, clientes, estoque e assinaturas no painel do clube.</span></li>
+      </ul>
+      <p>As lojas são cadastradas pela equipe do Odin Focus. Para ter a loja do seu clube, escreva para <a href="mailto:contato@odinfocus.com.br">contato@odinfocus.com.br</a>.</p>
+      <div class="janela-acoes">
+        <button type="button" class="btn btn-contorno" data-fechar>Fechar</button>
+        <a class="btn" href="loja/entrar.html">Entrar</a>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    document.getElementById('ano').textContent = new Date().getFullYear();
+    // "Conheça": abre a janela que explica o Odin Focus (fecha no ×, em "Fechar", no Esc ou clicando fora dela).
+    const sobre = document.getElementById('sobreOdin');
+    document.querySelectorAll('[data-sobre-odin]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      sobre.showModal();
+    }));
+    sobre.addEventListener('click', (e) => {
+      if (e.target === sobre || e.target.closest('[data-fechar]')) sobre.close();
+    });
+    if (location.hash === '#sobre-odin') sobre.showModal();
+  </script>
 </body>
 </html>

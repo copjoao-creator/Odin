@@ -36,7 +36,7 @@
     .btn:hover { filter: brightness(1.15); }
     .btn-topo { padding: 8px 16px; font-size: .875rem; border-radius: 10px; }
 
-    main { flex: 1; padding: 40px 0 24px; }
+    main { flex: 1; padding: 40px 0 48px; }
     /* Quadro "O que é o Odin Focus" */
     .quadro { max-width: 760px; margin: 0 auto; border: 1px solid var(--borda); border-radius: 24px; padding: 28px; scroll-margin-top: 80px; }
     .quadro h1 { display: flex; align-items: center; gap: 12px; color: var(--neve); font-size: 1.4rem; line-height: 1.25; }
@@ -49,19 +49,33 @@
     .quadro li .ico { color: var(--laranja); margin-top: 5px; width: 15px; height: 15px; }
     .quadro-acoes { display: flex; justify-content: flex-end; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(128, 255, 255, .3); }
 
-    /* Rodapé em colunas */
-    .rodape { padding: 36px 0 20px; font-size: .85rem; }
-    .rodape-in { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 28px; }
-    .rodape h3 { color: var(--neve); font-size: .8rem; text-transform: uppercase; margin-bottom: 12px; }
-    .rodape ul { list-style: none; padding: 0; display: grid; gap: 6px; }
-    .rodape a { text-decoration: none; }
-    .rodape a:hover { color: var(--laranja); }
-    .rodape-logo { display: inline-flex; align-items: center; gap: 8px; color: var(--neve); font-size: 1.05rem; margin-bottom: 10px; }
-    .rodape-logo img { width: 30px; height: 30px; display: block; }
-    .rodape .contato a { color: var(--laranja); display: inline-flex; align-items: center; gap: 6px; }
-    .rodape-base { text-align: center; font-size: .75rem; margin-top: 28px; }
-    @media (max-width: 860px) { .rodape-in { grid-template-columns: 1fr 1fr; } .rodape-marca { grid-column: 1 / -1; } }
-    @media (max-width: 560px) { .selo-clubes span { display: none; } main { padding-top: 24px; } .quadro { padding: 22px 18px; border-radius: 20px; } .quadro h1 { font-size: 1.2rem; } .quadro-acoes .btn { width: 100%; } .rodape-in { grid-template-columns: 1fr; } }
+    /* Janela "Fale com o Odin Focus" (formulário enviado pelo EmailJS), no padrão das janelas do Tênis de Mesa para Todos */
+    .janela { margin: auto; width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--borda); border-radius: 24px; background: var(--marinho); color: var(--celeste); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .5); }
+    .janela::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(4px); }
+    .janela-corpo { position: relative; padding: 24px; }
+    .janela h2 { display: flex; align-items: center; gap: 10px; color: var(--neve); font-size: 1.25rem; margin-right: 36px; }
+    .janela h2 .ico { color: var(--laranja); width: 22px; height: 22px; }
+    .janela p { margin-top: 10px; font-size: .9rem; }
+    .janela p a { color: var(--laranja); }
+    .janela-fechar { position: absolute; top: 16px; right: 16px; background: none; border: 0; color: var(--celeste); font: inherit; font-size: 1.5rem; line-height: 1; padding: 2px 8px; border-radius: 8px; cursor: pointer; }
+    .janela-fechar:hover { color: var(--neve); background: rgba(180, 236, 252, .1); }
+    .campos { display: grid; gap: 12px; margin-top: 16px; }
+    .campos label { display: grid; gap: 4px; font-size: .8rem; }
+    .campos input, .campos select, .campos textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--marinho); color: var(--celeste); font: inherit; font-size: .95rem; }
+    .campos textarea { resize: vertical; min-height: 120px; }
+    .campos input:focus, .campos select:focus, .campos textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--borda); }
+    .campos ::placeholder { color: rgba(180, 236, 252, .5); }
+    .campos .invalido { border-color: #F87171; }
+    .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .erro { background: rgba(239, 68, 68, .14); border-left: 4px solid #F87171; border-radius: 10px; padding: 10px 14px; font-size: .88rem; }
+    .janela .btn { border: 0; font: inherit; cursor: pointer; width: 100%; }
+    .janela .btn:disabled { opacity: .5; cursor: wait; }
+    .nota { font-size: .78rem; text-align: center; opacity: .8; }
+    .enviado { text-align: center; display: grid; justify-items: center; gap: 10px; padding: 12px 0 4px; }
+    .enviado .ico { width: 48px; height: 48px; color: #4ADE80; }
+    .enviado h3 { color: var(--neve); font-size: 1.2rem; }
+    @media (max-width: 560px) { .selo-clubes span { display: none; } main { padding-top: 24px; } .quadro { padding: 22px 18px; border-radius: 20px; } .quadro h1 { font-size: 1.2rem; } .quadro-acoes .btn { width: 100%; } .duas { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -93,7 +107,7 @@
           <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Recebimentos fora do site:</strong> dinheiro, maquininha ou Pix em outra conta também ficam registrados.</span></li>
           <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Gestão financeira:</strong> faturamento, pedidos, clientes, estoque e assinaturas no painel do clube.</span></li>
         </ul>
-        <p>As lojas são cadastradas pela equipe do Odin Focus. Para ter a loja do seu clube, escreva para <a href="mailto:contato@odinfocus.com.br">contato@odinfocus.com.br</a>.</p>
+        <p>As lojas são cadastradas pela equipe do Odin Focus. Para ter a loja do seu clube, escreva para <a href="mailto:contato@odinfocus.com.br" data-fale-conosco>contato@odinfocus.com.br</a>.</p>
         <div class="quadro-acoes">
           <a class="btn" href="loja/entrar.html">Entrar <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </div>
@@ -101,27 +115,147 @@
     </div>
   </main>
 
-  <footer class="rodape">
-    <div class="container">
-      <div class="rodape-in">
-        <div class="rodape-marca">
-          <div class="rodape-logo"><img src="img/odin-focus-financeiro.png" alt="" width="30" height="30"><span>Odin <span class="ouro">Focus</span></span></div>
-          <p>Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, pagamentos e gestão financeira em um só lugar.</p>
-        </div>
-        <div>
-          <h3>Plataforma</h3>
-          <ul>
-            <li><a href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener">Tênis de Mesa para Todos</a></li>
-          </ul>
-        </div>
-        <div class="contato">
-          <h3>Contato</h3>
-          <a href="mailto:contato@odinfocus.com.br"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 5h20v14H2zm2 2v.5l8 5 8-5V7z"/></svg>contato@odinfocus.com.br</a>
-        </div>
-      </div>
-      <p class="rodape-base">© <span id="ano">2026</span> Odin Focus · Módulo Financeiro de Clubes do Tênis de Mesa para Todos. Todos os direitos reservados.</p>
+  <!-- Janela "Fale com o Odin Focus": aberta pelo link contato@odinfocus.com.br. A mensagem vai pelo EmailJS, com as
+       chaves do formulário de contato da loja Odin Focus (/loja/, Configurações › EmailJS). Sem elas, mostra o e-mail. -->
+  <dialog class="janela" id="faleConosco" aria-labelledby="faleTitulo">
+    <div class="janela-corpo">
+      <button type="button" class="janela-fechar" data-fechar aria-label="Fechar">×</button>
+      <h2 id="faleTitulo"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 5h20v14H2zm2 2v.5l8 5 8-5V7z"/></svg>Fale com o Odin Focus</h2>
+      <div id="faleAlvo"></div>
     </div>
-  </footer>
-  <script>document.getElementById('ano').textContent = new Date().getFullYear();</script>
+  </dialog>
+
+  <script>
+    (() => {
+      const EMAILJS_SDK = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+      const EMAIL = 'contato@odinfocus.com.br';
+      const ASSUNTOS = ['Quero a loja do meu clube', 'Dúvida sobre o sistema', 'Suporte', 'Outro assunto'];
+      const janela = document.getElementById('faleConosco');
+      const alvo = document.getElementById('faleAlvo');
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      let config = null;
+      let abertoEm = 0;
+
+      /** Chaves do EmailJS do formulário de contato da loja Odin Focus (null se não estiverem cadastradas). */
+      async function carregarConfig() {
+        if (config) return config;
+        const r = await fetch('loja/api/?r=loja', { credentials: 'same-origin' });
+        const d = await r.json();
+        config = (d.loja && d.loja.emailjs) || null;
+        return config;
+      }
+
+      function carregarSdk() {
+        if (window.emailjs) return Promise.resolve();
+        return new Promise((ok, falha) => {
+          const s = document.createElement('script');
+          s.src = EMAILJS_SDK;
+          s.onload = ok;
+          s.onerror = () => falha(new Error('Não foi possível carregar o serviço de envio.'));
+          document.head.appendChild(s);
+        });
+      }
+
+      function mostrarForm() {
+        alvo.innerHTML = `
+          <p>Mande sua mensagem por aqui: respondemos no e-mail informado.</p>
+          <form class="campos" id="fFale" novalidate>
+            <label>Nome <input name="nome" autocomplete="name" required maxlength="100" placeholder="Seu nome"></label>
+            <div class="duas">
+              <label>E-mail <input name="email" type="email" autocomplete="email" required maxlength="150" placeholder="email@email.com.br"></label>
+              <label>Telefone / WhatsApp (opcional) <input name="telefone" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="(00) 00000-0000"></label>
+            </div>
+            <label>Assunto <select name="assunto">${ASSUNTOS.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>
+            <label>Mensagem <textarea name="mensagem" required minlength="10" maxlength="2000" rows="5"></textarea></label>
+            <label class="isca" aria-hidden="true">Não preencha <input name="site" tabindex="-1" autocomplete="off"></label>
+            <div id="faleErro" role="alert"></div>
+            <button type="submit" class="btn">Enviar mensagem</button>
+            <p class="nota">Normalmente respondemos em até 1 dia útil.</p>
+          </form>`;
+        const f = document.getElementById('fFale');
+        f.addEventListener('submit', (e) => { e.preventDefault(); enviar(f); });
+        f.elements.nome.focus();
+      }
+
+      function validar(f) {
+        const erros = [];
+        const marcar = (nome, ok) => { f.elements[nome].classList.toggle('invalido', !ok); return ok; };
+        if (!marcar('nome', f.elements.nome.value.trim().length >= 2)) erros.push('Informe seu nome.');
+        if (!marcar('email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.elements.email.value.trim()))) erros.push('Informe um e-mail válido.');
+        const tel = f.elements.telefone.value.replace(/\D/g, '');
+        if (!marcar('telefone', tel === '' || tel.length >= 10)) erros.push('Telefone: informe DDD + número, ou deixe em branco.');
+        if (!marcar('mensagem', f.elements.mensagem.value.trim().length >= 10)) erros.push('Escreva sua mensagem (pelo menos 10 caracteres).');
+        return erros;
+      }
+
+      async function enviar(f) {
+        const erro = document.getElementById('faleErro');
+        erro.innerHTML = '';
+        // Robôs costumam preencher o campo escondido ou enviar em menos de 3 segundos.
+        if (f.elements.site.value || Date.now() - abertoEm < 3000) return concluido();
+        const erros = validar(f);
+        if (erros.length) {
+          erro.innerHTML = `<p class="erro">${erros.map(esc).join('<br>')}</p>`;
+          f.querySelector('.invalido')?.focus();
+          return;
+        }
+        const botao = f.querySelector('button[type="submit"]');
+        botao.disabled = true;
+        botao.textContent = 'Enviando…';
+        try {
+          await carregarSdk();
+          // Mesmos campos do Fale conosco das lojas (o modelo do EmailJS é o mesmo).
+          const dados = {
+            nome: f.elements.nome.value.trim(),
+            email: f.elements.email.value.trim(),
+            telefone: f.elements.telefone.value.trim() || 'não informado',
+            assunto: f.elements.assunto.value,
+            mensagem: f.elements.mensagem.value.trim(),
+            loja: 'Odin Focus · página inicial'
+          };
+          await window.emailjs.send(config.service_id, config.template_id, {
+            ...dados,
+            name: dados.nome,
+            title: dados.assunto,
+            subject: `[${dados.loja}] ${dados.assunto} - ${dados.nome}`,
+            message: `${dados.mensagem}\n\nTelefone: ${dados.telefone}\nE-mail: ${dados.email}`,
+            phone: dados.telefone,
+            reply_to: dados.email,
+            time: new Date().toLocaleString('pt-BR')
+          }, { publicKey: config.public_key });
+          concluido();
+        } catch (e) {
+          console.error('EmailJS', e);
+          erro.innerHTML = `<p class="erro">Não conseguimos enviar sua mensagem agora. Tente de novo em alguns minutos ou escreva para <a href="mailto:${EMAIL}">${EMAIL}</a>.</p>`;
+          botao.disabled = false;
+          botao.textContent = 'Enviar mensagem';
+        }
+      }
+
+      function concluido() {
+        alvo.innerHTML = `
+          <div class="enviado">
+            <svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.4 14.2-4.2-4.2 1.4-1.4 2.8 2.8 5.8-5.8 1.4 1.4z"/></svg>
+            <h3>Mensagem enviada!</h3>
+            <p>Obrigado por falar com o Odin Focus. Vamos responder no e-mail informado o quanto antes.</p>
+            <button type="button" class="btn" data-fechar>Fechar</button>
+          </div>`;
+      }
+
+      document.querySelectorAll('[data-fale-conosco]').forEach((link) => link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        abertoEm = Date.now();
+        alvo.innerHTML = '<p>Carregando…</p>';
+        janela.showModal();
+        try {
+          if (await carregarConfig()) return mostrarForm();
+        } catch { /* sem a API: mostra o e-mail abaixo */ }
+        alvo.innerHTML = `<p>Escreva para <a href="mailto:${EMAIL}">${EMAIL}</a>: respondemos no e-mail de onde a mensagem vier.</p>`;
+      }));
+      janela.addEventListener('click', (e) => {
+        if (e.target === janela || e.target.closest('[data-fechar]')) janela.close();
+      });
+    })();
+  </script>
 </body>
 </html>

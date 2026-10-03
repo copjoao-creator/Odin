@@ -106,10 +106,11 @@
     $$('#nav a[data-modulo]').forEach((a) => { a.hidden = !(a.dataset.modulo in A.loja.modulos); });
   }
 
+  // Sair: encerra a sessão e volta à página inicial do Odin Focus (onde fica o "Entrar").
   $('#btnSair').addEventListener('click', async () => {
     try { await api('admin/sair', { metodo: 'POST' }); } catch { /* sessão já encerrada */ }
     A.admin = null;
-    mostrarLogin();
+    location.href = '/';
   });
 
   const TELAS = {

@@ -6,7 +6,7 @@
   <title>Odin Focus · Módulo Financeiro de Clubes · Tênis de Mesa para Todos</title>
   <meta name="description" content="Odin Focus, o Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, painel próprio, personalização e pagamento por Pix, boleto, cartão e assinaturas.">
   <meta name="theme-color" content="#172C46">
-  <link rel="icon" href="img/odin-focus-simbolo.svg" type="image/svg+xml">
+  <link rel="icon" href="img/odin-focus-financeiro.png" type="image/png">
   <!-- Fonte do Tênis de Mesa para Todos: Source Sans 3 (Google Fonts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
   <style>
     /* Padrão visual do Tênis de Mesa para Todos (tenisdemesasp.com.br): fundo azul-marinho, textos celeste,
        quadros só com borda ciano, botões verdes, ícones laranja, Source Sans 3 sem negrito. */
-    :root { --marinho: #172C46; --celeste: #B4ECFC; --borda: #80FFFF; --verde: #00592D; --laranja: #F45900; --neve: #FFFAFA; color-scheme: dark; }
+    :root { --marinho: #172C46; --celeste: #B4ECFC; --borda: #80FFFF; --verde: #00592D; --laranja: #F45900; --neve: #FFFAFA; --ouro: #D4A74E; color-scheme: dark; }
     * { box-sizing: border-box; margin: 0; font-weight: 400; }
     body { font: 16px/1.6 'Source Sans 3', 'Segoe UI', Arial, sans-serif; letter-spacing: .05em; color: var(--celeste); background: var(--marinho); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
     a { color: inherit; }
@@ -25,7 +25,10 @@
     .topo { position: sticky; top: 0; z-index: 10; background: var(--marinho); font-size: .8rem; }
     .topo-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; flex-wrap: wrap; max-width: 1280px; margin: 0 auto; }
     .topo-marcas { display: flex; align-items: center; gap: 14px; min-width: 0; }
-    .topo-logo img { width: 150px; height: auto; display: block; }
+    /* Logotipo: símbolo do Odin Focus (hexágono dourado com olho) e o nome, com "Focus" no dourado do símbolo */
+    .topo-logo { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--neve); font-size: 1.15rem; }
+    .topo-logo img { width: 34px; height: 34px; display: block; }
+    .ouro { color: var(--ouro); }
     .selo-clubes { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--laranja); padding-left: 14px; border-left: 1px solid rgba(128, 255, 255, .3); }
     .selo-clubes img { width: 28px; height: 28px; object-fit: contain; background: #fff; border-radius: 6px; padding: 2px; }
     .selo-clubes:hover span { text-decoration: underline; text-underline-offset: 3px; }
@@ -37,7 +40,7 @@
     /* Quadro de apresentação */
     .hero { border: 1px solid var(--borda); border-radius: 24px; padding: 32px 24px; text-align: center; }
     .hero h1 { color: var(--neve); font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.2; }
-    .hero h1 span { color: var(--laranja); }
+    .hero h1 span { color: var(--ouro); }
     .hero p { margin-top: 6px; }
     /* Três quadros com lista de recursos */
     .cartoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
@@ -60,18 +63,19 @@
     .rodape ul { list-style: none; padding: 0; display: grid; gap: 6px; }
     .rodape a { text-decoration: none; }
     .rodape a:hover { color: var(--laranja); }
-    .rodape-marca img { width: 140px; height: auto; display: block; margin-bottom: 10px; }
+    .rodape-logo { display: inline-flex; align-items: center; gap: 8px; color: var(--neve); font-size: 1.05rem; margin-bottom: 10px; }
+    .rodape-logo img { width: 30px; height: 30px; display: block; }
     .rodape .contato a { color: var(--laranja); display: inline-flex; align-items: center; gap: 6px; }
     .rodape-base { text-align: center; font-size: .75rem; margin-top: 28px; }
     @media (max-width: 860px) { .cartoes { grid-template-columns: 1fr; } .rodape-in { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 560px) { .topo-logo img { width: 120px; } .selo-clubes span { display: none; } .hero { padding: 24px 16px; } .rodape-in { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .selo-clubes span { display: none; } .hero { padding: 24px 16px; } .rodape-in { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header class="topo">
     <div class="topo-in">
       <div class="topo-marcas">
-        <a class="topo-logo" href="/" aria-label="Odin Focus"><img src="img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="150" height="42"></a>
+        <a class="topo-logo" href="/"><img src="img/odin-focus-financeiro.png" alt="" width="34" height="34"><span>Odin <span class="ouro">Focus</span></span></a>
         <a class="selo-clubes" href="https://www.tenisdemesasp.com.br" target="_blank" rel="noopener" title="Tênis de Mesa para Todos">
           <img src="loja/img/tenis-de-mesa-para-todos.png" alt="" width="28" height="28">
           <span>Módulo Financeiro de Clubes</span>
@@ -142,7 +146,7 @@
     <div class="container">
       <div class="rodape-in">
         <div class="rodape-marca">
-          <img src="img/odin-focus-logo-negativo.svg" alt="Odin Focus" width="140" height="39">
+          <div class="rodape-logo"><img src="img/odin-focus-financeiro.png" alt="" width="30" height="30"><span>Odin <span class="ouro">Focus</span></span></div>
           <p>Módulo Financeiro de Clubes do Tênis de Mesa para Todos: loja, pagamentos e gestão financeira em um só lugar.</p>
         </div>
         <div>

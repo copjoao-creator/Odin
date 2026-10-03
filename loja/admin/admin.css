@@ -286,15 +286,17 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
 }
 
 /* ---------- Plataforma: Entrar e painel master ---------- */
-.entrar-logo { width: 200px; height: auto; justify-self: center; margin-bottom: 4px; }
+/* Logotipo do Odin Focus: símbolo (hexágono dourado com olho) e o nome, com "Focus" no dourado do símbolo */
+.ouro-odin { color: #D4A74E; }
+.entrar-logo { justify-self: center; display: inline-flex; align-items: center; gap: 12px; font-size: 1.6rem; color: var(--titulo); margin-bottom: 4px; }
+.entrar-logo img { width: 56px; height: 56px; display: block; }
 .login-caixa form { display: grid; gap: 14px; }
 .entrar-nota { font-size: .85rem; color: var(--suave); background: var(--tom); padding: 10px 12px; border-radius: 10px; text-align: left; }
 .entrar-lojas { display: grid; gap: 10px; }
 .form-erro.aviso-info { background: color-mix(in srgb, var(--secundaria) 12%, transparent); border-left-color: var(--secundaria); }
-/* Painel master: símbolo do Odin Focus (hexágono dourado com olho) e o nome, com "Focus" no dourado do símbolo */
+/* Painel master: símbolo do Odin Focus e o nome (o dourado de "Focus" vem do .ouro-odin) */
 .master-logo img { width: 40px; height: 40px; display: block; flex: none; }
 .master-logo .logo-texto strong { font-size: 1.05rem; }
-.master-logo .realce { color: #D4A74E; }
 .master-logo small { font-size: .65rem; text-transform: uppercase; color: var(--suave); }
 .acoes-loja { white-space: nowrap; }
 .acoes-loja a, .acoes-loja .link { display: block; margin: 2px 0; font-size: .85rem; }
